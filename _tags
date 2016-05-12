@@ -1,0 +1,39 @@
+# OASIS_START
+# DO NOT EDIT (digest: 461486e7a25d6fa8890e8839feeaa42b)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library network
+"src/network/network.cmxs": use_network
+<src/network/*.ml{,i,y}>: pkg_async
+<src/network/*.ml{,i,y}>: pkg_core
+<src/network/*.ml{,i,y}>: pkg_ctypes
+<src/network/*.ml{,i,y}>: pkg_dolog
+<src/network/*.ml{,i,y}>: pkg_threads
+# Library blockchain
+"src/blockchain/blockchain.cmxs": use_blockchain
+# Executable bitfu
+"src/bitfu.byte": pkg_async
+"src/bitfu.byte": pkg_core
+"src/bitfu.byte": pkg_ctypes
+"src/bitfu.byte": pkg_dolog
+"src/bitfu.byte": pkg_threads
+"src/bitfu.byte": use_network
+<src/*.ml{,i,y}>: pkg_async
+<src/*.ml{,i,y}>: pkg_core
+<src/*.ml{,i,y}>: pkg_ctypes
+<src/*.ml{,i,y}>: pkg_dolog
+<src/*.ml{,i,y}>: pkg_threads
+<src/*.ml{,i,y}>: use_network
+# OASIS_STOP

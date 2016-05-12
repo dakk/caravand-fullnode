@@ -1,0 +1,25 @@
+OASISFormat: 0.4
+Name:        bitfu
+Version:     0.0.1
+Synopsis:    bitcoin node, functional and type-safe
+Authors:     Davide Gessa <gessadavide@gmail.com>
+License:     MIT
+Plugins:     META (0.4), DevFiles (0.4)
+
+Library network
+  Path:         src/network
+  BuildTools:   ocamlbuild
+  BuildDepends: ctypes, core, async, threads, dolog
+  Modules:      Dns
+
+Library blockchain
+  Path:         src/blockchain
+  BuildTools:   ocamlbuild
+  BuildDepends:
+  Modules:	Params, Tx, Block, Blockchain
+
+Executable bitfu
+  Path:         src/
+  MainIs:       bitfu.ml
+  BuildTools:   ocamlbuild
+  BuildDepends: network
