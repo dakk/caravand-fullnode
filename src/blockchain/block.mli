@@ -1,3 +1,1 @@
-module Block : sig
-	type t
-end
+type t

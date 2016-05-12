@@ -5,6 +5,8 @@ Synopsis:    bitcoin node, functional and type-safe
 Authors:     Davide Gessa <gessadavide@gmail.com>
 License:     MIT
 Plugins:     META (0.4), DevFiles (0.4)
+AlphaFeatures: ocamlbuild_more_args
+BuildTools:  ocamlbuild
 
 Library network
   Path:         src/network
@@ -16,7 +18,18 @@ Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
   BuildDepends:
-  Modules:	Params, Tx, Block, Blockchain
+  Modules:	Params, Tx, Block, Pool, Blockchain
+
+
+Document bitfu
+  Title:                API reference for simplelib
+  Type:                 ocamlbuild (0.1.0)
+  InstallDir:           $htmldir/doc
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      src
+  XOCamlbuildLibraries: network, blockchain
+
+
 
 Executable bitfu
   Path:         src/

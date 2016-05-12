@@ -1,6 +1,4 @@
-module Block = struct
-        type t = string;;
-end
+type t = string;;
 
 
 

@@ -2,18 +2,17 @@ open Params;;
 open Block;;
 open Tx;;
 
-module Blockchain = struct
-        type t = string;;
+	
+	type t = string;;
 
-        let genesis p = "";;
-        let add bc b = "";;
-        let fork bc = bc;;
-        let height bc = 1;;
-        let last bc = "";;
-        let get bc h = "";;
-        let geti bc i = "";;
-
-        let utxo bc = [];;
-end
+	let genesis p = "";;
+	let add bc b = "";;
+	let fork bc = bc;;
+	let height bc = 1;;
+	let last bc = "";;
+	let get bc h = "";;
+	let geti bc i = "";;
+		
+	let utxo bc = [];;
 
 
