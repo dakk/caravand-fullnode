@@ -1,0 +1,11 @@
+# OASIS_START
+# DO NOT EDIT (digest: e5982328deda93f5fa5ff82486e9cc28)
+version = "0.0.1"
+description = "bitcoin node, functional and type-safe"
+archive(byte) = "top.cma"
+archive(byte, plugin) = "top.cma"
+archive(native) = "top.cmxa"
+archive(native, plugin) = "top.cmxs"
+exists_if = "top.cma"
+# OASIS_STOP
+

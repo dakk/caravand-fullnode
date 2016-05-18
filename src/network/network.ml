@@ -1,10 +1,11 @@
 open Log;;
 open Dns;;
+open Params;;
 
 type t = string;;
 
-let init () =
+let init p =
 	Log.info "Network" "Initalization...";
- 	let addrs = Dns.query "seed.bitcoin.sipa.be" in
+ 	let addrs = Dns.query_set p.seeds in
 	""
 ;;

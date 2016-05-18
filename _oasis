@@ -18,13 +18,14 @@ Library network
   Path:         src/network
   BuildTools:   ocamlbuild
   BuildDepends: ctypes, core, async, threads, utils
-  Modules:      Dns, Network
+  Modules:      Dns, Network, Params
 
 Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
   BuildDepends: utils
-  Modules:	Params, Tx, Block, Pool, Blockchain, Utxo
+  Modules:	Tx, Block, Pool, Blockchain, Utxo
+  
   
 
 Document bitfu
@@ -33,7 +34,7 @@ Document bitfu
   InstallDir:           $htmldir/doc
   BuildTools+:          ocamldoc
   XOCamlbuildPath:      src
-  XOCamlbuildLibraries: network, blockchain
+  XOCamlbuildLibraries: network, blockchain, utils
 
 
 

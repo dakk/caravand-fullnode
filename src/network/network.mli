@@ -1,3 +1,5 @@
+open Params;;
+
 type t
 
-val init : unit -> t
+val init : Params.t -> t
