@@ -1,5 +1,4 @@
-open Core.Std;;
-open Async.Std;;
+open Unix;;
 
 val query : 
-	server : string -> unit
+	server : string -> inet_addr list

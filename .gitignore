@@ -1,0 +1,13 @@
+*.mldylib
+*.mllib
+*.o
+*.cmx
+*.cmi
+_build/
+*.byte
+*.docdir
+setup.data
+setup.log
+*.odocl
+\#*
+myocamlbuild.ml 

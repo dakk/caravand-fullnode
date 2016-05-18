@@ -8,18 +8,24 @@ Plugins:     META (0.4), DevFiles (0.4)
 AlphaFeatures: ocamlbuild_more_args
 BuildTools:  ocamlbuild
 
+Library utils
+  Path:         src/utils
+  BuildTools:   ocamlbuild
+  BuildDepends:
+  Modules: Log
+
 Library network
   Path:         src/network
   BuildTools:   ocamlbuild
-  BuildDepends: ctypes, core, async, threads, dolog
-  Modules:      Dns
+  BuildDepends: ctypes, core, async, threads, utils
+  Modules:      Dns, Network
 
 Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
-  BuildDepends:
-  Modules:	Params, Tx, Block, Pool, Blockchain
-
+  BuildDepends: utils
+  Modules:	Params, Tx, Block, Pool, Blockchain, Utxo
+  
 
 Document bitfu
   Title:                API reference for simplelib
