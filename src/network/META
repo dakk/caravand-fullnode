@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: a9a635bc62421f0995ccb1f93fdd98c7)
+# DO NOT EDIT (digest: cf127107ade2404f9deb5298d9f7b804)
 version = "0.0.1"
 description = "bitcoin node, functional and type-safe"
-requires = "ctypes core async threads utils"
+requires = "ctypes lwt threads utils"
 archive(byte) = "network.cma"
 archive(byte, plugin) = "network.cma"
 archive(native) = "network.cmxa"

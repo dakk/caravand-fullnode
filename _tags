@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 8a4ceac2d7ad5a7ad01f4b81b1a43558)
+# DO NOT EDIT (digest: 5520b1b901cec6143ff953769b5dd78f)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -18,24 +18,22 @@ true: annot, bin_annot
 "src/utils/utils.cmxs": use_utils
 # Library network
 "src/network/network.cmxs": use_network
-<src/network/*.ml{,i,y}>: pkg_async
-<src/network/*.ml{,i,y}>: pkg_core
 <src/network/*.ml{,i,y}>: pkg_ctypes
+<src/network/*.ml{,i,y}>: pkg_lwt
 <src/network/*.ml{,i,y}>: pkg_threads
 <src/network/*.ml{,i,y}>: use_utils
 # Library blockchain
 "src/blockchain/blockchain.cmxs": use_blockchain
+<src/blockchain/*.ml{,i,y}>: pkg_lwt
 <src/blockchain/*.ml{,i,y}>: use_utils
 # Executable letchain
-"src/letchain.byte": pkg_async
-"src/letchain.byte": pkg_core
 "src/letchain.byte": pkg_ctypes
+"src/letchain.byte": pkg_lwt
 "src/letchain.byte": pkg_threads
 "src/letchain.byte": use_network
 "src/letchain.byte": use_utils
-<src/*.ml{,i,y}>: pkg_async
-<src/*.ml{,i,y}>: pkg_core
 <src/*.ml{,i,y}>: pkg_ctypes
+<src/*.ml{,i,y}>: pkg_lwt
 <src/*.ml{,i,y}>: pkg_threads
 <src/*.ml{,i,y}>: use_network
 <src/*.ml{,i,y}>: use_utils
