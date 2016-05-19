@@ -1,5 +1,5 @@
 OASISFormat: 0.4
-Name:        bitfu
+Name:        letchain
 Version:     0.0.1
 Synopsis:    bitcoin node, functional and type-safe
 Authors:     Davide Gessa <gessadavide@gmail.com>
@@ -28,7 +28,7 @@ Library blockchain
   
   
 
-Document bitfu
+Document letchain
   Title:                API reference for simplelib
   Type:                 ocamlbuild (0.1.0)
   InstallDir:           $htmldir/doc
@@ -38,8 +38,8 @@ Document bitfu
 
 
 
-Executable bitfu
+Executable letchain
   Path:         src/
-  MainIs:       bitfu.ml
+  MainIs:       letchain.ml
   BuildTools:   ocamlbuild
   BuildDepends: network
