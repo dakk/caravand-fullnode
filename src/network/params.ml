@@ -15,7 +15,7 @@ let params_of_network n =
 			port	= 8333;
 			magic	= "D9B4BEF9";
 			seeds	= [ 
-				"seed.bitcoin.sipa.be"; 
+				(*"seed.bitcoin.sipa.be";*) 
 				"dnsseed.bluematt.me"; 
 				"dnsseed.bitcoin.dashjr.org"; 
 				"seed.bitcoinstats.com"; 

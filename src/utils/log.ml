@@ -17,6 +17,12 @@ let color_to_string = function
 ;;
 let color_reset = "\027[0m";;
 
+let color_of_level lev = match lev with
+  | INFO -> Green
+  | DEBUG -> Yellow 
+  | _ -> Red
+;;
+
 let level_str lev = match lev with
 	| INFO -> color_to_string Blue ^ "ℹ" ^ color_reset
 	| DEBUG -> color_to_string Yellow ^ "⚙" ^ color_reset
@@ -44,7 +50,7 @@ let head_str lev sec =
       tm.Unix.tm_sec
       (int_of_float (1_000. *. us))
 	  color_reset
-	  (color_to_string Green)
+	  (color_to_string (color_of_level lev))
 	  sec
 	  (color_reset)
 	  (color_to_string Yellow)

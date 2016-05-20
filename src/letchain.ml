@@ -7,7 +7,8 @@ let main () =
 	let cn = Params.BTC in
 	Log.info "letchain" "Selected network: %s" (name_of_network cn);
 	let p = params_of_network cn in
-	let n = Network.init p in ()
+	let n = Network.init p in 
+	Network.loop n
 ;;
 
 main ();;

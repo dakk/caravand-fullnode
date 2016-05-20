@@ -17,8 +17,8 @@ Library utils
 Library network
   Path:         src/network
   BuildTools:   ocamlbuild
-  BuildDepends: ctypes, lwt, threads, utils
-  Modules:      Dns, Network, Params
+  BuildDepends: ctypes, async, threads, utils
+  Modules:      Dns, Network, Params, Proto, Peer
 
 Library blockchain
   Path:         src/blockchain
