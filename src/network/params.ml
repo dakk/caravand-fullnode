@@ -2,7 +2,7 @@ type e = BTC | XTN | SIDECHAIN;;
 
 type t = { 
 	genesis		: string;
-	magic		: string;
+	magic		: int;
 	port		: int;
 	seeds		: string list;
 	network		: e;
@@ -16,7 +16,7 @@ let of_network n =
 			network	= BTC;
 			genesis	= "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
 			port	= 8333;
-			magic	= "D9B4BEF9";
+			magic	= 0xD9B4BEF9;
 			seeds	= [ 
 				(*"seed.bitcoin.sipa.be";*) 
 				"dnsseed.bluematt.me"; 

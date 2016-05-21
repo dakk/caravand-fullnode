@@ -2,7 +2,7 @@ type e = BTC | XTN | SIDECHAIN
 
 type t = { 
 	genesis		: string;
-	magic		: string;
+	magic		: int;
 	port		: int;
 	seeds		: string list;
 	network		: e;
