@@ -1,4 +1,5 @@
 open Bitstring;;
+open Params;;
 
 type header = {
 	magic		: int32;
@@ -91,6 +92,33 @@ let parse header payload =
 (* Serialization **************************************************)
 (******************************************************************)
 
-let serialize message = 
-	""
+let serialize_header header =
+	let bdata = BITSTRING {
+		header.magic 	: 4*8 	: littleendian;
+		header.command	: 12*8 	: string;
+		header.length 	: 4*8 	: littleendian;
+		header.checksum : 4*8 	: string
+	} 
+	in string_of_bitstring bdata
+;;
+
+
+let serialize_message message = 
+	let bdata = match message with
+	| VERSION (v) -> empty_bitstring
+	| VERACK -> empty_bitstring
+	| _ -> empty_bitstring
+	in string_of_bitstring bdata
+;;
+
+let serialize params message = 
+	let mdata = serialize_message message in
+	let header = {
+		magic	= Int32.of_int params.Params.magic;
+		command	= "ping";
+		length	= Int32.of_int (Bytes.length mdata);
+		checksum= "1234";
+	} in 
+	let hdata = serialize_header header in
+	Bytes.cat hdata mdata
 ;;

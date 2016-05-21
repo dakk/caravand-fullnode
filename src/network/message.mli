@@ -1,3 +1,5 @@
+open Params;;
+
 type header
 
 type version
@@ -13,4 +15,4 @@ val parse_header: bytes -> header
 val parse		: header -> bytes -> t
 
 (* Serialize the message (the result include also the header) *)
-val serialize	: t -> bytes
+val serialize	: Params.t -> t -> bytes

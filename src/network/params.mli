@@ -8,6 +8,6 @@ type t = {
 	network		: e;
 }
 
-val of_network 	: e -> t
+val of_network 			: e -> t
 val name_of_network 	: e -> string
 
