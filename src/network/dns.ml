@@ -1,6 +1,6 @@
 open Unix;;
 open Log;;
-open Async;;
+
 
 let query server =
 	try

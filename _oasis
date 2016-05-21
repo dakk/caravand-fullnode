@@ -17,13 +17,13 @@ Library utils
 Library network
   Path:         src/network
   BuildTools:   ocamlbuild
-  BuildDepends: ctypes, async, threads, utils
-  Modules:      Dns, Network, Params, Proto, Peer
+  BuildDepends: ctypes, threads, utils
+  Modules:      Dns, Network, Params, Message, Peer
 
 Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
-  BuildDepends: lwt, utils
+  BuildDepends: threads, utils
   Modules:	Tx, Block, Pool, Blockchain, Utxo
   
   
@@ -42,4 +42,4 @@ Executable letchain
   Path:         src/
   MainIs:       letchain.ml
   BuildTools:   ocamlbuild
-  BuildDepends: network
+  BuildDepends: network, blockchain

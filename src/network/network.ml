@@ -2,7 +2,6 @@ open Log;;
 open Dns;;
 open Params;;
 open Peer;;
-open Async;;
 
 type t = {
 	addrs:  Unix.inet_addr list;

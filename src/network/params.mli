@@ -1,12 +1,13 @@
+type e = BTC | XTN | SIDECHAIN
+
 type t = { 
 	genesis		: string;
 	magic		: string;
 	port		: int;
 	seeds		: string list;
+	network		: e;
 }
 
-type e = BTC | XTN | SIDECHAIN
-
-val params_of_network 	: e -> t
+val of_network 	: e -> t
 val name_of_network 	: e -> string
 
