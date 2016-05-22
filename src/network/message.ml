@@ -50,6 +50,34 @@ type t =
 ;;
 
 
+let string_of_command c = match c with
+	  VERSION (v) -> "version"
+	| VERACK -> "verack"
+	| PING -> "ping"
+	| PONG -> "pong"
+	| INV -> "inv"
+	| ADDR -> "addr"
+	| GETDATA -> "getdata"
+	| NOTFOUND -> "notfound"
+	| GETBLOCKS -> "getblocks"
+	| GETHEADERS -> "getheaders"
+	| TX -> "tx"
+	| BLOCKS -> "blocks"
+	| HEADERS -> "headers"
+	| GETADDR -> "getaddr"
+	| MEMPOOL -> "mempool"
+	| REJECT -> "reject"
+	
+	(* Bloom filter related *)
+	| FILTERLOAD -> "filterload"
+	| FILTERADD -> "filteradd"
+	| FILTERCLEAR -> "filterclear"
+	| MERKLEBLOCK -> "merkleblock"
+	
+	| ALERT -> "alert"
+	| SENDHEADERS -> "sendheaders"
+;;
+
 
 (******************************************************************)
 (* Parsing ********************************************************)
@@ -92,6 +120,12 @@ let parse header payload =
 (* Serialization **************************************************)
 (******************************************************************)
 
+let serialize_version v =
+	BITSTRING {
+		 v.version : 4*8 : littleendian
+	}
+;;
+
 let serialize_header header =
 	let bdata = BITSTRING {
 		header.magic 	: 4*8 	: littleendian;
@@ -105,7 +139,7 @@ let serialize_header header =
 
 let serialize_message message = 
 	let bdata = match message with
-	| VERSION (v) -> empty_bitstring
+	| VERSION (v) -> serialize_version v
 	| VERACK -> empty_bitstring
 	| _ -> empty_bitstring
 	in string_of_bitstring bdata
@@ -113,9 +147,11 @@ let serialize_message message =
 
 let serialize params message = 
 	let mdata = serialize_message message in
+	let command = string_of_command message in
+	let command' = command ^ (String.make (12 - (String.length command)) '\x00') in
 	let header = {
 		magic	= Int32.of_int params.Params.magic;
-		command	= "ping        ";
+		command	= command';
 		length	= Int32.of_int (Bytes.length mdata);
 		checksum= "1234";
 	} in 

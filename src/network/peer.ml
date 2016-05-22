@@ -29,7 +29,7 @@ let connect params addr port =
 
 let send peer message = 
 	let data = Message.serialize peer.params message in
-	let res = Unix.send peer.socket data (Bytes.length data) 0 [] in ()
+	Unix.send peer.socket data (Bytes.length data) 0 [] |> ignore
 ;;
 
 
@@ -50,3 +50,4 @@ let handshake peer =
 		relay		= true;
 	} in send peer (Message.VERSION (verm))
 ;;
+
