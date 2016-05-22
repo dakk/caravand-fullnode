@@ -14,14 +14,17 @@ type version = {
 	relay		: bool;
 }
 
+type ping = int64
+type pong = int64
+
 (*type ping
 type pong*)
 
 type t = 
 	  VERSION of version
 	| VERACK
-	| PING
-	| PONG
+	| PING of ping
+	| PONG of pong
 	| INV
 	| ADDR
 	| GETDATA
@@ -46,12 +49,6 @@ type t =
 ;;
 
 
-
-(* Parse the header from the given 24 bytes *)
-val parse_header: bytes -> header
-
-(* Parse the payload *)
 val parse		: header -> bytes -> t
-
-(* Serialize the message (the result include also the header) *)
+val parse_header: bytes -> header
 val serialize	: Params.t -> t -> bytes

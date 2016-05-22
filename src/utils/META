@@ -1,7 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: ebc1b48fd7bf3381d7cd49c781cb1ec7)
+# DO NOT EDIT (digest: 1073d7529ca2e5880a80d257fd5127c7)
 version = "0.0.1"
 description = "bitcoin node, functional and type-safe"
+requires = "cryptokit"
 archive(byte) = "utils.cma"
 archive(byte, plugin) = "utils.cma"
 archive(native) = "utils.cmxa"

@@ -1,5 +1,6 @@
 open Bitstring;;
 open Params;;
+open Crypto;;
 
 type header = {
 	magic		: int32;
@@ -21,11 +22,15 @@ type version = {
 };;
 
 
+type ping = int64;;
+type pong = int64;;
+
+
 type t = 
 	  VERSION of version
 	| VERACK
-	| PING
-	| PONG
+	| PING of ping
+	| PONG of pong
 	| INV
 	| ADDR
 	| GETDATA
@@ -53,8 +58,8 @@ type t =
 let string_of_command c = match c with
 	  VERSION (v) -> "version"
 	| VERACK -> "verack"
-	| PING -> "ping"
-	| PONG -> "pong"
+	| PING (p) -> "ping"
+	| PONG (p) -> "pong"
 	| INV -> "inv"
 	| ADDR -> "addr"
 	| GETDATA -> "getdata"
@@ -82,6 +87,20 @@ let string_of_command c = match c with
 (******************************************************************)
 (* Parsing ********************************************************)
 (******************************************************************)
+let parse_ping data =
+	let bdata = bitstring_of_string data in
+	bitmatch bdata with
+	| { nonce		: 8*8	: littleendian } -> nonce
+	| { _ } -> raise (Invalid_argument "Invalid ping message")
+;;
+
+let parse_pong data =
+	let bdata = bitstring_of_string data in
+	bitmatch bdata with
+	| { nonce		: 8*8	: littleendian } -> nonce
+	| { _ } -> raise (Invalid_argument "Invalid pong message")
+;;
+
 let parse_header data =
 	let bdata = bitstring_of_string data in
 	bitmatch bdata with
@@ -104,9 +123,13 @@ let parse_header data =
 let parse header payload = 
 	match header.command with
 	| "version" -> VERACK
-	| "ping" -> VERACK
-	| "pong" -> VERACK
-	| _ -> raise (Invalid_argument "Protocol command not recognized")
+	| "ping" -> PING (parse_ping payload)
+	| "pong" -> PONG (parse_pong payload)
+	| "verack" -> VERACK
+	| "getaddr" -> GETADDR
+	| "mempool" -> MEMPOOL
+	| "sendheaders" -> SENDHEADERS
+	| _ -> raise (Invalid_argument ("Protocol command " ^ header.command ^ " not recognized"))
 ;;
 
 
@@ -128,6 +151,9 @@ let serialize_version v =
 	}
 ;;
 
+let serialize_ping p = BITSTRING { p 	: 8*8 : littleendian };;
+let serialize_pong p = BITSTRING { p 	: 8*8 : littleendian };;
+
 let serialize_header header =
 	let bdata = BITSTRING {
 		header.magic 	: 4*8 	: littleendian;
@@ -141,8 +167,13 @@ let serialize_header header =
 
 let serialize_message message = 
 	let bdata = match message with
+	| PING (p) -> serialize_ping p
+	| PONG (p) -> serialize_pong p
 	| VERSION (v) -> serialize_version v
 	| VERACK -> empty_bitstring
+	| GETADDR -> empty_bitstring
+	| MEMPOOL -> empty_bitstring
+	| SENDHEADERS -> empty_bitstring
 	| _ -> empty_bitstring
 	in string_of_bitstring bdata
 ;;
@@ -155,7 +186,7 @@ let serialize params message =
 		magic	= Int32.of_int params.Params.magic;
 		command	= command';
 		length	= Int32.of_int (Bytes.length mdata);
-		checksum= "1234";
+		checksum= Crypto.checksum4 mdata;
 	} in 
 	let hdata = serialize_header header in
 	Bytes.cat hdata mdata
