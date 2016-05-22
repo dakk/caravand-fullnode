@@ -115,7 +115,7 @@ let serialize params message =
 	let mdata = serialize_message message in
 	let header = {
 		magic	= Int32.of_int params.Params.magic;
-		command	= "ping";
+		command	= "ping        ";
 		length	= Int32.of_int (Bytes.length mdata);
 		checksum= "1234";
 	} in 

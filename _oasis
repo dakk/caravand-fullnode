@@ -23,7 +23,7 @@ Library network
 Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
-  BuildDepends: threads, utils
+  BuildDepends: threads, utils, network
   Modules:	Tx, Block, Pool, Blockchain, Utxo
   
   

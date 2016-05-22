@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 5e68d64a91c2ac890fea719a47926c4f)
+# DO NOT EDIT (digest: 3699c460df6f592676f27726b8252599)
 version = "0.0.1"
 description = "bitcoin node, functional and type-safe"
-requires = "threads utils"
+requires = "threads utils network"
 archive(byte) = "blockchain.cma"
 archive(byte, plugin) = "blockchain.cma"
 archive(native) = "blockchain.cmxa"

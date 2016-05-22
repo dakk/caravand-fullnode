@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: c7d83603243c5a040b27cc14025dc7ed)
+# DO NOT EDIT (digest: ced888e83a951a963106c1f86ed0138a)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -25,7 +25,11 @@ true: annot, bin_annot
 <src/network/*.ml{,i,y}>: use_utils
 # Library blockchain
 "src/blockchain/blockchain.cmxs": use_blockchain
+<src/blockchain/*.ml{,i,y}>: pkg_bitstring
+<src/blockchain/*.ml{,i,y}>: pkg_bitstring.syntax
+<src/blockchain/*.ml{,i,y}>: pkg_ctypes
 <src/blockchain/*.ml{,i,y}>: pkg_threads
+<src/blockchain/*.ml{,i,y}>: use_network
 <src/blockchain/*.ml{,i,y}>: use_utils
 # Executable letchain
 "src/letchain.byte": pkg_bitstring

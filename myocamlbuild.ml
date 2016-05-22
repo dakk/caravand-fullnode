@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 7fc337e3c240a4d2464152df0e586872) *)
+(* DO NOT EDIT (digest: 19ff89a553c4b5b5b798ddc9a786b265) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -778,7 +778,7 @@ let package_default =
      includes =
        [
           ("src/network", ["src/utils"]);
-          ("src/blockchain", ["src/utils"]);
+          ("src/blockchain", ["src/network"; "src/utils"]);
           ("src", ["src/blockchain"; "src/network"])
        ]
   }

@@ -21,9 +21,10 @@ let rec connect par pt addrs n =
 			let _ = Hashtbl.find pt a' in
 			connect par pt al' n 
 		with Not_found -> 
-			let p = Peer.connect a par.port in
+			let p = Peer.connect par a par.port in
 			match p with
 				| Some (peer) -> 
+					Peer.handshake peer;
 					Hashtbl.add pt a' peer; 
 					connect par pt al' (n-1)
 				| None -> connect par pt al' n
