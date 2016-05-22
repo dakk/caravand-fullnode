@@ -39,8 +39,8 @@ let recv p = None;;
 
 let handshake peer =
 	let verm = {
-		version		= Int32.of_int 12001;
-		services	= Int64.of_int 0;
+		version		= Int32.of_int peer.params.version;
+		services	= peer.params.services;
 		timestamp	= Unix.gmtime (Unix.time ());
 		addr_recv	= "";
 		addr_from	= "";

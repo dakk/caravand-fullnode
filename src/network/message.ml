@@ -122,7 +122,9 @@ let parse header payload =
 
 let serialize_version v =
 	BITSTRING {
-		 v.version : 4*8 : littleendian
+		v.version 	: 4*8 : littleendian;
+		v.services 	: 8*8 : littleendian;
+		Int64.of_float (fst (Unix.mktime v.timestamp)) : 8*8 : littleendian
 	}
 ;;
 
