@@ -8,4 +8,4 @@ let hash160 data = ripemd160 (sha256 data);;
 let hash256 data = sha256 (sha256 data);;
 let dsha256 data = hash256 data;;
 
-let checksum4 data = String.sub (sha256 data) 0 4;;
+let checksum4 data = String.sub (dsha256 data) 0 4;;

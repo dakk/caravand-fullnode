@@ -9,17 +9,25 @@ type header = {
 	checksum	: string;
 };;
 
+
+type addr = {
+	services	: int64;
+	address		: string;
+	port		: int
+};;
+
 type version = {
 	version		: int32;
 	services	: int64;
 	timestamp	: Unix.tm;
-	addr_recv	: string;
-	addr_from	: string;
+	addr_recv	: addr;
+	addr_from	: addr;
 	nonce		: int64;
 	user_agent	: string;
 	start_height: int32;
 	relay		: bool;
 };;
+
 
 
 type ping = int64;;
@@ -87,6 +95,16 @@ let string_of_command c = match c with
 (******************************************************************)
 (* Parsing ********************************************************)
 (******************************************************************)
+let string_from_zeroterminated_string zts =
+  let string_length =
+    try
+      String.index zts '\x00'
+    with Not_found -> 12
+  in
+  String.sub zts 0 string_length
+;;
+
+
 let parse_version data =
 	""
 ;;
@@ -105,6 +123,8 @@ let parse_pong data =
 	| { _ } -> raise (Invalid_argument "Invalid pong message")
 ;;
 
+
+
 let parse_header data =
 	let bdata = bitstring_of_string data in
 	bitmatch bdata with
@@ -116,7 +136,7 @@ let parse_header data =
 	} ->
 	{
 		magic 		= magic;
-		command 	= command;
+		command 	= string_from_zeroterminated_string command;
 		length 		= length;
 		checksum	= checksum;
 		}
@@ -133,6 +153,8 @@ let parse header payload =
 	| "getaddr" -> GETADDR
 	| "mempool" -> MEMPOOL
 	| "sendheaders" -> SENDHEADERS
+	| "getheaders" -> GETHEADERS
+	| "inv" -> INV
 	| _ -> raise (Invalid_argument ("Protocol command " ^ header.command ^ " not recognized"))
 ;;
 
@@ -146,12 +168,50 @@ let parse header payload =
 (******************************************************************)
 (* Serialization **************************************************)
 (******************************************************************)
+let bitstring_of_addr (addr: addr) : Bitstring.t =
+  BITSTRING {
+    addr.services	: 8*8 	: littleendian;
+    addr.address	: 16*8 	: string;
+    addr.port		: 2*8 	: bigendian
+  }
+;;
+
+let bitstring_of_int i = 
+	match i with
+	| i when i < 0xFDL -> BITSTRING { Int64.to_int i : 1*8 : littleendian }
+	| i when i < 0xFFFFL -> BITSTRING { 0xFD : 1*8; Int64.to_int i : 2*8 : littleendian }
+	| i when i < 0xFFFFFFFFL -> BITSTRING { 0xFE : 1*8; Int64.to_int32 i : 4*8 : littleendian }
+	| i -> BITSTRING { 0xFF : 1*8; i : 8*8 : littleendian }
+;;
+
+let bitstring_of_varstring s = 
+	match String.length s with
+	| 0 -> bitstring_of_string "\x00"
+	| n -> 
+		let length_varint_bitstring = bitstring_of_int (Int64.of_int (String.length s)) in
+		BITSTRING {
+			length_varint_bitstring : -1 : bitstring;
+			s 						: (String.length s) * 8 : string
+		}
+;;
+
+let int_of_bool b = 
+	match b with
+	| true -> 1
+	| false -> 0
+;;
 
 let serialize_version v =
 	BITSTRING {
-		v.version 	: 4*8 : littleendian;
-		v.services 	: 8*8 : littleendian;
-		Int64.of_float (fst (Unix.mktime v.timestamp)) : 8*8 : littleendian
+		v.version 										: 4*8 : littleendian;
+		v.services 										: 8*8 : littleendian;
+		Int64.of_float (fst (Unix.mktime v.timestamp)) 	: 8*8 : littleendian;
+		(bitstring_of_addr v.addr_recv)					: -1 : bitstring;
+		(bitstring_of_addr v.addr_from)			 		: -1 : bitstring;
+		v.nonce											: 8*8 : littleendian;
+		bitstring_of_varstring v.user_agent 			: -1 : bitstring;
+		v.start_height 									: 4*8 : littleendian;
+		int_of_bool true								: 1*8 : littleendian
 	}
 ;;
 

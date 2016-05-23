@@ -2,6 +2,7 @@ open Network;;
 open Log;;
 open Params;;
 open Thread;;
+open Random;;
 
 
 let main () =
@@ -13,6 +14,7 @@ let main () =
 		Network.loop n
 	in
 	
+	Random.self_init ();
 	Log.info "letchain" "Starting 0.1";
 	let cn = Params.BTC in
 	Log.info "letchain" "Selected network: %s" (name_of_network cn);

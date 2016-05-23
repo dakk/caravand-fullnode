@@ -7,13 +7,18 @@ type header  = {
 	checksum	: string;
 };;
 
+type addr = {
+	services	: int64;
+	address		: string;
+	port		: int
+}
 
 type version = {
 	version		: int32;
 	services	: int64;
 	timestamp	: Unix.tm;
-	addr_recv	: string;
-	addr_from	: string;
+	addr_recv	: addr;
+	addr_from	: addr;
 	nonce		: int64;
 	user_agent	: string;
 	start_height: int32;
@@ -55,4 +60,6 @@ type t =
 
 val parse		: header -> bytes -> t
 val parse_header: bytes -> header
-val serialize	: Params.t -> t -> bytes
+
+val bitstring_of_addr 	: addr -> Bitstring.t
+val serialize			: Params.t -> t -> bytes
