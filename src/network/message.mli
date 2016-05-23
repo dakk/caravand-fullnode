@@ -1,6 +1,12 @@
 open Params;;
 
-type header
+type header  = {
+	magic		: int32;
+	command		: string;
+	length		: int32;
+	checksum	: string;
+};;
+
 
 type version = {
 	version		: int32;
@@ -17,8 +23,6 @@ type version = {
 type ping = int64
 type pong = int64
 
-(*type ping
-type pong*)
 
 type t = 
 	  VERSION of version

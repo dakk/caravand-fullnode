@@ -1,7 +1,7 @@
 # letchain
 
-Bitcoin fullnode OCaml implementation.
-
+Bitcoin fullnode OCaml implementation. 
+Letchain will be usable as a standalone bitcoin node or through a library that expose all the features.
 
 
 ## Planned features

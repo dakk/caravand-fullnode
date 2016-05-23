@@ -87,6 +87,10 @@ let string_of_command c = match c with
 (******************************************************************)
 (* Parsing ********************************************************)
 (******************************************************************)
+let parse_version data =
+	""
+;;
+
 let parse_ping data =
 	let bdata = bitstring_of_string data in
 	bitmatch bdata with
