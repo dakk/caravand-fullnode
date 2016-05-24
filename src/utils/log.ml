@@ -39,7 +39,7 @@ let head_str lev sec =
     let tm = Unix.localtime ts in
     let us, _s = modf ts in
     sprintf 
-		 " %s %s[%04d-%02d-%02d %02d:%02d:%02d.%03d]%s %s%s%s %s→%s "
+		 " %s %s[%04d-%02d-%02d %02d:%02d:%02d.%03d]%s %s%s%s %s%s" (*→*)
 	  (level_str lev)
 	  (color_to_string Magenta)
       (1900 + tm.Unix.tm_year)

@@ -24,5 +24,5 @@ let query_set servers =
 	in
 	Log.info "Dns" "Fetched %d peers from the seed set" (List.length addrs);
 	addrs
-	;[inet_addr_of_string "127.0.0.1"]
+	(*;[inet_addr_of_string "127.0.0.1"]*)
 ;;

@@ -96,17 +96,92 @@ let string_of_command c = match c with
 (* Parsing ********************************************************)
 (******************************************************************)
 let string_from_zeroterminated_string zts =
-  let string_length =
-    try
-      String.index zts '\x00'
-    with Not_found -> 12
-  in
-  String.sub zts 0 string_length
+	let string_length =
+ 		try String.index zts '\x00' with Not_found -> 12
+	in String.sub zts 0 string_length
+;;
+
+let parse_varint bits =
+	let parse_tag_byte bits =
+		bitmatch bits with
+		| { tag : 1*8 : littleendian; rest : -1 : bitstring } -> (Some tag, rest)
+		| { _ } -> (None, bits)
+	in
+	let parse_value bits bytesize =
+		bitmatch bits with
+		| { value : bytesize*8 : littleendian; rest : -1 : bitstring } -> (Some value, rest)
+		| { _ } -> (None, bits)
+	in
+	let tag, rest = parse_tag_byte bits in
+		match tag with
+		| None -> (None, rest)
+		| Some 0xff -> parse_value rest 8
+		| Some 0xfe -> parse_value rest 4
+		| Some 0xfd -> parse_value rest 2
+		| Some x -> (Some (Int64.of_int x), rest)
+;;
+
+
+let parse_varstring bits =
+  let length, bits = parse_varint bits in
+  match length with
+  | None -> (None, bits)
+  | Some length ->
+    bitmatch bits with
+    | { value : (Int64.to_int length) * 8 : string;
+        rest : -1 : bitstring
+      } -> (Some value, rest)
+    | { _ } -> (None, bits)
 ;;
 
 
 let parse_version data =
-	""
+	let bdata = bitstring_of_string data in
+	bitmatch bdata with 
+	| {
+		version 			: 4*8 : littleendian;
+		services 			: 8*8 : littleendian;
+		timestamp 			: 8*8 : littleendian;
+		addr_recv			: 26*8 : bitstring;
+		addr_from	 		: 26*8 : bitstring;
+		nonce				: 8*8 : littleendian;
+		rest				: -1 : bitstring
+	} -> 
+		match parse_varstring rest with
+		| (Some user_agent, rest) ->
+			(bitmatch rest with 
+			| {
+				start_height		: 4*8 : littleendian;
+				relay				: 1*8 : littleendian						
+			} -> {
+				addr_recv= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
+				addr_from= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
+				version= version;
+				services= services;
+				timestamp= Unix.gmtime (Unix.time ()); (*timestamp;*)
+				nonce= nonce;
+				user_agent= user_agent;
+				start_height= start_height;
+				relay= false
+			}
+			)
+		| (None, rest) -> 
+			(bitmatch rest with 
+			| {
+				start_height		: 4*8 : littleendian;
+				relay				: 1*8 : littleendian						
+			} -> {
+				addr_recv= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
+				addr_from= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
+				version= version;
+				services= services;
+				timestamp= Unix.gmtime (Unix.time ()); (*timestamp;*)
+				nonce= nonce;
+				user_agent= "";
+				start_height= start_height;
+				relay= false
+			}
+			)
 ;;
 
 let parse_ping data =
@@ -146,7 +221,7 @@ let parse_header data =
 
 let parse header payload = 
 	match header.command with
-	| "version" -> VERACK
+	| "version" -> VERSION (parse_version payload)
 	| "ping" -> PING (parse_ping payload)
 	| "pong" -> PONG (parse_pong payload)
 	| "verack" -> VERACK
@@ -155,9 +230,9 @@ let parse header payload =
 	| "sendheaders" -> SENDHEADERS
 	| "getheaders" -> GETHEADERS
 	| "inv" -> INV
+	| "addr" -> ADDR
 	| _ -> raise (Invalid_argument ("Protocol command " ^ header.command ^ " not recognized"))
 ;;
-
 
 
 
@@ -238,9 +313,11 @@ let serialize_message message =
 	| GETADDR -> empty_bitstring
 	| MEMPOOL -> empty_bitstring
 	| SENDHEADERS -> empty_bitstring
+	
 	| _ -> empty_bitstring
 	in string_of_bitstring bdata
 ;;
+
 
 let serialize params message = 
 	let mdata = serialize_message message in

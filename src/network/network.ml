@@ -2,6 +2,7 @@ open Log;;
 open Dns;;
 open Params;;
 open Peer;;
+open Message;;
 
 type t = {
 	addrs:  Unix.inet_addr list;
@@ -11,15 +12,13 @@ type t = {
 
 
 let peer_of_socket fd peers =
-	try
-		begin
-			match Unix.getpeername fd with
-			| Unix.ADDR_INET (a, p) -> 
-				(try Some (Hashtbl.find peers (Unix.string_of_inet_addr a))
-				with | Not_found -> None)
-			| _ -> None
-		end
-	with | _ -> None
+	try (
+		match Unix.getpeername fd with
+		| Unix.ADDR_INET (a, p) -> 
+			(try Some (Hashtbl.find peers (Unix.string_of_inet_addr a))
+			with | Not_found -> None)
+		| _ -> None
+	) with | _ -> None
 ;;
 
 let rec connect par pt addrs n =
@@ -46,47 +45,42 @@ let rec connect par pt addrs n =
 let init p =
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = connect p (Hashtbl.create 16) addrs 3 in
+	let peers = connect p (Hashtbl.create 16) addrs 2 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
 ;;
 
 
+let rec handle_recv n = function
+	| [] -> ()
+	| x::xl' -> (
+		match peer_of_socket x n.peers with
+		| Some (peer) -> (					
+			let m = Peer.recv peer in
+			match m with
+			| None -> ()
+			| Some (m') -> (
+				peer.last_seen <- Unix.time ();
+				match m' with 
+				| PING (p) -> Peer.send peer (PONG (p));
+				| VERSION (v) ->
+					peer.height <- v.start_height;
+					peer.user_agent <- v.user_agent;
+					Peer.send peer VERACK;
+					Log.info "Network" "Peer %s with agent %s starting from height %d" 
+						(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
+				| _ -> ()
+			)
+			; ()
+		)
+		| None -> ()
+	);
+	handle_recv n xl'
+;;
+
 let loop n = 
-	let read_step sockets = 
-		let rec read' sockets =
-			match sockets with
-			| [] -> ()
-			| x::xl' ->
-				begin
-					match peer_of_socket x n.peers with
-					| Some (peer) ->					
-						begin
-							(* Read and parse the header*)
-							let data = Bytes.create 32 in
-							let rb = Unix.recv peer.socket data 0 24 [] in
-							let m = Message.parse_header data in
-							Log.info "Network" "Receive message from %s: %s %d" (Unix.string_of_inet_addr peer.address) m.command (Int32.to_int m.length);
-				
-							(* Read and parse the message*)
-							let rdata = Bytes.create (Int32.to_int m.length) in
-							let rrb = Unix.recv peer.socket rdata 0 (Int32.to_int m.length) [] in
-							let m' = Message.parse m rdata in
-							match m' with 
-								| PING (p) -> Peer.send peer (PONG (p));
-								| _ -> ()
-							(* Send info to the blockchain module *)		
-							; ()
-						end
-					| None -> ()
-				end; 
-				read' xl'
-		in
-		match sockets with | (rs,ws,es) ->
-			(*Log.info "Network" "Sockets: %d %d %d" (List.length rs) (List.length ws) (List.length es);*)
-			read' rs
-	in	
+	let read_step = function | (rs,ws,es) -> handle_recv n rs in	
 	Log.info "Network" "Starting mainloop.";
 	let sockets = Hashtbl.fold (fun k v l -> (v.socket)::l  ) n.peers [] in
 	

@@ -58,6 +58,9 @@ type t =
 ;;
 
 
+val string_of_command : t -> string
+
+
 val parse		: header -> bytes -> t
 val parse_header: bytes -> header
 

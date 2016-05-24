@@ -9,6 +9,10 @@ type t = {
 	address : Unix.inet_addr;
 	port	: int;
 	params	: Params.t;
+	
+	mutable last_seen	: float;
+	mutable height		: int32;
+	mutable user_agent	: string;
 };;
 
 
@@ -19,7 +23,15 @@ let connect params addr port =
 	try
 		Unix.connect psock (ADDR_INET (addr, port));
 		Log.debug "Peer" "Connected to peer %s:%d" (Unix.string_of_inet_addr addr) port;						
-		Some { socket= psock; address= addr; port= port; params= params }
+		Some { 
+			socket= psock; 
+			address= addr; 
+			port= port; 
+			params= params; 
+			last_seen= Unix.time ();
+			height= Int32.of_int 0;
+			user_agent= ""; 
+		}
 	with
 		| _ -> 
 			Log.error "Peer" "Failed to connect to peer %s:%d." (Unix.string_of_inet_addr addr) port;
@@ -30,11 +42,28 @@ let connect params addr port =
 
 let send peer message = 
 	let data = Message.serialize peer.params message in
-	Unix.send peer.socket data 0 (Bytes.length data) [] |> ignore
+	Unix.send peer.socket data 0 (Bytes.length data) [] |> ignore;
+	Log.info "Peer →" "%s: %s" (Unix.string_of_inet_addr peer.address) (Message.string_of_command message);
 ;;
 
 
-let recv p = None;;
+let recv peer = 
+	(* Read and parse the header*)
+	let data = Bytes.create 32 in
+	let _ = Unix.recv peer.socket data 0 24 [] in
+	let m = Message.parse_header data in
+				
+	(* Read and parse the message*)
+	let rdata = Bytes.create (Int32.to_int m.length) in
+	let _ = Unix.recv peer.socket rdata 0 (Int32.to_int m.length) [] in
+	try
+		let m' = Message.parse m rdata in 
+		Log.info "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
+		Some (m')
+	with | _ ->
+		Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command;
+		None
+;;
 
 
 
