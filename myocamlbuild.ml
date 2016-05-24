@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 19ff89a553c4b5b5b798ddc9a786b265) *)
+(* DO NOT EDIT (digest: 3c30e63c4c88cc70be5444aa3e80ab43) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -770,15 +770,15 @@ let package_default =
      MyOCamlbuildBase.lib_ocaml =
        [
           ("utils", ["src/utils"], []);
-          ("network", ["src/network"], []);
-          ("blockchain", ["src/blockchain"], [])
+          ("blockchain", ["src/blockchain"], []);
+          ("network", ["src/network"], [])
        ];
      lib_c = [];
      flags = [];
      includes =
        [
-          ("src/network", ["src/utils"]);
-          ("src/blockchain", ["src/network"; "src/utils"]);
+          ("src/network", ["src/blockchain"; "src/utils"]);
+          ("src/blockchain", ["src/utils"]);
           ("src", ["src/blockchain"; "src/network"])
        ]
   }

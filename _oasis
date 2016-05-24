@@ -12,20 +12,21 @@ Library utils
   Path:         src/utils
   BuildTools:   ocamlbuild
   BuildDepends: cryptokit
-  Modules: Log, Crypto, Config
+  Modules: Log, Crypto, Config, Params
 
-Library network
-  Path:         src/network
-  BuildTools:   ocamlbuild
-  BuildDepends: ctypes, threads, utils, bitstring, bitstring.syntax, cryptokit
-  Modules:      Dns, Network, Params, Message, Peer
 
 Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
-  BuildDepends: threads, utils, network, cryptokit
+  BuildDepends: threads, utils, cryptokit, bitstring, bitstring.syntax
   Modules:	Tx, Block, Blockchain, Lighting, Script
-  
+ 
+
+Library network
+  Path:         src/network
+  BuildTools:   ocamlbuild
+  BuildDepends: ctypes, threads, utils, bitstring, bitstring.syntax, cryptokit, blockchain
+  Modules:      Dns, Network, Message, Peer  
   
 
 Document letchain

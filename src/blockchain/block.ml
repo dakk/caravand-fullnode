@@ -1,3 +1,5 @@
+open Bitstring;;
+
 module Header = struct
 	type t = {
 		hash		: Hash.t;
@@ -10,16 +12,25 @@ module Header = struct
 		txn			: int64;	
 	};;
 	
-	let parse data = {
-		hash= data;
-		version= Int32.of_int 0;
-		prev_block= "";
-		merkle_root= "";
-		timestamp= 0.0;
-		bits= Int32.of_int 12;
-		nonce= Int32.of_int 12;
-		txn= Int64.of_int 12;
-	};;
+	let parse data = 
+		let bdata = bitstring_of_string data in
+		bitmatch bdata with 
+		| {
+			version 	: 4*8 : littleendian;
+			prev_block	: 32*8: string; 
+			merkle_root	: 32*8: string 
+		} ->
+		{
+			hash= data;
+			version			= version;
+			prev_block		= prev_block;
+			merkle_root		= merkle_root;
+			timestamp= 0.0;
+			bits= Int32.of_int 12;
+			nonce= Int32.of_int 12;
+			txn= Int64.of_int 12;
+		}
+	;;
 end
 
 type t = {

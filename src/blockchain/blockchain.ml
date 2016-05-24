@@ -68,16 +68,6 @@ let genesis p =
 let load p = genesis p;;
 
 
-let loop bc = 
-	while true do
-		Unix.sleep 1;
-		Log.debug "Blockchain" "Running.";
-	done
-;;
-
-let sync bc = 
-	()
-;;
 
 
 let add_resource bc r = 
@@ -108,3 +98,17 @@ let get_request bc =
 	Mutex.unlock bc.queue_req_lock;	
 	r
 ;;
+
+
+let loop bc = 
+	while true do
+		Unix.sleep 1;
+		Log.debug "Blockchain" "Running.";
+		add_request bc (Request.REQ_HBLOCKS ([bc.last]));
+	done
+;;
+
+let sync bc = 
+	()
+;;
+

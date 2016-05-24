@@ -32,10 +32,7 @@ type addr = {
 };;
 
 
-type inv = {
-	count		: int64;
-	inventory	: invvect list;
-}
+type inv = invvect list;;
 
 type version = {
 	version		: int32;
@@ -49,7 +46,16 @@ type version = {
 	relay		: bool;
 };;
 
+type getheaders = {
+	version		: int32;
+	count		: int;
+	hashes		: Hash.t list;
+	stop		: Hash.t;
+}
 
+type getblocks = getheaders
+
+type headers = Block.Header.t list
 
 type ping = int64;;
 type pong = int64;;
@@ -64,11 +70,11 @@ type t =
 	| ADDR
 	| GETDATA
 	| NOTFOUND
-	| GETBLOCKS
-	| GETHEADERS
+	| GETBLOCKS of getblocks
+	| GETHEADERS of getheaders
 	| TX
 	| BLOCKS
-	| HEADERS
+	| HEADERS of headers
 	| GETADDR
 	| MEMPOOL
 	| REJECT
@@ -93,11 +99,11 @@ let string_of_command c = match c with
 	| ADDR -> "addr"
 	| GETDATA -> "getdata"
 	| NOTFOUND -> "notfound"
-	| GETBLOCKS -> "getblocks"
-	| GETHEADERS -> "getheaders"
+	| GETBLOCKS (gb) -> "getblocks"
+	| GETHEADERS (gh) -> "getheaders"
 	| TX -> "tx"
 	| BLOCKS -> "blocks"
-	| HEADERS -> "headers"
+	| HEADERS (h) -> "headers"
 	| GETADDR -> "getaddr"
 	| MEMPOOL -> "mempool"
 	| REJECT -> "reject"
@@ -189,10 +195,7 @@ let parse_inv data =
 	in
 	let bdata = bitstring_of_string data in
 	let count, rest = parse_varint bdata in
-		{
-			count= count;
-			inventory= parse_invvects rest (Int64.to_int count) [];
-		}
+	parse_invvects rest (Int64.to_int count) []
 ;;
 
 let parse_version data =
@@ -242,6 +245,19 @@ let parse_pong data =
 ;;
 
 
+let parse_headers data = 
+	let rec ph' data n acc =
+		if n = 0 then acc
+		else 
+			let chunk = Bytes.sub data 0 81 in
+			let data' = Bytes.sub data 81 ((Bytes.length data) - 81) in
+			ph' data' (n-1) ((Block.Header.parse chunk)::acc)
+	in  
+	let bdata = bitstring_of_string data in
+	let count, rest = parse_varint bdata in
+	let rest' = string_of_bitstring bdata in
+	ph' (string_of_bitstring bdata) (Int64.to_int count) []
+;;
 
 let parse_header data =
 	let bdata = bitstring_of_string data in
@@ -267,11 +283,12 @@ let parse header payload =
 	| "version" -> VERSION (parse_version payload)
 	| "ping" -> PING (parse_ping payload)
 	| "pong" -> PONG (parse_pong payload)
+	| "headers" -> HEADERS (parse_headers payload)
 	| "verack" -> VERACK
 	| "getaddr" -> GETADDR
 	| "mempool" -> MEMPOOL
 	| "sendheaders" -> SENDHEADERS
-	| "getheaders" -> GETHEADERS
+	(*| "getheaders" -> GETHEADERS *)
 	| "inv" -> INV (parse_inv payload)
 	| "addr" -> ADDR
 	| _ -> raise (Invalid_argument ("Protocol command " ^ header.command ^ " not recognized"))
@@ -319,7 +336,18 @@ let int_of_bool b =
 	| false -> 0
 ;;
 
-let serialize_version v =
+let serialize_getheaders v = 
+	BITSTRING {
+		v.version 								: 4*8 : littleendian;
+		bitstring_of_int (Int64.of_int v.count)	: -1 : bitstring;
+		List.nth v.hashes 0						: 32*8 : string; (*TODO: this should be an array *)
+		v.stop									: 32*8 : string
+	} 
+;;
+
+let serialize_getblocks v = serialize_getheaders v;;
+
+let serialize_version (v:version) =
 	BITSTRING {
 		v.version 										: 4*8 : littleendian;
 		v.services 										: 8*8 : littleendian;
@@ -353,6 +381,9 @@ let serialize_message message =
 	| PONG (p) -> serialize_pong p
 	| VERSION (v) -> serialize_version v
 	| VERACK -> empty_bitstring
+	| GETHEADERS (gh) -> serialize_getheaders gh
+	| GETBLOCKS (gb) -> serialize_getblocks gb
+	
 	| GETADDR -> empty_bitstring
 	| MEMPOOL -> empty_bitstring
 	| SENDHEADERS -> empty_bitstring

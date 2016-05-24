@@ -25,10 +25,7 @@ type addr = {
 	port		: int;
 }
 
-type inv = {
-	count		: int64;
-	inventory	: invvect list;
-}
+type inv = invvect list
 
 type version = {
 	version		: int32;
@@ -43,6 +40,17 @@ type version = {
 }
 
 
+type getheaders = {
+	version		: int32;
+	count		: int;
+	hashes		: Hash.t list;
+	stop		: Hash.t;
+}
+
+type getblocks = getheaders
+
+
+type headers = Block.Header.t list
 
 type ping = int64
 type pong = int64
@@ -57,11 +65,11 @@ type t =
 	| ADDR
 	| GETDATA
 	| NOTFOUND
-	| GETBLOCKS
-	| GETHEADERS
+	| GETBLOCKS of getblocks
+	| GETHEADERS of getheaders
 	| TX
 	| BLOCKS
-	| HEADERS
+	| HEADERS of headers
 	| GETADDR
 	| MEMPOOL
 	| REJECT

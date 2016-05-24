@@ -12,7 +12,7 @@ let main () =
 	in
 	let net_job bc = 
 		let n = Network.init bc.params in 
-		Network.loop n
+		Network.loop n bc
 	in
 	
 	Random.self_init ();

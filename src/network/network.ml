@@ -1,8 +1,10 @@
+open Block;;
 open Log;;
 open Dns;;
 open Params;;
 open Peer;;
 open Message;;
+open Blockchain;;
 
 type t = {
 	addrs:  Unix.inet_addr list;
@@ -36,6 +38,14 @@ let rec connect par pt addrs n =
 			match p with
 				| Some (peer) -> 
 					Peer.handshake peer;
+					
+					(* TEST: getheaders *)
+					Peer.send peer (GETHEADERS {
+						version= Int32.of_int 70001;
+						count=1;
+						hashes= ["\x00\x00\x00\x00\x00\x19\xd6\x68\x9c\x08\x5a\xe1\x65\x83\x1e\x93\x4f\xf7\x63\xae\x46\xa2\xa6\xc1\x72\xb3\xf1\xb6\x0a\x8c\xe2\x6f"];
+						stop= String.make 32 '\x00';
+					});
 					Hashtbl.add pt a' peer; 
 					connect par pt al' (n-1)
 				| None -> connect par pt al' n
@@ -45,7 +55,7 @@ let rec connect par pt addrs n =
 let init p =
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = connect p (Hashtbl.create 16) addrs 2 in
+	let peers = connect p (Hashtbl.create 16) addrs 1 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
@@ -71,7 +81,15 @@ let rec handle_recv n = function
 					Log.info "Network" "Peer %s with agent %s starting from height %d" 
 						(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
 				| INV (i) ->
-					Log.info "Network" "Received %d inv" (Int64.to_int i.count);
+					Log.info "Network" "Received %d inv" (List.length i);
+					
+				| HEADERS (hl) ->
+					let rec vis h = match h with
+					| x::xl ->
+						Log.info "Network" "Got header %s" (Hash.to_string x.Block.Header.prev_block);
+						vis xl  
+					| [] -> ()
+					in vis hl
 				| _ -> ()
 			)
 			; ()
@@ -81,14 +99,14 @@ let rec handle_recv n = function
 	handle_recv n xl'
 ;;
 
-let loop n = 
+let loop n bc = 
 	let read_step = function | (rs,ws,es) -> handle_recv n rs in	
 	Log.info "Network" "Starting mainloop.";
 	let sockets = Hashtbl.fold (fun k v l -> (v.socket)::l) n.peers [] in
 	
 	while true do
 		(* Read new data *)
-		Unix.select sockets [] [] 1.0 |> read_step;
+		Unix.select sockets [] [] 5.0 |> read_step;
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
@@ -107,7 +125,8 @@ let loop n =
 			) 
 		) n.peers;
 		
-		(* Check for non-recent last_seen for ping *)
+		(* Check for request *)
+		(*Log.info "Network" "Pending request from blockchain: %d" (Queue.length bc.queue_req);*)
 	done;
 	()
 ;;

@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: adbd943e653586d2e3fb3b3723f0ba93)
+# DO NOT EDIT (digest: 2666affd96d20bedd1826a5ce41dc816)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -17,6 +17,13 @@ true: annot, bin_annot
 # Library utils
 "src/utils/utils.cmxs": use_utils
 <src/utils/*.ml{,i,y}>: pkg_cryptokit
+# Library blockchain
+"src/blockchain/blockchain.cmxs": use_blockchain
+<src/blockchain/*.ml{,i,y}>: pkg_bitstring
+<src/blockchain/*.ml{,i,y}>: pkg_bitstring.syntax
+<src/blockchain/*.ml{,i,y}>: pkg_cryptokit
+<src/blockchain/*.ml{,i,y}>: pkg_threads
+<src/blockchain/*.ml{,i,y}>: use_utils
 # Library network
 "src/network/network.cmxs": use_network
 <src/network/*.ml{,i,y}>: pkg_bitstring
@@ -24,16 +31,8 @@ true: annot, bin_annot
 <src/network/*.ml{,i,y}>: pkg_cryptokit
 <src/network/*.ml{,i,y}>: pkg_ctypes
 <src/network/*.ml{,i,y}>: pkg_threads
+<src/network/*.ml{,i,y}>: use_blockchain
 <src/network/*.ml{,i,y}>: use_utils
-# Library blockchain
-"src/blockchain/blockchain.cmxs": use_blockchain
-<src/blockchain/*.ml{,i,y}>: pkg_bitstring
-<src/blockchain/*.ml{,i,y}>: pkg_bitstring.syntax
-<src/blockchain/*.ml{,i,y}>: pkg_cryptokit
-<src/blockchain/*.ml{,i,y}>: pkg_ctypes
-<src/blockchain/*.ml{,i,y}>: pkg_threads
-<src/blockchain/*.ml{,i,y}>: use_network
-<src/blockchain/*.ml{,i,y}>: use_utils
 # Executable letchain
 "src/letchain.byte": pkg_bitstring
 "src/letchain.byte": pkg_bitstring.syntax
