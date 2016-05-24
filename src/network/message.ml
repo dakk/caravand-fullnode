@@ -40,7 +40,7 @@ type inv = {
 type version = {
 	version		: int32;
 	services	: int64;
-	timestamp	: Unix.tm;
+	timestamp	: float;
 	addr_recv	: addr;
 	addr_from	: addr;
 	nonce		: int64;
@@ -218,7 +218,7 @@ let parse_version data =
 				addr_from= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
 				version= version;
 				services= services;
-				timestamp= Unix.gmtime (Unix.time ()); (*timestamp;*)
+				timestamp= Int64.to_float (timestamp);
 				nonce= nonce;
 				user_agent= user_agent;
 				start_height= start_height;
@@ -323,7 +323,7 @@ let serialize_version v =
 	BITSTRING {
 		v.version 										: 4*8 : littleendian;
 		v.services 										: 8*8 : littleendian;
-		Int64.of_float (fst (Unix.mktime v.timestamp)) 	: 8*8 : littleendian;
+		Int64.of_float (v.timestamp) 					: 8*8 : littleendian;
 		(bitstring_of_addr v.addr_recv)					: -1 : bitstring;
 		(bitstring_of_addr v.addr_from)			 		: -1 : bitstring;
 		v.nonce											: 8*8 : littleendian;

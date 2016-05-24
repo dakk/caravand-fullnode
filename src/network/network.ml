@@ -45,7 +45,7 @@ let rec connect par pt addrs n =
 let init p =
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = connect p (Hashtbl.create 16) addrs 2 in
+	let peers = connect p (Hashtbl.create 16) addrs 4 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
@@ -95,7 +95,7 @@ let loop n =
 			if peer.last_seen < (Unix.time () -. 60. *. 5.) then (
 				Hashtbl.remove n.peers k;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
-				if Hashtbl.length n.peers < 2 then
+				if Hashtbl.length n.peers < 4 then
 					(* Connect to new peers *) 
 					()
 				else

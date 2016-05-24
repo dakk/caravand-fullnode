@@ -33,7 +33,7 @@ type inv = {
 type version = {
 	version		: int32;
 	services	: int64;
-	timestamp	: Unix.tm;
+	timestamp	: float;
 	addr_recv	: addr;
 	addr_from	: addr;
 	nonce		: int64;

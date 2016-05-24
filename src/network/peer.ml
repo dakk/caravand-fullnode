@@ -21,6 +21,7 @@ let connect params addr port =
 	Log.debug "Peer" "Connecting to peer %s:%d..." (Unix.string_of_inet_addr addr) port;
 	let psock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 	try
+		(*Unix.set_nonblock psock;*)
 		Unix.connect psock (ADDR_INET (addr, port));
 		Log.debug "Peer" "Connected to peer %s:%d" (Unix.string_of_inet_addr addr) port;						
 		Some { 
@@ -77,7 +78,7 @@ let handshake peer =
 	let verm = {
 		version		= Int32.of_int peer.params.version;
 		services	= peer.params.services;
-		timestamp	= Unix.gmtime (Unix.time ());
+		timestamp	= Unix.time ();
 		addr_recv	= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
 		addr_from	= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
 		nonce		= Random.int64 0xFFFFFFFFFFFFFFFL;
