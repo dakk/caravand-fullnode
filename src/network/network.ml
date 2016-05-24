@@ -88,7 +88,7 @@ let loop n =
 	
 	while true do
 		(* Read new data *)
-		Unix.select sockets [] [] 0.1 |> read_step;
+		Unix.select sockets [] [] 1.0 |> read_step;
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 

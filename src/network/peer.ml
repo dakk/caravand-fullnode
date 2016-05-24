@@ -22,6 +22,7 @@ let connect params addr port =
 	let psock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
 	try
 		(*Unix.set_nonblock psock;*)
+		(*Make the socket a non-blocking socket, and then use select() or poll() with a timeout value to check for writability. If the select() returns with a timeout you did not connect in time, and you can close the socket and deal with the connection failure. If it returns with a completion, everything is fine and you can proceed.*)
 		Unix.connect psock (ADDR_INET (addr, port));
 		Log.debug "Peer" "Connected to peer %s:%d" (Unix.string_of_inet_addr addr) port;						
 		Some { 
