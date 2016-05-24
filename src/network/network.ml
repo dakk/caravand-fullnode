@@ -63,7 +63,7 @@ let init p =
 ;;
 
 
-let rec handle_recv n = function
+let rec handle_recv n bc = function
 	| [] -> ()
 	| x::xl' -> (
 		match peer_of_socket x n.peers with
@@ -98,18 +98,19 @@ let rec handle_recv n = function
 						Log.info "Network" "Got header %s" (Hash.bhash_to_string x.Block.Header.prev_block);
 						vis xl  
 					| [] -> ()
-					in vis hl
+					in vis hl;
+					Blockchain.add_resource bc (Blockchain.Resource.RES_HBLOCKS (hl));
 				| _ -> ()
 			)
 			; ()
 		)
 		| None -> ()
 	);
-	handle_recv n xl'
+	handle_recv n bc xl'
 ;;
 
 let loop n bc = 
-	let read_step = function | (rs,ws,es) -> handle_recv n rs in	
+	let read_step = function | (rs,ws,es) -> handle_recv n bc rs in	
 	Log.info "Network" "Starting mainloop.";
 	let sockets = Hashtbl.fold (fun k v l -> (v.socket)::l) n.peers [] in
 	

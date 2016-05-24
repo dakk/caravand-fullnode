@@ -234,7 +234,7 @@ let parse_headers data =
 	in  
 	let bdata = bitstring_of_string data in
 	let count, rest = parse_varint bdata in
-	ph' (bdata) (Int64.to_int count) []
+	List.rev (ph' (bdata) (Int64.to_int count) [])
 ;;
 
 let parse_header data =

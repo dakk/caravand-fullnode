@@ -2,9 +2,9 @@ open Params;;
 
 module Resource = struct
 	type t = 
-	| RES_TXS of (Tx.t * Hash.t) list
-	| RES_BLOCKS of (Block.t * Hash.t) list
-	| RES_HBLOCKS of (Block.Header.t * Hash.t) list
+	| RES_TXS of Tx.t list
+	| RES_BLOCKS of Block.t list
+	| RES_HBLOCKS of Block.Header.t list
 	;;
 end
 
@@ -103,8 +103,15 @@ let get_request bc =
 let loop bc = 
 	while true do
 		Unix.sleep 5;
-		Log.debug "Blockchain" "Running.";
-		add_request bc (Request.REQ_HBLOCKS ([bc.last]));
+		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) (Hash.to_string bc.header_last);
+		match get_resource bc with 
+		| Some (res) -> (match res with 
+			| RES_TXS (txs) ->
+				()
+			| RES_HBLOCKS (hbs) ->
+				()
+		)
+		| None -> ();
 	done
 ;;
 

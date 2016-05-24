@@ -1,8 +1,8 @@
 module Resource : sig
 	type t = 
-	| RES_TXS of (Tx.t * Hash.t) list
-	| RES_BLOCKS of (Block.t * Hash.t) list
-	| RES_HBLOCKS of (Block.Header.t * Hash.t) list
+	| RES_TXS of Tx.t list
+	| RES_BLOCKS of Block.t list
+	| RES_HBLOCKS of Block.Header.t list
 end
 
 module Request : sig
