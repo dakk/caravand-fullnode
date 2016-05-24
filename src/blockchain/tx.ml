@@ -1,4 +1,4 @@
-        type t = string;;
+type t = string;;
 
 
 

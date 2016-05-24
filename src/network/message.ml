@@ -2,6 +2,15 @@ open Bitstring;;
 open Params;;
 open Crypto;;
 
+
+type object_type =
+	  MSG_ERROR 
+	| MSG_TX
+	| MSG_BLOCK
+	| MSG_FILTERED_BLOCK
+;;
+
+
 type header = {
 	magic		: int32;
 	command		: string;
@@ -89,6 +98,21 @@ let string_of_command c = match c with
 	
 	| ALERT -> "alert"
 	| SENDHEADERS -> "sendheaders"
+;;
+
+
+let object_type_of_int = function
+	| 2 -> MSG_BLOCK
+	| 3 -> MSG_FILTERED_BLOCK
+	| 1 -> MSG_TX
+	| _ -> MSG_ERROR
+;;
+
+let int_of_object_type = function
+	| MSG_BLOCK -> 2
+	| MSG_FILTERED_BLOCK -> 3
+	| MSG_TX -> 1
+	| MSG_ERROR -> 0
 ;;
 
 

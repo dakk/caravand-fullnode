@@ -85,8 +85,12 @@ let loop n =
 	let sockets = Hashtbl.fold (fun k v l -> (v.socket)::l  ) n.peers [] in
 	
 	while true do
-		Unix.select sockets [] [] 1. |> read_step;
-		Unix.sleep 1;
+		(* Read new data *)
+		Unix.select sockets [] [] 0.1 |> read_step;
+		
+		(* Check for the minimum number of peers *)
+		
+		(* Check for non-recent last_seen for ping *)
 	done;
 	()
 ;;

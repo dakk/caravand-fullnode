@@ -1,5 +1,12 @@
 open Params;;
 
+type object_type =
+	  MSG_ERROR 
+	| MSG_TX
+	| MSG_BLOCK
+	| MSG_FILTERED_BLOCK
+
+
 type header  = {
 	magic		: int32;
 	command		: string;

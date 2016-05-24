@@ -3,17 +3,17 @@ open Block;;
 open Params;;
 
 
-	type t
+type t
 
-	val genesis	: Params.t -> t
-	val add		: t -> Block.t -> t
-	val fork	: t -> t
-	val height	: t -> int
-	(*val last	: t -> Block.t
-	val get		: t -> string -> Block.t
-	val geti	: t -> int -> Block.t
-	*)
-	val utxo	: t -> Tx.t list
+val genesis	: Params.t -> t
+val add		: t -> Block.t -> t
+val fork	: t -> t
+val height	: t -> int
+(*val last	: t -> Block.t
+val get		: t -> string -> Block.t
+val geti	: t -> int -> Block.t
+*)
+val utxo	: t -> Tx.t list
 
 
 (*
