@@ -1,29 +1,22 @@
 open Bitstring;;
 open Params;;
 open Crypto;;
-
-
-type object_type =
-	  MSG_ERROR 
-	| MSG_TX
-	| MSG_BLOCK
-	| MSG_FILTERED_BLOCK
-;;
+open Stdint;;
 
 
 type header = {
 	magic		: int32;
 	command		: string;
-	length		: int32;
+	length		: uint32;
 	checksum	: string;
 };;
 
 
-type invvect = {
-	itype		: object_type;
-	hash		: bytes;
-};;
-
+type invvect = 
+	  INV_ERROR
+	| INV_TX of Hash.t
+	| INV_BLOCK of Hash.t
+	| INV_FILTERED_BLOCK of Hash.t
 
 type addr = {
 	services	: int64;
@@ -119,19 +112,6 @@ let string_of_command c = match c with
 ;;
 
 
-let object_type_of_int = function
-	| 2 -> MSG_BLOCK
-	| 3 -> MSG_FILTERED_BLOCK
-	| 1 -> MSG_TX
-	| _ -> MSG_ERROR
-;;
-
-let int_of_object_type = function
-	| MSG_BLOCK -> 2
-	| MSG_FILTERED_BLOCK -> 3
-	| MSG_TX -> 1
-	| MSG_ERROR -> 0
-;;
 
 
 (******************************************************************)
@@ -156,7 +136,6 @@ let parse_varint bits =
 	in
 	let tag, rest = parse_tag_byte bits in
 		match tag with
-		| 0 -> (Int64.of_int 0, rest)
 		| 0xff -> parse_value rest 8
 		| 0xfe -> parse_value rest 4
 		| 0xfd -> parse_value rest 2
@@ -186,11 +165,12 @@ let parse_inv data =
 			hash		: 32*8: string;
 			rest		: -1  : bitstring
 		} ->
-			let iv = {
-				itype= object_type_of_int (Int32.to_int itype);
-				hash= hash;
-			} in 
-			parse_invvects rest (count - 1) (iv::acc)
+			let iv = match (Int32.to_int itype) with
+				  1 -> INV_TX  (hash)
+				| 2 -> INV_BLOCK (hash)
+				| 3 -> INV_FILTERED_BLOCK (hash)
+				| _ -> INV_ERROR
+			in parse_invvects rest (count - 1) (iv::acc)
 		)
 	in
 	let bdata = bitstring_of_string data in
@@ -247,16 +227,14 @@ let parse_pong data =
 
 let parse_headers data = 
 	let rec ph' data n acc =
-		if n = 0 then acc
-		else 
-			let chunk = Bytes.sub data 0 81 in
-			let data' = Bytes.sub data 81 ((Bytes.length data) - 81) in
-			ph' data' (n-1) ((Block.Header.parse chunk)::acc)
+		if n = 0 then acc else
+			bitmatch data with
+			| { raw : 81*8 : bitstring; rest : -1 : bitstring } ->
+				ph' rest (n-1) ((Block.Header.parse (string_of_bitstring raw))::acc)
 	in  
 	let bdata = bitstring_of_string data in
 	let count, rest = parse_varint bdata in
-	let rest' = string_of_bitstring bdata in
-	ph' (string_of_bitstring bdata) (Int64.to_int count) []
+	ph' (bdata) (Int64.to_int count) []
 ;;
 
 let parse_header data =
@@ -265,13 +243,13 @@ let parse_header data =
 	| { 
 		magic 		: 4*8 	: littleendian;
 		command 	: 12*8 	: string;
-		length 		: 4*8 	: littleendian;
+		length 		: 4*8 	: string;
 		checksum	: 4*8 	: string
 	} ->
 	{
 		magic 		= magic;
 		command 	= string_from_zeroterminated_string command;
-		length 		= length;
+		length 		= Uint32.of_bytes_little_endian length 0;
 		checksum	= checksum;
 		}
 	| { _ } -> raise (Invalid_argument "Invalid protocol header")
@@ -365,10 +343,12 @@ let serialize_ping p = BITSTRING { p 	: 8*8 : littleendian };;
 let serialize_pong p = BITSTRING { p 	: 8*8 : littleendian };;
 
 let serialize_header header =
+	let blength = Bytes.create 4 in
+	let _ = Uint32.to_bytes_little_endian header.length blength 0 in
 	let bdata = BITSTRING {
 		header.magic 	: 4*8 	: littleendian;
 		header.command	: 12*8 	: string;
-		header.length 	: 4*8 	: littleendian;
+		blength			: 4*8 	: string;
 		header.checksum : 4*8 	: string
 	} 
 	in string_of_bitstring bdata
@@ -400,7 +380,7 @@ let serialize params message =
 	let header = {
 		magic	= Int32.of_int params.Params.magic;
 		command	= command';
-		length	= Int32.of_int (Bytes.length mdata);
+		length	= Uint32.of_int (Bytes.length mdata);
 		checksum= Crypto.checksum4 mdata;
 	} in 
 	let hdata = serialize_header header in

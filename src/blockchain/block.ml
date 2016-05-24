@@ -18,14 +18,15 @@ module Header = struct
 		| {
 			version 	: 4*8 : littleendian;
 			prev_block	: 32*8: string; 
-			merkle_root	: 32*8: string 
+			merkle_root	: 32*8: string;
+			timestamp	: 4*8 : littleendian
 		} ->
 		{
 			hash= data;
 			version			= version;
 			prev_block		= prev_block;
 			merkle_root		= merkle_root;
-			timestamp= 0.0;
+			timestamp		= Int32.to_float timestamp;
 			bits= Int32.of_int 12;
 			nonce= Int32.of_int 12;
 			txn= Int64.of_int 12;

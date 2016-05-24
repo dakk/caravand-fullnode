@@ -102,7 +102,7 @@ let get_request bc =
 
 let loop bc = 
 	while true do
-		Unix.sleep 1;
+		Unix.sleep 5;
 		Log.debug "Blockchain" "Running.";
 		add_request bc (Request.REQ_HBLOCKS ([bc.last]));
 	done

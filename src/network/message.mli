@@ -1,23 +1,20 @@
 open Params;;
+open Stdint;;
 
-type object_type =
-	  MSG_ERROR 
-	| MSG_TX
-	| MSG_BLOCK
-	| MSG_FILTERED_BLOCK
 
 
 type header  = {
 	magic		: int32;
 	command		: string;
-	length		: int32;
+	length		: uint32;
 	checksum	: string;
 }
 
-type invvect = {
-	itype		: object_type;
-	hash		: bytes;
-}
+type invvect = 
+	  INV_ERROR
+	| INV_TX of Hash.t
+	| INV_BLOCK of Hash.t
+	| INV_FILTERED_BLOCK of Hash.t
 
 type addr = {
 	services	: int64;

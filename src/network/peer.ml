@@ -1,3 +1,4 @@
+open Stdint;;
 open Unix;;
 open Log;;
 open Message;;
@@ -50,27 +51,28 @@ let send peer message =
 
 
 let recv peer = 
+	let rec recv_chunks bsize acc = 
+		if bsize = (Uint32.of_int 0) then acc
+		else
+			let csize = if bsize > (Uint32.of_int 2048) then 2048 else Uint32.to_int bsize in
+			let rdata = Bytes.create csize in
+			let _ = Unix.recv peer.socket rdata 0 csize [] in
+			recv_chunks (Uint32.sub bsize (Uint32.of_int csize)) (acc ^ rdata)
+	in
 	(* Read and parse the header*)
 	let data = Bytes.create 32 in
 	let _ = Unix.recv peer.socket data 0 24 [] in
 	let m = Message.parse_header data in
 				
 	(* Read and parse the message*)
-	let len = Int32.to_int m.length in 
-	if len < 0 then (
-		Log.error "Peer ↚" "%s: %s (int overflow)" (Unix.string_of_inet_addr peer.address) m.command;
+	let rdata = recv_chunks m.length "" in
+	try
+		let m' = Message.parse m rdata in 
+		Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
+		Some (m')
+	with | _ ->
+		Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command;
 		None
-	) else (
-		let rdata = Bytes.create len in
-		let _ = Unix.recv peer.socket rdata 0 len [] in
-		try
-			let m' = Message.parse m rdata in 
-			Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
-			Some (m')
-		with | _ ->
-			Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command;
-			None
-	)
 ;;
 
 
