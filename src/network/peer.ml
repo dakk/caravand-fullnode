@@ -43,7 +43,7 @@ let connect params addr port =
 let send peer message = 
 	let data = Message.serialize peer.params message in
 	Unix.send peer.socket data 0 (Bytes.length data) [] |> ignore;
-	Log.info "Peer →" "%s: %s" (Unix.string_of_inet_addr peer.address) (Message.string_of_command message);
+	Log.debug "Peer →" "%s: %s" (Unix.string_of_inet_addr peer.address) (Message.string_of_command message);
 ;;
 
 
@@ -54,15 +54,21 @@ let recv peer =
 	let m = Message.parse_header data in
 				
 	(* Read and parse the message*)
-	let rdata = Bytes.create (Int32.to_int m.length) in
-	let _ = Unix.recv peer.socket rdata 0 (Int32.to_int m.length) [] in
-	try
-		let m' = Message.parse m rdata in 
-		Log.info "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
-		Some (m')
-	with | _ ->
-		Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command;
+	let len = Int32.to_int m.length in 
+	if len < 0 then (
+		Log.error "Peer ↚" "%s: %s (int overflow)" (Unix.string_of_inet_addr peer.address) m.command;
 		None
+	) else (
+		let rdata = Bytes.create len in
+		let _ = Unix.recv peer.socket rdata 0 len [] in
+		try
+			let m' = Message.parse m rdata in 
+			Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
+			Some (m')
+		with | _ ->
+			Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command;
+			None
+	)
 ;;
 
 
