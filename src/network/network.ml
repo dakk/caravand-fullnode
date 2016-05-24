@@ -45,7 +45,7 @@ let rec connect par pt addrs n =
 let init p =
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = connect p (Hashtbl.create 16) addrs 4 in
+	let peers = connect p (Hashtbl.create 16) addrs 2 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
@@ -84,7 +84,7 @@ let rec handle_recv n = function
 let loop n = 
 	let read_step = function | (rs,ws,es) -> handle_recv n rs in	
 	Log.info "Network" "Starting mainloop.";
-	let sockets = Hashtbl.fold (fun k v l -> (v.socket)::l  ) n.peers [] in
+	let sockets = Hashtbl.fold (fun k v l -> (v.socket)::l) n.peers [] in
 	
 	while true do
 		(* Read new data *)

@@ -28,6 +28,7 @@ end
 
 
 type t = {
+	hash		: Hash.t;
 	version		: int32;
 	txin 		: In.t list;
 	txout 		: Out.t list;
@@ -36,6 +37,7 @@ type t = {
 
 
 let parse data = {
+	hash= data;
 	version= Int32.of_int 0;
 	txin= [];
 	txout= [];
@@ -44,7 +46,8 @@ let parse data = {
 
 
 
+let hash tx = "";;
 
 
 
-
+let serialize tx = "";;

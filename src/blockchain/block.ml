@@ -1,5 +1,6 @@
 module Header = struct
 	type t = {
+		hash		: Hash.t;
 		version		: int32;
 		prev_block	: Hash.t;
 		merkle_root : Hash.t;
@@ -10,6 +11,7 @@ module Header = struct
 	};;
 	
 	let parse data = {
+		hash= data;
 		version= Int32.of_int 0;
 		prev_block= "";
 		merkle_root= "";
@@ -31,3 +33,7 @@ let parse data = {
 	txs= [];
 };;
 
+
+let hash block = "";;
+
+let serialize block = "";

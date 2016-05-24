@@ -3,14 +3,15 @@ open Log;;
 open Params;;
 open Thread;;
 open Random;;
+open Blockchain;;
 
 
 let main () =
-	let chain_job p = 
-		() 
+	let chain_job bc = 
+		Blockchain.loop bc 
 	in
-	let net_job p = 
-		let n = Network.init p in 
+	let net_job bc = 
+		let n = Network.init bc.params in 
 		Network.loop n
 	in
 	
@@ -21,12 +22,15 @@ let main () =
 	let p = Params.of_network cn in	
 	
 	(* Start blockchain thread *)
+	let bc = Blockchain.genesis p in
+	let chain_thread = Thread.create chain_job bc in
+	
 	(* Start network thread *)
-	let net_thread = Thread.create net_job p in
-	let chain_thread = Thread.create chain_job p in
+	let net_thread = Thread.create net_job bc in
 	
 	Log.info "letchain" "Waiting for childs";
 	Thread.join net_thread;
+	Thread.join chain_thread;
 	Log.info "letchain" "Exit.";
 ;;
 

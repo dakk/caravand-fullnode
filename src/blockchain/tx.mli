@@ -20,6 +20,7 @@ end
 
 
 type t = {
+	hash		: Hash.t;
 	version		: int32;
 	txin 		: In.t list;
 	txout 		: Out.t list;
@@ -27,3 +28,5 @@ type t = {
 }
 
 val parse 		: bytes -> t
+val hash		: t -> Hash.t
+val serialize	: t -> bytes
