@@ -89,8 +89,23 @@ let loop n =
 	while true do
 		(* Read new data *)
 		Unix.select sockets [] [] 0.1 |> read_step;
-		
-		(* Check for the minimum number of peers *)
+
+		(* Check for connection timeout and minimum number of peer*)		
+		Hashtbl.iter (fun k peer -> 
+			if peer.last_seen < (Unix.time () -. 60. *. 5.) then (
+				Hashtbl.remove n.peers k;
+				Log.info "Network" "Peer %s disconnected for inactivity" k;
+				if Hashtbl.length n.peers < 2 then
+					(* Connect to new peers *) 
+					()
+				else
+					()
+			) else (			
+				if peer.last_seen < (Unix.time () -. 60. *. 3.) then
+					Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
+				else ()
+			) 
+		) n.peers;
 		
 		(* Check for non-recent last_seen for ping *)
 	done;
