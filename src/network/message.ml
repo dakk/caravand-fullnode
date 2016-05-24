@@ -19,11 +19,23 @@ type header = {
 };;
 
 
+type invvect = {
+	itype		: object_type;
+	hash		: bytes;
+};;
+
+
 type addr = {
 	services	: int64;
 	address		: string;
 	port		: int
 };;
+
+
+type inv = {
+	count		: int64;
+	inventory	: invvect list;
+}
 
 type version = {
 	version		: int32;
@@ -48,7 +60,7 @@ type t =
 	| VERACK
 	| PING of ping
 	| PONG of pong
-	| INV
+	| INV of inv
 	| ADDR
 	| GETDATA
 	| NOTFOUND
@@ -77,7 +89,7 @@ let string_of_command c = match c with
 	| VERACK -> "verack"
 	| PING (p) -> "ping"
 	| PONG (p) -> "pong"
-	| INV -> "inv"
+	| INV (i) -> "inv"
 	| ADDR -> "addr"
 	| GETDATA -> "getdata"
 	| NOTFOUND -> "notfound"
@@ -128,36 +140,60 @@ let string_from_zeroterminated_string zts =
 let parse_varint bits =
 	let parse_tag_byte bits =
 		bitmatch bits with
-		| { tag : 1*8 : littleendian; rest : -1 : bitstring } -> (Some tag, rest)
-		| { _ } -> (None, bits)
+		| { tag : 1*8 : littleendian; rest : -1 : bitstring } -> (tag, rest)
+		| { _ } -> (0, bits)
 	in
 	let parse_value bits bytesize =
 		bitmatch bits with
-		| { value : bytesize*8 : littleendian; rest : -1 : bitstring } -> (Some value, rest)
-		| { _ } -> (None, bits)
+		| { value : bytesize*8 : littleendian; rest : -1 : bitstring } -> (value, rest)
+		| { _ } -> (Int64.of_int 0, bits)
 	in
 	let tag, rest = parse_tag_byte bits in
 		match tag with
-		| None -> (None, rest)
-		| Some 0xff -> parse_value rest 8
-		| Some 0xfe -> parse_value rest 4
-		| Some 0xfd -> parse_value rest 2
-		| Some x -> (Some (Int64.of_int x), rest)
+		| 0 -> (Int64.of_int 0, rest)
+		| 0xff -> parse_value rest 8
+		| 0xfe -> parse_value rest 4
+		| 0xfd -> parse_value rest 2
+		| x -> (Int64.of_int x, rest)
 ;;
 
 
 let parse_varstring bits =
   let length, bits = parse_varint bits in
   match length with
-  | None -> (None, bits)
-  | Some length ->
+  | 0L -> ("", bits)
+  | length ->
     bitmatch bits with
     | { value : (Int64.to_int length) * 8 : string;
         rest : -1 : bitstring
-      } -> (Some value, rest)
-    | { _ } -> (None, bits)
+      } -> (value, rest)
+    | { _ } -> ("", bits)
 ;;
 
+
+let parse_inv data =
+	let rec parse_invvects bdata count acc = 
+		if count = 0 then acc else (
+		bitmatch bdata with 
+		| { 
+			itype		: 4*8 : littleendian;
+			hash		: 32*8: string;
+			rest		: -1  : bitstring
+		} ->
+			let iv = {
+				itype= object_type_of_int (Int32.to_int itype);
+				hash= hash;
+			} in 
+			parse_invvects rest (count - 1) (iv::acc)
+		)
+	in
+	let bdata = bitstring_of_string data in
+	let count, rest = parse_varint bdata in
+		{
+			count= count;
+			inventory= parse_invvects rest (Int64.to_int count) [];
+		}
+;;
 
 let parse_version data =
 	let bdata = bitstring_of_string data in
@@ -172,7 +208,7 @@ let parse_version data =
 		rest				: -1 : bitstring
 	} -> 
 		match parse_varstring rest with
-		| (Some user_agent, rest) ->
+		| (user_agent, rest) ->
 			(bitmatch rest with 
 			| {
 				start_height		: 4*8 : littleendian;
@@ -185,23 +221,6 @@ let parse_version data =
 				timestamp= Unix.gmtime (Unix.time ()); (*timestamp;*)
 				nonce= nonce;
 				user_agent= user_agent;
-				start_height= start_height;
-				relay= false
-			}
-			)
-		| (None, rest) -> 
-			(bitmatch rest with 
-			| {
-				start_height		: 4*8 : littleendian;
-				relay				: 1*8 : littleendian						
-			} -> {
-				addr_recv= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
-				addr_from= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
-				version= version;
-				services= services;
-				timestamp= Unix.gmtime (Unix.time ()); (*timestamp;*)
-				nonce= nonce;
-				user_agent= "";
 				start_height= start_height;
 				relay= false
 			}
@@ -253,7 +272,7 @@ let parse header payload =
 	| "mempool" -> MEMPOOL
 	| "sendheaders" -> SENDHEADERS
 	| "getheaders" -> GETHEADERS
-	| "inv" -> INV
+	| "inv" -> INV (parse_inv payload)
 	| "addr" -> ADDR
 	| _ -> raise (Invalid_argument ("Protocol command " ^ header.command ^ " not recognized"))
 ;;

@@ -70,6 +70,8 @@ let rec handle_recv n = function
 					Peer.send peer VERACK;
 					Log.info "Network" "Peer %s with agent %s starting from height %d" 
 						(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
+				| INV (i) ->
+					Log.info "Network" "Received %d inv" (Int64.to_int i.count);
 				| _ -> ()
 			)
 			; ()

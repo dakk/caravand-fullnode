@@ -12,12 +12,22 @@ type header  = {
 	command		: string;
 	length		: int32;
 	checksum	: string;
-};;
+}
+
+type invvect = {
+	itype		: object_type;
+	hash		: bytes;
+}
 
 type addr = {
 	services	: int64;
 	address		: string;
-	port		: int
+	port		: int;
+}
+
+type inv = {
+	count		: int64;
+	inventory	: invvect list;
 }
 
 type version = {
@@ -32,6 +42,8 @@ type version = {
 	relay		: bool;
 }
 
+
+
 type ping = int64
 type pong = int64
 
@@ -41,7 +53,7 @@ type t =
 	| VERACK
 	| PING of ping
 	| PONG of pong
-	| INV
+	| INV of inv
 	| ADDR
 	| GETDATA
 	| NOTFOUND
