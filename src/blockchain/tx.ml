@@ -37,10 +37,10 @@ type t = {
 
 
 let parse data = {
-	hash= data;
-	version= Int32.of_int 0;
-	txin= [];
-	txout= [];
+	hash	= Crypto.hash256 data;
+	version	= Int32.of_int 0;
+	txin	= [];
+	txout	= [];
 	locktime= Int32.of_int 0;
 };;
 

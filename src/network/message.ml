@@ -41,7 +41,6 @@ type version = {
 
 type getheaders = {
 	version		: int32;
-	count		: int;
 	hashes		: Hash.t list;
 	stop		: Hash.t;
 }
@@ -166,9 +165,9 @@ let parse_inv data =
 			rest		: -1  : bitstring
 		} ->
 			let iv = match (Int32.to_int itype) with
-				  1 -> INV_TX  (hash)
-				| 2 -> INV_BLOCK (hash)
-				| 3 -> INV_FILTERED_BLOCK (hash)
+				  1 -> INV_TX  (Hash.of_bin hash)
+				| 2 -> INV_BLOCK (Hash.of_bin hash)
+				| 3 -> INV_FILTERED_BLOCK (Hash.of_bin hash)
 				| _ -> INV_ERROR
 			in parse_invvects rest (count - 1) (iv::acc)
 		)
@@ -234,8 +233,25 @@ let parse_headers data =
 	in  
 	let bdata = bitstring_of_string data in
 	let count, rest = parse_varint bdata in
-	List.rev (ph' (bdata) (Int64.to_int count) [])
+	(ph' (bdata) (Int64.to_int count) [])
 ;;
+
+let parse_getheaders data =
+	let bdata = bitstring_of_string data in
+	bitmatch bdata with 
+	| {
+		version : 4*8 : littleendian;
+		rest : -1 : bitstring
+	} ->
+		let count, rest = parse_varint bdata in
+		{
+			version= version;
+			hashes= [];
+			stop= "";
+		}
+;;
+
+let parse_getblocks data = parse_getheaders data;;
 
 let parse_header data =
 	let bdata = bitstring_of_string data in
@@ -266,7 +282,8 @@ let parse header payload =
 	| "getaddr" -> GETADDR
 	| "mempool" -> MEMPOOL
 	| "sendheaders" -> SENDHEADERS
-	(*| "getheaders" -> GETHEADERS *)
+	| "getheaders" -> GETHEADERS (parse_getheaders payload)
+	| "getblocks" -> GETBLOCKS (parse_getblocks payload)
 	| "inv" -> INV (parse_inv payload)
 	| "addr" -> ADDR
 	| _ -> raise (Invalid_argument ("Protocol command " ^ header.command ^ " not recognized"))
@@ -316,10 +333,10 @@ let int_of_bool b =
 
 let serialize_getheaders v = 
 	BITSTRING {
-		v.version 								: 4*8 : littleendian;
-		bitstring_of_int (Int64.of_int v.count)	: -1 : bitstring;
-		List.nth v.hashes 0						: 32*8 : string; (*TODO: this should be an array *)
-		v.stop									: 32*8 : string
+		v.version 												: 4*8 : littleendian;
+		bitstring_of_int (Int64.of_int (List.length v.hashes))	: -1 : bitstring;
+		List.nth v.hashes 0										: 32*8 : string; (*TODO: this should be an array *)
+		v.stop													: 32*8 : string
 	} 
 ;;
 

@@ -39,7 +39,6 @@ type version = {
 
 type getheaders = {
 	version		: int32;
-	count		: int;
 	hashes		: Hash.t list;
 	stop		: Hash.t;
 }

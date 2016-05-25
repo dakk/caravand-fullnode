@@ -1,4 +1,5 @@
 open Bitstring;;
+open Crypto;;
 
 module Header = struct
 	type t = {
@@ -22,9 +23,9 @@ module Header = struct
 			timestamp	: 4*8 : littleendian
 		} ->
 		{
-			hash= data;
+			hash			= Hash.of_bin (hash256 (String.sub data 0 80));
 			version			= version;
-			prev_block		= prev_block;
+			prev_block		= Hash.of_binblock prev_block;
 			merkle_root		= merkle_root;
 			timestamp		= Int32.to_float timestamp;
 			bits= Int32.of_int 12;

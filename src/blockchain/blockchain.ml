@@ -61,7 +61,7 @@ let genesis p =
 		queue_req		= Queue.create ();
 		queue_req_lock	= Mutex.create ();
 	} in 
-	Log.info "Blockchain" "Created genesis blockchain from block %s" (Hash.to_string p.genesis);
+	Log.info "Blockchain" "Created genesis blockchain from block %s" p.genesis;
 	bc
 ;;
 
@@ -103,7 +103,7 @@ let get_request bc =
 let loop bc = 
 	while true do
 		Unix.sleep 5;
-		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) (Hash.to_string bc.header_last);
+		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last;
 		match get_resource bc with 
 		| Some (res) -> (match res with 
 			| RES_TXS (txs) ->

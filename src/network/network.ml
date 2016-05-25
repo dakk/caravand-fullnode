@@ -42,7 +42,6 @@ let rec connect par pt addrs n =
 					(* TEST: getheaders *) 
 					Peer.send peer (GETHEADERS {
 						version= Int32.of_int 70001;
-						count=1;
 						hashes= ["\x00\x00\x00\x00\x00\x19\xd6\x68\x9c\x08\x5a\xe1\x65\x83\x1e\x93\x4f\xf7\x63\xae\x46\xa2\xa6\xc1\x72\xb3\xf1\xb6\x0a\x8c\xe2\x6f"];
 						stop= String.make 32 '\x00';
 					});
@@ -85,8 +84,9 @@ let rec handle_recv n bc = function
 					let rec vis h = match h with
 					| x::xl ->
 						let _ = (match x with
-						| INV_TX (txid) ->
-							Log.info "Network" "Got inv tx %s" (Hash.to_string txid);
+						| INV_TX (txid) -> Log.info "Network" "Got inv tx %s" txid;
+						| INV_BLOCK (bhash) -> Log.info "Network" "Got inv block %s" bhash;
+						| _ -> ()
 						) in vis xl  
 					| [] -> ()
 					in vis i;
@@ -95,7 +95,7 @@ let rec handle_recv n bc = function
 				| HEADERS (hl) ->
 					let rec vis h = match h with
 					| x::xl ->
-						Log.info "Network" "Got header %s" (Hash.bhash_to_string x.Block.Header.prev_block);
+						Log.info "Network" "Got block header %s %s" (x.Block.Header.hash) (x.Block.Header.prev_block);
 						vis xl  
 					| [] -> ()
 					in vis hl;
