@@ -7,7 +7,6 @@ module Header : sig
 		timestamp	: float;
 		bits		: int32;
 		nonce		: int32;
-		txn			: int64;	
 	}
 	
 	val parse 		: bytes -> t

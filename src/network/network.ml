@@ -40,11 +40,11 @@ let rec connect par pt addrs n =
 					Peer.handshake peer;
 					
 					(* TEST: getheaders *) 
-					Peer.send peer (GETHEADERS {
+					(*Peer.send peer (GETHEADERS {
 						version= Int32.of_int 70001;
-						hashes= ["\x00\x00\x00\x00\x00\x19\xd6\x68\x9c\x08\x5a\xe1\x65\x83\x1e\x93\x4f\xf7\x63\xae\x46\xa2\xa6\xc1\x72\xb3\xf1\xb6\x0a\x8c\xe2\x6f"];
-						stop= String.make 32 '\x00';
-					});
+						hashes= ["000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"];
+						stop= Hash.to_bin (Hash.zero ());
+					});*)
 					
 					Hashtbl.add pt a' peer; 
 					connect par pt al' (n-1)
@@ -55,7 +55,7 @@ let rec connect par pt addrs n =
 let init p =
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = connect p (Hashtbl.create 16) addrs 2 in
+	let peers = connect p (Hashtbl.create 16) addrs 3 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
@@ -84,18 +84,22 @@ let rec handle_recv n bc = function
 					let rec vis h = match h with
 					| x::xl ->
 						let _ = (match x with
-						| INV_TX (txid) -> Log.info "Network" "Got inv tx %s" txid;
+						| INV_TX (txid) -> 
+							Log.info "Network" "Got inv tx %s" txid;
 						| INV_BLOCK (bhash) -> Log.info "Network" "Got inv block %s" bhash;
 						| _ -> ()
 						) in vis xl  
 					| [] -> ()
 					in vis i;
+					Peer.send peer (GETDATA (i));
 					Log.info "Network" "Received %d inv" (List.length i);
 					
 				| HEADERS (hl) ->
 					let rec vis h = match h with
 					| x::xl ->
-						Log.info "Network" "Got block header %s %s" (x.Block.Header.hash) (x.Block.Header.prev_block);
+						(*Log.info "Network" "Got block header %s %s %f %s %ld" 
+							x.Block.Header.hash x.Block.Header.prev_block x.Block.Header.timestamp 
+							x.Block.Header.merkle_root x.Block.Header.version;*)
 						vis xl  
 					| [] -> ()
 					in vis hl;

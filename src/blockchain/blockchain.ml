@@ -102,7 +102,7 @@ let get_request bc =
 
 let loop bc = 
 	while true do
-		Unix.sleep 5;
+		Unix.sleep 30;
 		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last;
 		match get_resource bc with 
 		| Some (res) -> (match res with 

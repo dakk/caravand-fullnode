@@ -1,3 +1,4 @@
+open Blockchain;;
 open Params;;
 open Stdint;;
 
@@ -24,6 +25,8 @@ type addr = {
 
 type inv = invvect list
 
+type getdata = inv
+
 type version = {
 	version		: int32;
 	services	: int64;
@@ -35,6 +38,7 @@ type version = {
 	start_height: int32;
 	relay		: bool;
 }
+
 
 
 type getheaders = {
@@ -59,12 +63,12 @@ type t =
 	| PONG of pong
 	| INV of inv
 	| ADDR
-	| GETDATA
+	| GETDATA of inv
 	| NOTFOUND
 	| GETBLOCKS of getblocks
 	| GETHEADERS of getheaders
-	| TX
-	| BLOCKS
+	| TX of Tx.t
+	| BLOCK of Block.t
 	| HEADERS of headers
 	| GETADDR
 	| MEMPOOL

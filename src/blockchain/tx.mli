@@ -1,9 +1,11 @@
+open Stdint
+
 module In : sig
 	type t = {
 		tx 		: string;
-		n		: int;
+		n		: uint32;
 		script	: string;
-		seq		: int32;	
+		seq		: uint32;	
 	}
 	
 	val parse 	: bytes -> t
@@ -24,7 +26,7 @@ type t = {
 	version		: int32;
 	txin 		: In.t list;
 	txout 		: Out.t list;
-	locktime	: int32;
+	locktime	: uint32;
 }
 
 val parse 		: bytes -> t

@@ -1,16 +1,18 @@
+open Stdint;;
+
 module In = struct 
 	type t = {
 		tx 		: string;
-		n		: int;
+		n		: uint32;
 		script	: string;
-		seq		: int32;	
+		seq		: uint32;	
 	};;
 
 	let parse data = {
 		tx= "";
-		n= 1;
+		n= Uint32.of_int 0;
 		script= "";
-		seq= Int32.of_int 12;
+		seq= Uint32.of_int 12;
 	};;
 end
 
@@ -32,7 +34,7 @@ type t = {
 	version		: int32;
 	txin 		: In.t list;
 	txout 		: Out.t list;
-	locktime	: int32;
+	locktime	: uint32;
 };;
 
 
@@ -41,7 +43,7 @@ let parse data = {
 	version	= Int32.of_int 0;
 	txin	= [];
 	txout	= [];
-	locktime= Int32.of_int 0;
+	locktime= Uint32.of_int 0;
 };;
 
 

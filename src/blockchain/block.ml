@@ -9,8 +9,7 @@ module Header = struct
 		merkle_root : Hash.t;
 		timestamp	: float;
 		bits		: int32;
-		nonce		: int32;
-		txn			: int64;	
+		nonce		: int32;	
 	};;
 	
 	let parse data = 
@@ -20,17 +19,18 @@ module Header = struct
 			version 	: 4*8 : littleendian;
 			prev_block	: 32*8: string; 
 			merkle_root	: 32*8: string;
-			timestamp	: 4*8 : littleendian
+			timestamp	: 4*8 : littleendian;
+			bits		: 4*8 : littleendian;
+			nonce		: 4*8 : littleendian
 		} ->
 		{
-			hash			= Hash.of_bin (hash256 (String.sub data 0 80));
+			hash			= Hash.of_bin (hash256 data);
 			version			= version;
 			prev_block		= Hash.of_binblock prev_block;
-			merkle_root		= merkle_root;
+			merkle_root		= Hash.of_bin merkle_root;
 			timestamp		= Int32.to_float timestamp;
-			bits= Int32.of_int 12;
-			nonce= Int32.of_int 12;
-			txn= Int64.of_int 12;
+			bits			= bits;
+			nonce			= nonce
 		}
 	;;
 end

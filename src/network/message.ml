@@ -1,3 +1,4 @@
+open Blockchain;;
 open Bitstring;;
 open Params;;
 open Crypto;;
@@ -26,6 +27,8 @@ type addr = {
 
 
 type inv = invvect list;;
+
+type getdata = inv;;
 
 type version = {
 	version		: int32;
@@ -60,12 +63,12 @@ type t =
 	| PONG of pong
 	| INV of inv
 	| ADDR
-	| GETDATA
+	| GETDATA of inv
 	| NOTFOUND
 	| GETBLOCKS of getblocks
 	| GETHEADERS of getheaders
-	| TX
-	| BLOCKS
+	| TX of Tx.t
+	| BLOCK of Block.t
 	| HEADERS of headers
 	| GETADDR
 	| MEMPOOL
@@ -89,12 +92,12 @@ let string_of_command c = match c with
 	| PONG (p) -> "pong"
 	| INV (i) -> "inv"
 	| ADDR -> "addr"
-	| GETDATA -> "getdata"
+	| GETDATA (gd) -> "getdata"
 	| NOTFOUND -> "notfound"
 	| GETBLOCKS (gb) -> "getblocks"
 	| GETHEADERS (gh) -> "getheaders"
-	| TX -> "tx"
-	| BLOCKS -> "blocks"
+	| TX (tx) -> "tx"
+	| BLOCK (b) -> "blocks"
 	| HEADERS (h) -> "headers"
 	| GETADDR -> "getaddr"
 	| MEMPOOL -> "mempool"
@@ -125,33 +128,53 @@ let string_from_zeroterminated_string zts =
 let parse_varint bits =
 	let parse_tag_byte bits =
 		bitmatch bits with
-		| { tag : 1*8 : littleendian; rest : -1 : bitstring } -> (tag, rest)
-		| { _ } -> (0, bits)
+		| { tag : 1*8 : string; rest : -1 : bitstring } -> (Uint8.of_bytes_little_endian tag 0, rest)
 	in
 	let parse_value bits bytesize =
 		bitmatch bits with
-		| { value : bytesize*8 : littleendian; rest : -1 : bitstring } -> (value, rest)
-		| { _ } -> (Int64.of_int 0, bits)
+		| { value : bytesize * 8 : string; rest : -1 : bitstring } -> 
+			match bytesize with
+			| 8 -> (Uint64.of_bytes_little_endian value 0, rest)
+			| 4 -> (Uint32.to_uint64 (Uint32.of_bytes_little_endian value 0), rest)
+			| 2 -> (Uint16.to_uint64 (Uint16.of_bytes_little_endian value 0), rest)
 	in
 	let tag, rest = parse_tag_byte bits in
-		match tag with
-		| 0xff -> parse_value rest 8
-		| 0xfe -> parse_value rest 4
-		| 0xfd -> parse_value rest 2
-		| x -> (Int64.of_int x, rest)
+		match Uint8.to_int tag with
+		| 0xFF -> parse_value rest 8
+		| 0xFE -> parse_value rest 4
+		| 0xFD -> parse_value rest 2
+		| x -> (Uint64.of_uint8 tag, rest)
 ;;
 
 
 let parse_varstring bits =
   let length, bits = parse_varint bits in
-  match length with
-  | 0L -> ("", bits)
-  | length ->
+  if length = Uint64.zero then ("", bits)
+  else
     bitmatch bits with
-    | { value : (Int64.to_int length) * 8 : string;
+    | { value : (Uint64.to_int length) * 8 : string;
         rest : -1 : bitstring
       } -> (value, rest)
     | { _ } -> ("", bits)
+;;
+
+
+
+let parse_headers data = 
+	let rec ph' data n acc =
+		if n = Uint64.zero then acc else
+			bitmatch data with
+			| { raw : 80*8 : string; rest : -1 : bitstring } ->
+				let count, rest' = parse_varint rest in
+				let blockh = Block.Header.parse raw in
+				if blockh.timestamp = 0.0 then 
+					ph' rest' (Uint64.sub n Uint64.one) acc
+				else
+					ph' rest' (Uint64.sub n Uint64.one) (blockh::acc)
+	in  
+	let bdata = bitstring_of_string data in
+	let count, rest = parse_varint bdata in
+	(ph' bdata (Uint64.sub count Uint64.one) [])
 ;;
 
 
@@ -174,8 +197,11 @@ let parse_inv data =
 	in
 	let bdata = bitstring_of_string data in
 	let count, rest = parse_varint bdata in
-	parse_invvects rest (Int64.to_int count) []
+	parse_invvects rest (Uint64.to_int count) []
 ;;
+
+
+let parse_getdata data = parse_inv data;;
 
 let parse_version data =
 	let bdata = bitstring_of_string data in
@@ -223,18 +249,6 @@ let parse_pong data =
 	| { _ } -> raise (Invalid_argument "Invalid pong message")
 ;;
 
-
-let parse_headers data = 
-	let rec ph' data n acc =
-		if n = 0 then acc else
-			bitmatch data with
-			| { raw : 81*8 : bitstring; rest : -1 : bitstring } ->
-				ph' rest (n-1) ((Block.Header.parse (string_of_bitstring raw))::acc)
-	in  
-	let bdata = bitstring_of_string data in
-	let count, rest = parse_varint bdata in
-	(ph' (bdata) (Int64.to_int count) [])
-;;
 
 let parse_getheaders data =
 	let bdata = bitstring_of_string data in
@@ -285,6 +299,9 @@ let parse header payload =
 	| "getheaders" -> GETHEADERS (parse_getheaders payload)
 	| "getblocks" -> GETBLOCKS (parse_getblocks payload)
 	| "inv" -> INV (parse_inv payload)
+	| "tx" -> TX (Tx.parse payload)
+	| "block" -> BLOCK (Block.parse payload)
+	| "getdata" -> GETDATA (parse_getdata payload)
 	| "addr" -> ADDR
 	| _ -> raise (Invalid_argument ("Protocol command " ^ header.command ^ " not recognized"))
 ;;
@@ -335,7 +352,7 @@ let serialize_getheaders v =
 	BITSTRING {
 		v.version 												: 4*8 : littleendian;
 		bitstring_of_int (Int64.of_int (List.length v.hashes))	: -1 : bitstring;
-		List.nth v.hashes 0										: 32*8 : string; (*TODO: this should be an array *)
+		Hash.to_bin (List.nth v.hashes 0)						: 32*8 : string; (*TODO: this should be an array *)
 		v.stop													: 32*8 : string
 	} 
 ;;
@@ -359,6 +376,32 @@ let serialize_version (v:version) =
 let serialize_ping p = BITSTRING { p 	: 8*8 : littleendian };;
 let serialize_pong p = BITSTRING { p 	: 8*8 : littleendian };;
 
+
+let serialize_getdata gd = 
+	let ser_iv v = 
+		let it = match v with
+		| INV_BLOCK (h) -> (h, 2)
+		| INV_TX (h) -> (h, 1)
+		| INV_FILTERED_BLOCK (h) -> (h, 3)		
+		in BITSTRING {
+			Int32.of_int (snd (it)) : 4*8 : littleendian;
+			Hash.to_bin (fst (it)) : 32*8 : string
+		}
+	in
+	let rec ser_ivs vl =
+		match vl with
+		| [] -> []
+		| v::vl' -> (ser_iv v)::(ser_ivs vl')
+	in
+	let invvects = ser_ivs gd in
+	BITSTRING {
+		bitstring_of_int (Int64.of_int (List.length gd)): -1 : bitstring;
+		Bitstring.concat invvects 						: -1 : bitstring
+	}
+;;
+
+let serialize_inv gd = serialize_getdata gd;;
+
 let serialize_header header =
 	let blength = Bytes.create 4 in
 	let _ = Uint32.to_bytes_little_endian header.length blength 0 in
@@ -380,6 +423,8 @@ let serialize_message message =
 	| VERACK -> empty_bitstring
 	| GETHEADERS (gh) -> serialize_getheaders gh
 	| GETBLOCKS (gb) -> serialize_getblocks gb
+	| GETDATA (gd) -> serialize_getdata gd
+	| INV (gd) -> serialize_inv gd
 	
 	| GETADDR -> empty_bitstring
 	| MEMPOOL -> empty_bitstring

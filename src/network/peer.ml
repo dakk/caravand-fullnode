@@ -52,20 +52,20 @@ let send peer message =
 
 let recv peer = 
 	let rec recv_chunks bsize acc = 
-		if bsize = (Uint32.of_int 0) then acc
+		if bsize = Uint32.zero then Bytes.concat "" acc
 		else
-			let csize = if bsize > (Uint32.of_int 2048) then 2048 else Uint32.to_int bsize in
+			let csize = if bsize >= (Uint32.of_int 0xFFFFFF) then 0xFFFFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
 			let _ = Unix.recv peer.socket rdata 0 csize [] in
-			recv_chunks (Uint32.sub bsize (Uint32.of_int csize)) (acc ^ rdata)
+			recv_chunks (Uint32.sub bsize (Uint32.of_int csize)) (acc @ [rdata])
 	in
 	(* Read and parse the header*)
-	let data = Bytes.create 32 in
+	let data = Bytes.create 24 in
 	let _ = Unix.recv peer.socket data 0 24 [] in
 	let m = Message.parse_header data in
 				
 	(* Read and parse the message*)
-	let rdata = recv_chunks m.length "" in
+	let rdata = recv_chunks m.length [] in
 	try
 		let m' = Message.parse m rdata in 
 		Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;

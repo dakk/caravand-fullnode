@@ -13,6 +13,7 @@ let reverse s =
 	reverse_string_acc s "" 0 (String.length s)
 ;;
 
+let zero () = String.make 64 '0';;
 
 (* Binary to hash *)
 let of_bin b =
@@ -25,17 +26,23 @@ let of_bin b =
 	of_bin' (reverse b)
 ;;
 
+
 let of_binblock b =
 	let h = of_bin b in "000000" ^ (String.sub (h) 0 (64 - 6))
 ;;
 
-let zero () = String.make 64 '0';;
 
 
 (* Hash to binary *)
-let to_bin b = ""
+let to_bin h =
+	let rec to_bin' h = 
+		let tob cc = String.make 1 (Char.chr (Scanf.sscanf cc "%2x" (fun i -> i))) in
+		match String.length h with
+		| 0 -> ""
+		| 1 -> failwith "Hash can't have odd size"
+		| n -> (tob (String.sub h 0 2)) ^ (to_bin' (String.sub h 2 ((String.length h) - 2)))
+	in reverse (to_bin' h)
 ;;
 
-let to_binblock b = ""
-;;
+let to_binblock b = String.sub b 0 32;;
 
