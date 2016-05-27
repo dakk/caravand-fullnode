@@ -40,11 +40,11 @@ let rec connect par pt addrs n =
 					Peer.handshake peer;
 					
 					(* TEST: getheaders *) 
-					(*Peer.send peer (GETHEADERS {
+					Peer.send peer (GETHEADERS {
 						version= Int32.of_int 70001;
-						hashes= ["000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"];
+						hashes= [par.genesis];
 						stop= Hash.to_bin (Hash.zero ());
-					});*)
+					});
 					
 					Hashtbl.add pt a' peer; 
 					connect par pt al' (n-1)
@@ -55,7 +55,7 @@ let rec connect par pt addrs n =
 let init p =
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = connect p (Hashtbl.create 16) addrs 3 in
+	let peers = connect p (Hashtbl.create 16) addrs 2 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
@@ -97,9 +97,9 @@ let rec handle_recv n bc = function
 				| HEADERS (hl) ->
 					let rec vis h = match h with
 					| x::xl ->
-						(*Log.info "Network" "Got block header %s %s %f %s %ld" 
+						Log.info "Network" "Got block header %s %s %f %s %ld" 
 							x.Block.Header.hash x.Block.Header.prev_block x.Block.Header.timestamp 
-							x.Block.Header.merkle_root x.Block.Header.version;*)
+							x.Block.Header.merkle_root x.Block.Header.version;
 						vis xl  
 					| [] -> ()
 					in vis hl;
@@ -124,7 +124,7 @@ let loop n bc =
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
-			if peer.last_seen < (Unix.time () -. 60. *. 5.) then (
+			if peer.last_seen < (Unix.time () -. 60. *. 3.) then (
 				Hashtbl.remove n.peers k;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
 				if Hashtbl.length n.peers < 4 then
@@ -133,7 +133,7 @@ let loop n bc =
 				else
 					()
 			) else (			
-				if peer.last_seen < (Unix.time () -. 60. *. 3.) then
+				if peer.last_seen < (Unix.time () -. 60. *. 1.) then
 					Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
 				else ()
 			) 

@@ -29,6 +29,21 @@ let of_network n =
 				"bitseed.xf2.org"
 			];
 		}
+	| XTN -> 
+		{ 
+			version	= 70001;
+			services= 0x0000000000000001L;
+			network	= XTN;
+			genesis	= "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943";
+			port	= 18333;
+			magic	= 0x0709110B;
+			seeds	= [ 
+				"testnet-seed.alexykot.me"; 
+				"testnet-seed.bitcoin.petertodd.org";
+				"testnet-seed.bluematt.me";
+				"testnet-seed.bitcoin.schildbach.de"
+			];
+		}
 	| _ -> failwith "Not available"
 ;;
 

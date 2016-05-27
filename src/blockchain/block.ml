@@ -1,3 +1,4 @@
+open Stdint;;
 open Bitstring;;
 open Crypto;;
 
@@ -19,7 +20,7 @@ module Header = struct
 			version 	: 4*8 : littleendian;
 			prev_block	: 32*8: string; 
 			merkle_root	: 32*8: string;
-			timestamp	: 4*8 : littleendian;
+			timestamp	: 4*8 : string;
 			bits		: 4*8 : littleendian;
 			nonce		: 4*8 : littleendian
 		} ->
@@ -28,7 +29,7 @@ module Header = struct
 			version			= version;
 			prev_block		= Hash.of_binblock prev_block;
 			merkle_root		= Hash.of_bin merkle_root;
-			timestamp		= Int32.to_float timestamp;
+			timestamp		= Uint32.to_float (Uint32.of_bytes_little_endian timestamp 0);
 			bits			= bits;
 			nonce			= nonce
 		}

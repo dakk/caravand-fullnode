@@ -17,6 +17,17 @@ type t = {
 };;
 
 
+let rec is_readable s = 
+	match String.length s with
+	| 0 -> true
+	| n -> 
+		let c = Char.code (String.get s 0) in
+		if c >= Char.code 'a' && c <= Char.code 'z' then
+			is_readable (String.sub s 1 (n - 1))
+		else
+			false  
+;;
+
 
 let connect params addr port =
 	Log.debug "Peer" "Connecting to peer %s:%d..." (Unix.string_of_inet_addr addr) port;
@@ -51,6 +62,14 @@ let send peer message =
 
 
 let recv peer = 
+	let rec burn_chunks bsize =
+		if bsize = Uint32.zero then ()
+		else
+			let csize = if bsize >= (Uint32.of_int 0xFFFFFF) then 0xFFFFFF else Uint32.to_int bsize in
+			let rdata = Bytes.create csize in
+			let _ = Unix.recv peer.socket rdata 0 csize [] in
+			burn_chunks (Uint32.sub bsize (Uint32.of_int csize)) 
+	in
 	let rec recv_chunks bsize acc = 
 		if bsize = Uint32.zero then Bytes.concat "" acc
 		else
@@ -65,14 +84,23 @@ let recv peer =
 	let m = Message.parse_header data in
 				
 	(* Read and parse the message*)
-	let rdata = recv_chunks m.length [] in
-	try
-		let m' = Message.parse m rdata in 
-		Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
-		Some (m')
-	with | _ ->
-		Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command;
+	if m.length > (Uint32.of_string "9999999") then (
+		burn_chunks m.length; 
+		Log.error "Peer ↚" "%s: %s (skipped big message)" (Unix.string_of_inet_addr peer.address) m.command;
 		None
+	) else (
+		let rdata = recv_chunks m.length [] in
+		try
+			let m' = Message.parse m rdata in 
+			Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
+			Some (m')
+		with | _ ->
+			if is_readable m.command then
+				Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command
+			else
+				Log.error "Peer ↚" "%s: not readable (parse failed)" (Unix.string_of_inet_addr peer.address);
+			None
+	)
 ;;
 
 
