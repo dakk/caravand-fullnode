@@ -26,6 +26,7 @@ type addr = {
 type inv = invvect list
 
 type getdata = inv
+type notfound = inv
 
 type version = {
 	version		: int32;
@@ -64,7 +65,7 @@ type t =
 	| INV of inv
 	| ADDR
 	| GETDATA of inv
-	| NOTFOUND
+	| NOTFOUND of notfound
 	| GETBLOCKS of getblocks
 	| GETHEADERS of getheaders
 	| TX of Tx.t

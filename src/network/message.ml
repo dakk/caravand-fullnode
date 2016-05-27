@@ -29,6 +29,7 @@ type addr = {
 type inv = invvect list;;
 
 type getdata = inv;;
+type notfound = inv;;
 
 type version = {
 	version		: int32;
@@ -64,7 +65,7 @@ type t =
 	| INV of inv
 	| ADDR
 	| GETDATA of inv
-	| NOTFOUND
+	| NOTFOUND of notfound
 	| GETBLOCKS of getblocks
 	| GETHEADERS of getheaders
 	| TX of Tx.t
@@ -93,7 +94,7 @@ let string_of_command c = match c with
 	| INV (i) -> "inv"
 	| ADDR -> "addr"
 	| GETDATA (gd) -> "getdata"
-	| NOTFOUND -> "notfound"
+	| NOTFOUND (nf) -> "notfound"
 	| GETBLOCKS (gb) -> "getblocks"
 	| GETHEADERS (gh) -> "getheaders"
 	| TX (tx) -> "tx"
@@ -137,6 +138,7 @@ let parse_varint bits =
 			| 8 -> (Uint64.of_bytes_little_endian value 0, rest)
 			| 4 -> (Uint32.to_uint64 (Uint32.of_bytes_little_endian value 0), rest)
 			| 2 -> (Uint16.to_uint64 (Uint16.of_bytes_little_endian value 0), rest)
+			| _ -> failwith "Varint parse error"
 	in
 	let tag, rest = parse_tag_byte bits in
 		match Uint8.to_int tag with
@@ -167,7 +169,7 @@ let parse_headers data =
 			| { raw : 80*8 : string; rest : -1 : bitstring } ->
 				let count, rest' = parse_varint rest in
 				let blockh = Block.Header.parse raw in
-				if blockh.timestamp = 0.0 then 
+				if blockh.Block.Header.timestamp = 0.0 then 
 					ph' rest' (Uint64.sub n Uint64.one) acc
 				else
 					ph' rest' (Uint64.sub n Uint64.one) (blockh::acc)
@@ -200,7 +202,7 @@ let parse_inv data =
 	parse_invvects rest (Uint64.to_int count) []
 ;;
 
-
+let parse_notfound data = parse_inv data;;
 let parse_getdata data = parse_inv data;;
 
 let parse_version data =
@@ -303,6 +305,7 @@ let parse header payload =
 	| "block" -> BLOCK (Block.parse payload)
 	| "getdata" -> GETDATA (parse_getdata payload)
 	| "addr" -> ADDR
+	| "notfound" -> NOTFOUND (parse_notfound payload)
 	| _ -> raise (Invalid_argument ("Protocol command " ^ header.command ^ " not recognized"))
 ;;
 
@@ -382,7 +385,8 @@ let serialize_getdata gd =
 		let it = match v with
 		| INV_BLOCK (h) -> (h, 2)
 		| INV_TX (h) -> (h, 1)
-		| INV_FILTERED_BLOCK (h) -> (h, 3)		
+		| INV_FILTERED_BLOCK (h) -> (h, 3)
+		| INV_ERROR -> ("", 0)		
 		in BITSTRING {
 			Int32.of_int (snd (it)) : 4*8 : littleendian;
 			Hash.to_bin (fst (it)) : 32*8 : string
@@ -401,6 +405,7 @@ let serialize_getdata gd =
 ;;
 
 let serialize_inv gd = serialize_getdata gd;;
+let serialize_notfound nf = serialize_getdata nf;;
 
 let serialize_header header =
 	let blength = Bytes.create 4 in
@@ -425,7 +430,7 @@ let serialize_message message =
 	| GETBLOCKS (gb) -> serialize_getblocks gb
 	| GETDATA (gd) -> serialize_getdata gd
 	| INV (gd) -> serialize_inv gd
-	
+	| NOTFOUND (nf) -> serialize_notfound nf	
 	| GETADDR -> empty_bitstring
 	| MEMPOOL -> empty_bitstring
 	| SENDHEADERS -> empty_bitstring
