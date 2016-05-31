@@ -13,131 +13,56 @@ type t = {
 };;
 
 
-let peer_of_socket fd peers =
-	try (
-		match Unix.getpeername fd with
-		| Unix.ADDR_INET (a, p) -> 
-			(try Some (Hashtbl.find peers (Unix.string_of_inet_addr a))
-			with | Not_found -> None)
-		| _ -> None
-	) with | _ -> None
-;;
-
-let rec connect par pt addrs n =
-	match (n, addrs) with
-	| (0, a::al') -> pt
-	| (0, []) -> pt
-	| (n', []) -> pt
-	| (n', a::al') ->  
-		let a' = Unix.string_of_inet_addr a in
-		try
-			let _ = Hashtbl.find pt a' in
-			connect par pt al' n 
-		with Not_found -> 
-			let peer = Peer.create par a par.port in
-			match Peer.connect peer with
-				| CONNECTED -> 
-					Peer.handshake peer;
-					
-					(* TEST: getheaders *) (*
-					Peer.send peer (GETHEADERS {
-						version= Int32.of_int 70001;
-						hashes= [par.genesis];
-						stop= Hash.to_bin (Hash.zero ());
-					});*)
-					
-					Hashtbl.add pt a' peer; 
-					connect par pt al' (n-1)
-				| DISCONNECTED -> connect par pt al' n
-;;
-
 
 let init p =
+	let rec init_peers par pt addrs n =
+		match (n, addrs) with
+		| (0, a::al') -> pt
+		| (0, []) -> pt
+		| (n', []) -> pt
+		| (n', a::al') ->  
+			let a' = Unix.string_of_inet_addr a in
+			try
+				let _ = Hashtbl.find pt a' in
+				init_peers par pt al' n 
+			with Not_found -> 
+				let peer = Peer.create par a par.port in
+				Hashtbl.add pt a' peer;
+				init_peers par pt al' (n-1)
+	in
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = connect p (Hashtbl.create 16) addrs 2 in
+	let peers = init_peers p (Hashtbl.create 16) addrs 4 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
 ;;
 
 
-let rec handle_recv n bc = function
-	| [] -> ()
-	| x::xl' -> (
-		match peer_of_socket x n.peers with
-		| Some (peer) -> (					
-			let m = Peer.recv peer in
-			match m with
-			| None -> ()
-			| Some (m') -> (
-				peer.last_seen <- Unix.time ();
-				match m' with 
-				| PING (p) -> Peer.send peer (PONG (p));
-				| VERSION (v) ->
-					peer.height <- v.start_height;
-					peer.user_agent <- v.user_agent;
-					Peer.send peer VERACK;
-					Log.info "Network" "Peer %s with agent %s starting from height %d" 
-						(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
-				| INV (i) ->
-					let rec vis h = match h with
-					| x::xl ->
-						let _ = (match x with
-						| INV_TX (txid) -> 
-							Log.info "Network" "Got inv tx %s" txid;
-						| INV_BLOCK (bhash) -> Log.info "Network" "Got inv block %s" bhash;
-						| _ -> ()
-						) in vis xl  
-					| [] -> ()
-					in vis i;
-					Peer.send peer (GETDATA (i));
-					Log.info "Network" "Received %d inv" (List.length i);
-					
-				| HEADERS (hl) ->
-					let rec vis h = match h with
-					| x::xl ->
-						Log.info "Network" "Got block header %s %s %f %s %ld" 
-							x.Block.Header.hash x.Block.Header.prev_block x.Block.Header.timestamp 
-							x.Block.Header.merkle_root x.Block.Header.version;
-						vis xl  
-					| [] -> ()
-					in vis hl;
-					Blockchain.add_resource bc (Blockchain.Resource.RES_HBLOCKS (hl));
-				| _ -> ()
-			)
-			; ()
-		)
-		| None -> ()
-	);
-	handle_recv n bc xl'
-;;
-
 let loop n bc = 
-	let read_step = function | (rs,ws,es) -> handle_recv n bc rs in	
 	Log.info "Network" "Starting mainloop.";
-	let sockets = Hashtbl.fold (fun k v l -> (v.socket)::l) n.peers [] in
 	
+	Hashtbl.iter (fun k peer -> Thread.create (Peer.start peer) bc; ()) n.peers;
+					
 	while true do
-		(* Read new data *)
-		Unix.select sockets [] [] 5.0 |> read_step;
-
+		Unix.sleep 5;
+		
 		(* Check for connection timeout and minimum number of peer*)		
-		Hashtbl.iter (fun k peer -> 
+		(*Hashtbl.iter (fun k peer -> 
 			match peer.last_seen with
 			| x when x < (Unix.time () -. 60. *. 3.) ->
 				Peer.disconnect peer;
 				Hashtbl.remove n.peers k;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
-				if Hashtbl.length n.peers < 4 then (* Connect to new peers *) ()
+				if Hashtbl.length n.peers < 4 then ()
 				else ()
 			| x when x < (Unix.time () -. 60. *. 1.) ->
 				Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
 			| _ -> () 
-		) n.peers;
+		) n.peers;*)
 		
 		(* Check for request *)
-		(*Log.info "Network" "Pending request from blockchain: %d" (Queue.length bc.queue_req);*)
+		Log.info "Network" "Pending request from blockchain: %d" (Queue.length bc.queue_req);
 	done;
 	()
 ;;

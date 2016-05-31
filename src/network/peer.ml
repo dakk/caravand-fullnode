@@ -134,17 +134,17 @@ let handshake peer =
 let disconnect peer = Unix.shutdown peer.socket Unix.SHUTDOWN_ALL;;
 
 let handle peer bc = 
-	let m = Peer.recv peer in
+	let m = recv peer in
 	match m with
 	| None -> ()
 	| Some (m') -> (
 		peer.last_seen <- Unix.time ();
 		match m' with 
-		| PING (p) -> Peer.send peer (PONG (p));
+		| PING (p) -> send peer (PONG (p));
 		| VERSION (v) ->
 			peer.height <- v.start_height;
 			peer.user_agent <- v.user_agent;
-			Peer.send peer VERACK;
+			send peer VERACK;
 			Log.info "Network" "Peer %s with agent %s starting from height %d" 
 				(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
 		| INV (i) ->
@@ -158,7 +158,7 @@ let handle peer bc =
 				) in vis xl  
 			| [] -> ()
 			in vis i;
-			Peer.send peer (GETDATA (i));
+			(*send peer (GETDATA (i));*)
 			Log.info "Network" "Received %d inv" (List.length i);
 					
 		| HEADERS (hl) ->
@@ -181,7 +181,9 @@ let start peer bc =
 	match connect peer with 
 	| DISCONNECTED -> ()
 	| CONNECTED -> 
-		while peer.status <> DISCONNECT do
+		handshake peer;
+		
+		while peer.status <> DISCONNECTED do
 			Unix.select [peer.socket] [] [] 5.0 |> read_step; ()
 		done
 ;;
