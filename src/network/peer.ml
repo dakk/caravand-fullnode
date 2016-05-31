@@ -187,8 +187,8 @@ let start peer bc =
 		send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }));
 		
 		while peer.status <> DISCONNECTED do
-			Unix.select [peer.socket] [] [] 5.0 |> read_step; ()
-			
+			Unix.select [peer.socket] [] [] 5.0 |> read_step; ();
+			(* send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }))*)
 			(* This should get requests filtered by addr Blockchain.get_request*)
 		done
 ;;
