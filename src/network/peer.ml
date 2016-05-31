@@ -5,12 +5,19 @@ open Message;;
 open Params;;
 open Random;;
 
+type status = 
+	  CONNECTED
+	| DISCONNECTED
+	| WAITPING of int64
+;;
+
 type t = {
 	socket	: Unix.file_descr;
 	address : Unix.inet_addr;
 	port	: int;
 	params	: Params.t;
 	
+	mutable status		: status;
 	mutable last_seen	: float;
 	mutable height		: int32;
 	mutable user_agent	: string;
@@ -29,27 +36,30 @@ let rec is_readable s =
 ;;
 
 
-let connect params addr port =
-	Log.debug "Peer" "Connecting to peer %s:%d..." (Unix.string_of_inet_addr addr) port;
-	let psock = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+let create params addr port = {
+	socket		= Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0; 
+	address		= addr; 
+	port		= port; 
+	params		= params; 
+	last_seen	= Unix.time ();
+	height		= Int32.of_int 0;
+	user_agent	= ""; 
+	status		= DISCONNECTED;
+};;
+
+let connect peer =
+	Log.debug "Peer" "Connecting to peer %s:%d..." (Unix.string_of_inet_addr peer.address) peer.port;
 	try
 		(*Unix.set_nonblock psock;*)
 		(*Make the socket a non-blocking socket, and then use select() or poll() with a timeout value to check for writability. If the select() returns with a timeout you did not connect in time, and you can close the socket and deal with the connection failure. If it returns with a completion, everything is fine and you can proceed.*)
-		Unix.connect psock (ADDR_INET (addr, port));
-		Log.debug "Peer" "Connected to peer %s:%d" (Unix.string_of_inet_addr addr) port;						
-		Some { 
-			socket= psock; 
-			address= addr; 
-			port= port; 
-			params= params; 
-			last_seen= Unix.time ();
-			height= Int32.of_int 0;
-			user_agent= ""; 
-		}
+		Unix.connect peer.socket (ADDR_INET (peer.address, peer.port));
+		Log.debug "Peer" "Connected to peer %s:%d" (Unix.string_of_inet_addr peer.address) peer.port;
+		peer.status <- CONNECTED; CONNECTED					
 	with
 		| _ -> 
-			Log.error "Peer" "Failed to connect to peer %s:%d." (Unix.string_of_inet_addr addr) port;
-			None
+			peer.status <- DISCONNECTED; 
+			Log.error "Peer" "Failed to connect to peer %s:%d." (Unix.string_of_inet_addr peer.address) peer.port;
+			DISCONNECTED
 ;;
 
 
@@ -119,3 +129,59 @@ let handshake peer =
 	} in send peer (Message.VERSION (verm))
 ;;
 
+
+
+let disconnect peer = Unix.shutdown peer.socket Unix.SHUTDOWN_ALL;;
+
+let handle peer bc = 
+	let m = Peer.recv peer in
+	match m with
+	| None -> ()
+	| Some (m') -> (
+		peer.last_seen <- Unix.time ();
+		match m' with 
+		| PING (p) -> Peer.send peer (PONG (p));
+		| VERSION (v) ->
+			peer.height <- v.start_height;
+			peer.user_agent <- v.user_agent;
+			Peer.send peer VERACK;
+			Log.info "Network" "Peer %s with agent %s starting from height %d" 
+				(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
+		| INV (i) ->
+			let rec vis h = match h with
+			| x::xl ->
+				let _ = (match x with
+					| INV_TX (txid) -> 
+						Log.info "Network" "Got inv tx %s" txid;
+					| INV_BLOCK (bhash) -> Log.info "Network" "Got inv block %s" bhash;
+					| _ -> ()
+				) in vis xl  
+			| [] -> ()
+			in vis i;
+			Peer.send peer (GETDATA (i));
+			Log.info "Network" "Received %d inv" (List.length i);
+					
+		| HEADERS (hl) ->
+			let rec vis h = match h with
+				| x::xl ->
+					Log.info "Network" "Got block header %s %s %f %s %ld" 
+						x.Block.Header.hash x.Block.Header.prev_block x.Block.Header.timestamp 
+						x.Block.Header.merkle_root x.Block.Header.version;
+					vis xl  
+				| [] -> ()
+			in vis hl;
+			Blockchain.add_resource bc (Blockchain.Resource.RES_HBLOCKS (hl));
+		| _ -> ()
+	)
+;;
+
+let start peer bc = 
+	let read_step = function | (rs,ws,es) -> handle peer bc in	
+	
+	match connect peer with 
+	| DISCONNECTED -> ()
+	| CONNECTED -> 
+		while peer.status <> DISCONNECT do
+			Unix.select [peer.socket] [] [] 5.0 |> read_step; ()
+		done
+;;

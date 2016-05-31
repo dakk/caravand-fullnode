@@ -34,21 +34,21 @@ let rec connect par pt addrs n =
 			let _ = Hashtbl.find pt a' in
 			connect par pt al' n 
 		with Not_found -> 
-			let p = Peer.connect par a par.port in
-			match p with
-				| Some (peer) -> 
+			let peer = Peer.create par a par.port in
+			match Peer.connect peer with
+				| CONNECTED -> 
 					Peer.handshake peer;
 					
-					(* TEST: getheaders *) 
+					(* TEST: getheaders *) (*
 					Peer.send peer (GETHEADERS {
 						version= Int32.of_int 70001;
 						hashes= [par.genesis];
 						stop= Hash.to_bin (Hash.zero ());
-					});
+					});*)
 					
 					Hashtbl.add pt a' peer; 
 					connect par pt al' (n-1)
-				| None -> connect par pt al' n
+				| DISCONNECTED -> connect par pt al' n
 ;;
 
 
@@ -124,19 +124,16 @@ let loop n bc =
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
-			if peer.last_seen < (Unix.time () -. 60. *. 3.) then (
+			match peer.last_seen with
+			| x when x < (Unix.time () -. 60. *. 3.) ->
+				Peer.disconnect peer;
 				Hashtbl.remove n.peers k;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
-				if Hashtbl.length n.peers < 4 then
-					(* Connect to new peers *) 
-					()
-				else
-					()
-			) else (			
-				if peer.last_seen < (Unix.time () -. 60. *. 1.) then
-					Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
+				if Hashtbl.length n.peers < 4 then (* Connect to new peers *) ()
 				else ()
-			) 
+			| x when x < (Unix.time () -. 60. *. 1.) ->
+				Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
+			| _ -> () 
 		) n.peers;
 		
 		(* Check for request *)
