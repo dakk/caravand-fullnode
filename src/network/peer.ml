@@ -3,6 +3,7 @@ open Unix;;
 open Log;;
 open Message;;
 open Params;;
+open Blockchain;;
 open Random;;
 
 type status = 
@@ -153,14 +154,15 @@ let handle peer bc =
 				let _ = (match x with
 					| INV_TX (txid) -> 
 						Log.info "Network" "Got inv tx %s" txid;
-					| INV_BLOCK (bhash) -> Log.info "Network" "Got inv block %s" bhash;
+						Blockchain.add_resource bc (Blockchain.Resource.RES_INV_TXS ([txid], peer.address));
+					| INV_BLOCK (bhash) -> 
+						Log.info "Network" "Got inv block %s" bhash;
+						Blockchain.add_resource bc (Blockchain.Resource.RES_INV_BLOCKS ([bhash], peer.address));
 					| _ -> ()
 				) in vis xl  
 			| [] -> ()
 			in vis i;
-			(*send peer (GETDATA (i));*)
-			Log.info "Network" "Received %d inv" (List.length i);
-					
+			(*send peer (GETDATA (i));*)			
 		| HEADERS (hl) ->
 			let rec vis h = match h with
 				| x::xl ->
@@ -180,10 +182,13 @@ let start peer bc =
 	
 	match connect peer with 
 	| DISCONNECTED -> ()
-	| CONNECTED -> 
+	| _ -> 
 		handshake peer;
+		send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }));
 		
 		while peer.status <> DISCONNECTED do
 			Unix.select [peer.socket] [] [] 5.0 |> read_step; ()
+			
+			(* This should get requests filtered by addr Blockchain.get_request*)
 		done
 ;;

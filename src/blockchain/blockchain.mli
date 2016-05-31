@@ -1,15 +1,19 @@
+
 module Resource : sig
 	type t = 
 	| RES_TXS of Tx.t list
 	| RES_BLOCKS of Block.t list
 	| RES_HBLOCKS of Block.Header.t list
+	| RES_INV_TXS of Hash.t list * Unix.inet_addr
+	| RES_INV_BLOCKS of Hash.t list * Unix.inet_addr
+	| RES_INV_HBLOCKS of Hash.t list * Unix.inet_addr
 end
 
 module Request : sig
 	type t =
-	| REQ_TXS of Hash.t list
-	| REQ_BLOCKS of Hash.t list
-	| REQ_HBLOCKS of Hash.t list
+	| REQ_TXS of Hash.t list * Unix.inet_addr option
+	| REQ_BLOCKS of Hash.t list * Unix.inet_addr option
+	| REQ_HBLOCKS of Hash.t list * Unix.inet_addr option
 end	
 
 

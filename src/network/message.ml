@@ -356,7 +356,7 @@ let serialize_getheaders v =
 		v.version 												: 4*8 : littleendian;
 		bitstring_of_int (Int64.of_int (List.length v.hashes))	: -1 : bitstring;
 		Hash.to_bin (List.nth v.hashes 0)						: 32*8 : string; (*TODO: this should be an array *)
-		v.stop													: 32*8 : string
+		Hash.to_bin (v.stop)									: 32*8 : string
 	} 
 ;;
 

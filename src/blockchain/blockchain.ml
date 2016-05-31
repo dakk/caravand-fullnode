@@ -1,20 +1,28 @@
+open Block;;
+open Tx;;
 open Params;;
+
 
 module Resource = struct
 	type t = 
 	| RES_TXS of Tx.t list
 	| RES_BLOCKS of Block.t list
 	| RES_HBLOCKS of Block.Header.t list
+	| RES_INV_TXS of Hash.t list * Unix.inet_addr
+	| RES_INV_BLOCKS of Hash.t list * Unix.inet_addr
+	| RES_INV_HBLOCKS of Hash.t list * Unix.inet_addr
 	;;
 end
 
 module Request = struct
 	type t =
-	| REQ_TXS of Hash.t list
-	| REQ_BLOCKS of Hash.t list
-	| REQ_HBLOCKS of Hash.t list
+	| REQ_TXS of Hash.t list * Unix.inet_addr option
+	| REQ_BLOCKS of Hash.t list * Unix.inet_addr option
+	| REQ_HBLOCKS of Hash.t list * Unix.inet_addr option
 	;;
-end
+end	
+
+
 
 
 type t = {
@@ -36,7 +44,7 @@ type t = {
 	queue_lock		:	Mutex.t;
 	
 	(* Queue for data request *)
-	queue_req		:	(Request.t) Queue.t;
+	queue_req		:	(Request.t) Queue.t; (* This should be a map for address*)
 	queue_req_lock	:	Mutex.t;
 };;
 
@@ -102,14 +110,26 @@ let get_request bc =
 
 let loop bc = 
 	while true do
-		Unix.sleep 30;
+		Unix.sleep 5;
 		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last;
 		match get_resource bc with 
 		| Some (res) -> (match res with 
-			| RES_TXS (txs) ->
-				()
-			| RES_HBLOCKS (hbs) ->
-				()
+			| RES_INV_BLOCKS (bs, addr) -> ()
+			| RES_INV_HBLOCKS (hbs, addr) -> ()
+			| RES_INV_TXS (txs, addr) -> ()
+			| RES_BLOCKS (bs) -> ()
+			| RES_TXS (txs) -> ()
+			| RES_HBLOCKS (hbs) -> 
+				let rec h_header hl = 
+					match hl with
+					| [] -> ()
+					| h::hl' ->
+						if h.Header.prev_block = bc.header_last then (
+							bc.header_last <- h.hash;
+							bc.header_height <- Int64.succ bc.header_height
+						) else 
+							()
+				in h_header (List.rev hbs)
 		)
 		| None -> ();
 	done
