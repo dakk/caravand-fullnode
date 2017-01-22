@@ -18,7 +18,7 @@ Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
   BuildDepends: threads, utils, cryptokit, bitstring, bitstring.syntax, stdint
-  Modules:	Tx, Block, Blockchain, Lighting, Script
+  Modules:	Tx, Block, Blockchain, Script
 
 Library network
   Path:         src/network

@@ -1,7 +1,7 @@
 open Block;;
 open Tx;;
 open Params;;
-
+open Block;;
 
 module Resource = struct
 	type t = 
@@ -29,13 +29,16 @@ type t = {
 	params	: 	Params.t;
 	basedir	:	string;
 	
-	mutable height		:	int64;
-	mutable last		:	Hash.t;
-	mutable timestamp	:	float;
+	(* Sync status *)
+	mutable sync			:	bool;
 	
+	(* Last header status *)
 	mutable header_height	:	int64;
-	mutable header_last		: 	Hash.t;
-	mutable header_timestamp:	float;	
+	mutable header_last		: 	Header.t;
+
+	(* Last block status *)
+	(* mutable block_height 	:	int64;
+	mutable block_last 		:	Block.t;*)
 	
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
 	
@@ -49,17 +52,28 @@ type t = {
 };;
 
 let genesis p = 
+	let genesis_header : Block.Header.t = {
+		hash		= p.genesis;
+		version		= Int32.of_int 12;
+		prev_block	= "00000000000000000";
+		merkle_root = "00000000000000000";
+		timestamp	= 12.0;
+		bits		= Int32.of_int 1;
+		nonce		= Int32.of_int 1;
+
+	} in
 	let bc = {
 		params			= p;
 		basedir			= "";
 		
-		height			= 0L;
-		last			= p.genesis;
-		timestamp		= 0.0;
+		sync			= false;
 		
 		header_height	= 0L;
-		header_last		= p.genesis;
-		header_timestamp= 0.0;
+		header_last		= genesis_header;
+
+		(* block_height 	= 0L;
+		block_last 		= None;
+		block_timestamp	= 0.0;*)
 		
 		mempool			= Hashtbl.create 4096;
 		
@@ -108,10 +122,41 @@ let get_request bc =
 ;;
 
 
+
+type timediff = {
+	years 	: int;
+	months	: int;
+	days  	: int;
+	minutes	: int;
+};;
+
+let time_diff a b = 
+	let minutes = int_of_float ((a -. b) /. 60.) in
+	let years = (minutes / 60 / 24 / 31 / 12) in
+	let months = (minutes / 60 / 24 / 31) mod 12 in
+	let days = (minutes / 60 / 24) mod 31 in
+	let hours = (minutes / 60) mod 24 in
+	let minutes = (minutes) mod 60 in
+	{ years= years; months= months; days= days; minutes= minutes }
+;;
+
 let loop bc = 
 	while true do
 		Unix.sleep 5;
-		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last;
+
+		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
+
+		(* Check sync status *)
+		if bc.header_last.timestamp < (Unix.time () -. 60. *. 10.) then (
+			let df = time_diff (Unix.time ()) bc.header_last.timestamp in
+			Log.debug "Blockchain" "not in sync: %d years, %d months, %d days, %d minutes behind" df.years df.months df.days df.minutes;
+			bc.sync <- false
+		) else (
+			Log.debug "Blockchain" "in sync";
+			bc.sync <- true
+		);
+
+		(* Handle new resources *)
 		match get_resource bc with 
 		| Some (res) -> (match res with 
 			| RES_INV_BLOCKS (bs, addr) -> ()
@@ -124,8 +169,8 @@ let loop bc =
 					match hl with
 					| [] -> ()
 					| h::hl' ->
-						if h.Header.prev_block = bc.header_last then (
-							bc.header_last <- h.hash;
+						if h.Header.prev_block = bc.header_last.hash then (
+							bc.header_last <- h;
 							bc.header_height <- Int64.succ bc.header_height
 						) else 
 							()

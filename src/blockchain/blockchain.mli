@@ -1,3 +1,4 @@
+open Block;;
 
 module Resource : sig
 	type t = 
@@ -21,13 +22,16 @@ type t = {
 	params	: 	Params.t;
 	basedir	:	string;
 	
-	mutable height		:	int64;
-	mutable last		:	Hash.t;
-	mutable timestamp	:	float;
+	(* Sync status *)
+	mutable sync			:	bool;
 	
+	(* Last header status *)
 	mutable header_height	:	int64;
-	mutable header_last		: 	Hash.t;	
-	mutable header_timestamp:	float;
+	mutable header_last		: 	Header.t;
+
+	(* Last block status *)
+	(* mutable block_height 	:	int64;
+	mutable block_last 		:	Block.t;*)
 	
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
 	
@@ -36,7 +40,7 @@ type t = {
 	queue_lock		:	Mutex.t;
 	
 	(* Queue for data request *)
-	queue_req		:	(Request.t) Queue.t;
+	queue_req		:	(Request.t) Queue.t; (* This should be a map for address*)
 	queue_req_lock	:	Mutex.t;
 }
 

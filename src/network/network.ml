@@ -48,7 +48,7 @@ let loop n bc =
 		Unix.sleep 5;
 		
 		(* Check for connection timeout and minimum number of peer*)		
-		(*Hashtbl.iter (fun k peer -> 
+		Hashtbl.iter (fun k peer -> 
 			match peer.last_seen with
 			| x when x < (Unix.time () -. 60. *. 3.) ->
 				Peer.disconnect peer;
@@ -59,10 +59,16 @@ let loop n bc =
 			| x when x < (Unix.time () -. 60. *. 1.) ->
 				Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
 			| _ -> () 
-		) n.peers;*)
+		) n.peers;
 		
 		(* Check for request *)
 		Log.info "Network" "Pending request from blockchain: %d" (Queue.length bc.queue_req);
+
+		if (Queue.length bc.queue_req) > 0 then (
+			(* Find a peeer *)	
+			
+
+		)
 	done;
 	()
 ;;

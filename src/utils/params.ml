@@ -1,13 +1,13 @@
 type e = BTC | XTN | SIDECHAIN;;
 
 type t = { 
-	services	: Int64.t;
-	version		: int;
-	genesis		: string;
-	magic		: int;
-	port		: int;
-	seeds		: string list;
-	network		: e;
+	services		: Int64.t;
+	version			: int;
+	genesis			: string;
+	magic			: int;
+	port			: int;
+	seeds			: string list;
+	network			: e;
 };;
 
 
