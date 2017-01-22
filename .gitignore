@@ -11,3 +11,7 @@ setup.log
 *.odocl
 \#*
 myocamlbuild.ml 
+setup.ml
+*.log
+configure
+Makefile

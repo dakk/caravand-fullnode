@@ -14,20 +14,17 @@ Library utils
   BuildDepends: cryptokit
   Modules: Log, Crypto, Config, Params
 
-
 Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
   BuildDepends: threads, utils, cryptokit, bitstring, bitstring.syntax, stdint
   Modules:	Tx, Block, Blockchain, Lighting, Script
- 
 
 Library network
   Path:         src/network
   BuildTools:   ocamlbuild
   BuildDepends: ctypes, threads, utils, bitstring, bitstring.syntax, cryptokit, blockchain, stdint
   Modules:      Dns, Network, Message, Peer  
-  
 
 Document letchain
   Title:                API reference for simplelib
@@ -36,8 +33,6 @@ Document letchain
   BuildTools+:          ocamldoc
   XOCamlbuildPath:      src
   XOCamlbuildLibraries: network, blockchain, utils
-
-
 
 Executable letchain
   Path:         src/

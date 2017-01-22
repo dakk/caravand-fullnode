@@ -184,7 +184,7 @@ let start peer bc =
 	| DISCONNECTED -> ()
 	| _ -> 
 		handshake peer;
-		send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }));
+		(*send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }));*)
 		
 		while peer.status <> DISCONNECTED do
 			Unix.select [peer.socket] [] [] 5.0 |> read_step; ();
