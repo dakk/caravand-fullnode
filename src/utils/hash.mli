@@ -3,7 +3,7 @@ type t = string
 type hash = t
 type b = bytes
 
-val reverse		: string -> string
+val reverse		    : string -> string
 
 val to_bin			: t -> b
 val to_binblock		: t -> b

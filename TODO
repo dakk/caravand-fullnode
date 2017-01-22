@@ -1,3 +1,0 @@
-[ ] Switch to LWT & LWT_Unix for sockets
-[ ] Remove threaded code and switch to async; peers should be implemented as LWT threads;
-    The only threads should be the modules: network, blockchain, database
