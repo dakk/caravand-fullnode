@@ -1,9 +1,19 @@
 type e = BTC | XTN | SIDECHAIN;;
 
+type genesis = {
+	hash		: Hash.t;
+	version		: int32;
+	prev_block	: Hash.t;
+	merkle_root : Hash.t;
+	time	: float;
+	bits		: int32;
+	nonce		: int32;
+};;
+
 type t = { 
 	services		: Int64.t;
 	version			: int;
-	genesis			: string;
+	genesis			: genesis;
 	magic			: int;
 	port			: int;
 	seeds			: string list;
@@ -18,7 +28,17 @@ let of_network n =
 			version	= 70001;
 			services= 0x0000000000000001L;
 			network	= BTC;
-			genesis	= "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
+
+			genesis = { 
+				hash		= "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
+				merkle_root	= "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b";
+				prev_block 	= "0000000000000000000000000000000000000000000000000000000000000000";
+				nonce		= Int32.of_int 2083236893;
+				time	= 1231006505.0;
+				bits		= Int32.of_int 0x1d00ffff;
+				version 	= Int32.of_int 1;
+			};
+
 			port	= 8333;
 			magic	= 0xD9B4BEF9;
 			seeds	= [ 
@@ -29,7 +49,7 @@ let of_network n =
 				"bitseed.xf2.org"
 			];
 		}
-	| XTN -> 
+	(*| XTN -> 
 		{ 
 			version	= 70001;
 			services= 0x0000000000000001L;
@@ -43,7 +63,7 @@ let of_network n =
 				"testnet-seed.bluematt.me";
 				"testnet-seed.bitcoin.schildbach.de"
 			];
-		}
+		}*)
 	| _ -> failwith "Not available"
 ;;
 

@@ -8,7 +8,7 @@ module Header = struct
 		version		: int32;
 		prev_block	: Hash.t;
 		merkle_root : Hash.t;
-		timestamp	: float;
+		time		: float;
 		bits		: int32;
 		nonce		: int32;	
 	};;
@@ -20,7 +20,7 @@ module Header = struct
 			version 	: 4*8 : littleendian;
 			prev_block	: 32*8: string; 
 			merkle_root	: 32*8: string;
-			timestamp	: 4*8 : string;
+			time	: 4*8 : string;
 			bits		: 4*8 : littleendian;
 			nonce		: 4*8 : littleendian
 		} ->
@@ -29,7 +29,7 @@ module Header = struct
 			version			= version;
 			prev_block		= Hash.of_binblock prev_block;
 			merkle_root		= Hash.of_bin merkle_root;
-			timestamp		= Uint32.to_float (Uint32.of_bytes_little_endian timestamp 0);
+			time		= Uint32.to_float (Uint32.of_bytes_little_endian time 0);
 			bits			= bits;
 			nonce			= nonce
 		}

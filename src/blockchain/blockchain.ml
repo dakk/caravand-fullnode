@@ -2,6 +2,7 @@ open Block;;
 open Tx;;
 open Params;;
 open Block;;
+open Timediff;;
 
 module Resource = struct
 	type t = 
@@ -53,14 +54,13 @@ type t = {
 
 let genesis p = 
 	let genesis_header : Block.Header.t = {
-		hash		= p.genesis;
-		version		= Int32.of_int 12;
-		prev_block	= "00000000000000000";
-		merkle_root = "00000000000000000";
-		timestamp	= 12.0;
-		bits		= Int32.of_int 1;
-		nonce		= Int32.of_int 1;
-
+		hash		= p.genesis.hash;
+		version		= p.genesis.version;
+		prev_block	= p.genesis.prev_block;
+		merkle_root = p.genesis.merkle_root;
+		time		= p.genesis.time;
+		bits		= p.genesis.bits;
+		nonce		= p.genesis.nonce;
 	} in
 	let bc = {
 		params			= p;
@@ -83,7 +83,7 @@ let genesis p =
 		queue_req		= Queue.create ();
 		queue_req_lock	= Mutex.create ();
 	} in 
-	Log.info "Blockchain" "Created genesis blockchain from block %s" p.genesis;
+	Log.info "Blockchain" "Created genesis blockchain from block %s" p.genesis.hash;
 	bc
 ;;
 
@@ -123,23 +123,6 @@ let get_request bc =
 
 
 
-type timediff = {
-	years 	: int;
-	months	: int;
-	days  	: int;
-	minutes	: int;
-};;
-
-let time_diff a b = 
-	let minutes = int_of_float ((a -. b) /. 60.) in
-	let years = (minutes / 60 / 24 / 31 / 12) in
-	let months = (minutes / 60 / 24 / 31) mod 12 in
-	let days = (minutes / 60 / 24) mod 31 in
-	let hours = (minutes / 60) mod 24 in
-	let minutes = (minutes) mod 60 in
-	{ years= years; months= months; days= days; minutes= minutes }
-;;
-
 let loop bc = 
 	while true do
 		Unix.sleep 5;
@@ -147,14 +130,17 @@ let loop bc =
 		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 
 		(* Check sync status *)
-		if bc.header_last.timestamp < (Unix.time () -. 60. *. 10.) then (
-			let df = time_diff (Unix.time ()) bc.header_last.timestamp in
+		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
+			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
 			Log.debug "Blockchain" "not in sync: %d years, %d months, %d days, %d minutes behind" df.years df.months df.days df.minutes;
 			bc.sync <- false
 		) else (
 			Log.debug "Blockchain" "in sync";
 			bc.sync <- true
 		);
+
+		(* Get in sync *)
+		let req = Request.REQ_HBLOCKS ([bc.header_last.hash], None) in add_request bc req;
 
 		(* Handle new resources *)
 		match get_resource bc with 
@@ -165,6 +151,7 @@ let loop bc =
 			| RES_BLOCKS (bs) -> ()
 			| RES_TXS (txs) -> ()
 			| RES_HBLOCKS (hbs) -> 
+				Log.debug "Blockchain" "new hblocks!";
 				let rec h_header hl = 
 					match hl with
 					| [] -> ()

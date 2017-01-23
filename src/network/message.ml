@@ -34,7 +34,7 @@ type notfound = inv;;
 type version = {
 	version		: int32;
 	services	: int64;
-	timestamp	: float;
+	time		: float;
 	addr_recv	: addr;
 	addr_from	: addr;
 	nonce		: int64;
@@ -169,7 +169,7 @@ let parse_headers data =
 			| { raw : 80*8 : string; rest : -1 : bitstring } ->
 				let count, rest' = parse_varint rest in
 				let blockh = Block.Header.parse raw in
-				if blockh.Block.Header.timestamp = 0.0 then 
+				if blockh.Block.Header.time = 0.0 then 
 					ph' rest' (Uint64.sub n Uint64.one) acc
 				else
 					ph' rest' (Uint64.sub n Uint64.one) (blockh::acc)
@@ -211,7 +211,7 @@ let parse_version data =
 	| {
 		version 			: 4*8 : littleendian;
 		services 			: 8*8 : littleendian;
-		timestamp 			: 8*8 : littleendian;
+		time 				: 8*8 : littleendian;
 		addr_recv			: 26*8 : bitstring;
 		addr_from	 		: 26*8 : bitstring;
 		nonce				: 8*8 : littleendian;
@@ -228,7 +228,7 @@ let parse_version data =
 				addr_from= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
 				version= version;
 				services= services;
-				timestamp= Int64.to_float (timestamp);
+				time= Int64.to_float (time);
 				nonce= nonce;
 				user_agent= user_agent;
 				start_height= start_height;
@@ -366,7 +366,7 @@ let serialize_version (v:version) =
 	BITSTRING {
 		v.version 										: 4*8 : littleendian;
 		v.services 										: 8*8 : littleendian;
-		Int64.of_float (v.timestamp) 					: 8*8 : littleendian;
+		Int64.of_float (v.time) 						: 8*8 : littleendian;
 		(bitstring_of_addr v.addr_recv)					: -1 : bitstring;
 		(bitstring_of_addr v.addr_from)			 		: -1 : bitstring;
 		v.nonce											: 8*8 : littleendian;

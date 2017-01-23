@@ -120,7 +120,7 @@ let handshake peer =
 	let verm = {
 		version		= Int32.of_int peer.params.version;
 		services	= peer.params.services;
-		timestamp	= Unix.time ();
+		time		= Unix.time ();
 		addr_recv	= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
 		addr_from	= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
 		nonce		= Random.int64 0xFFFFFFFFFFFFFFFL;
@@ -167,7 +167,7 @@ let handle peer bc =
 			let rec vis h = match h with
 				| x::xl ->
 					Log.info "Network" "Got block header %s %s %f %s %ld" 
-						x.Block.Header.hash x.Block.Header.prev_block x.Block.Header.timestamp 
+						x.Block.Header.hash x.Block.Header.prev_block x.Block.Header.time 
 						x.Block.Header.merkle_root x.Block.Header.version;
 					vis xl  
 				| [] -> ()

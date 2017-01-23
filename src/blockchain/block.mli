@@ -4,7 +4,7 @@ module Header : sig
 		version		: int32;
 		prev_block	: Hash.t;
 		merkle_root : Hash.t;
-		timestamp	: float;
+		time		: float;
 		bits		: int32;
 		nonce		: int32;
 	}

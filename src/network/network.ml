@@ -64,11 +64,19 @@ let loop n bc =
 		(* Check for request *)
 		Log.info "Network" "Pending request from blockchain: %d" (Queue.length bc.queue_req);
 
-		if (Queue.length bc.queue_req) > 0 then (
-			(* Find a peeer *)	
-			
-
-		)
+		let reqo = Blockchain.get_request bc in	
+		match reqo with
+		| None -> ()
+		| Some (req) ->
+			Hashtbl.iter (fun k peer -> 
+				match req with
+				| REQ_HBLOCKS (h, addr)	->
+					let msg = {
+						version= Int32.of_int 1;
+						hashes= h;
+						stop= Hash.zero ();
+					} in Peer.send peer (Message.GETHEADERS msg)
+			) n.peers;
 	done;
 	()
 ;;
