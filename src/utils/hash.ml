@@ -28,7 +28,7 @@ let of_bin b =
 
 
 let of_binblock b =
-	let h = of_bin b in "000000" ^ (String.sub (h) 0 (64 - 6))
+	let h = of_bin b in h (*"000000" ^ (String.sub (h) 0 (64 - 6))*)
 ;;
 
 

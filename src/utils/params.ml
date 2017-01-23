@@ -34,7 +34,7 @@ let of_network n =
 				merkle_root	= "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b";
 				prev_block 	= "0000000000000000000000000000000000000000000000000000000000000000";
 				nonce		= Int32.of_int 2083236893;
-				time	= 1231006505.0;
+				time		= 1231006505.0;
 				bits		= Int32.of_int 0x1d00ffff;
 				version 	= Int32.of_int 1;
 			};
@@ -49,12 +49,22 @@ let of_network n =
 				"bitseed.xf2.org"
 			];
 		}
-	(*| XTN -> 
+	| XTN -> 
 		{ 
 			version	= 70001;
 			services= 0x0000000000000001L;
 			network	= XTN;
-			genesis	= "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943";
+
+			genesis = { 
+				hash		= "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943";
+				merkle_root	= "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b";
+				prev_block 	= "0000000000000000000000000000000000000000000000000000000000000000";
+				nonce		= Int32.of_int 414098458;
+				time		= 1296688602.0;
+				bits		= Int32.of_int 0x1d00ffff;
+				version 	= Int32.of_int 1;
+			};
+
 			port	= 18333;
 			magic	= 0x0709110B;
 			seeds	= [ 
@@ -63,7 +73,7 @@ let of_network n =
 				"testnet-seed.bluematt.me";
 				"testnet-seed.bitcoin.schildbach.de"
 			];
-		}*)
+		}
 	| _ -> failwith "Not available"
 ;;
 

@@ -20,16 +20,16 @@ module Header = struct
 			version 	: 4*8 : littleendian;
 			prev_block	: 32*8: string; 
 			merkle_root	: 32*8: string;
-			time	: 4*8 : string;
-			bits		: 4*8 : littleendian;
-			nonce		: 4*8 : littleendian
+			time		: 32 : string;
+			bits		: 32 : littleendian;
+			nonce		: 32 : littleendian
 		} ->
 		{
-			hash			= Hash.of_bin (hash256 data);
+			hash			= Hash.of_binblock (hash256 data);
 			version			= version;
 			prev_block		= Hash.of_binblock prev_block;
 			merkle_root		= Hash.of_bin merkle_root;
-			time		= Uint32.to_float (Uint32.of_bytes_little_endian time 0);
+			time			= Uint32.to_float (Uint32.of_bytes_little_endian time 0);
 			bits			= bits;
 			nonce			= nonce
 		}

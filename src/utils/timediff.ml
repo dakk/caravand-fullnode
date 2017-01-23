@@ -2,6 +2,7 @@ type t = {
 	years 	: int;
 	months	: int;
 	days  	: int;
+	hours 	: int;
 	minutes	: int;
 };;
 
@@ -12,5 +13,5 @@ let diff a b =
 	let days = (minutes / 60 / 24) mod 31 in
 	let hours = (minutes / 60) mod 24 in
 	let minutes = (minutes) mod 60 in
-	{ years= years; months= months; days= days; minutes= minutes }
+	{ years= years; months= months; days= days; hours= hours; minutes= minutes }
 ;;

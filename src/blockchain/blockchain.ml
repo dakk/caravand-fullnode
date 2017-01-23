@@ -132,10 +132,11 @@ let loop bc =
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.debug "Blockchain" "not in sync: %d years, %d months, %d days, %d minutes behind" df.years df.months df.days df.minutes;
+			Log.debug "Blockchain" "not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
 			bc.sync <- false
 		) else (
-			Log.debug "Blockchain" "in sync";
+			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
+			Log.debug "Blockchain" "in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
 			bc.sync <- true
 		);
 
@@ -158,9 +159,10 @@ let loop bc =
 					| h::hl' ->
 						if h.Header.prev_block = bc.header_last.hash then (
 							bc.header_last <- h;
-							bc.header_height <- Int64.succ bc.header_height
+							bc.header_height <- Int64.succ bc.header_height;
+							h_header hl'
 						) else 
-							()
+							h_header hl'
 				in h_header (List.rev hbs)
 		)
 		| None -> ();
