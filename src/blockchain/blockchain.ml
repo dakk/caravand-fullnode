@@ -137,11 +137,23 @@ let get_request bc =
 
 let loop bc = 
 	while true do (
-		Unix.sleep 5;
+		Unix.sleep 4;
 
 		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 
 		let reslen = resource_length bc in
+
+
+		(* Check sync status *)
+		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
+			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
+			Log.debug "Blockchain" "not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
+			bc.sync <- false
+		) else (
+			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
+			Log.debug "Blockchain" "in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
+			bc.sync <- true
+		);
 
 		(* Handle new resources *)
 		match get_resource bc with 
@@ -167,26 +179,17 @@ let loop bc =
 		)
 		| None -> ();
 
-		(* Check sync status *)
-		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
-			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.debug "Blockchain" "not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
-			bc.sync <- false
-		) else (
-			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.debug "Blockchain" "in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
-			bc.sync <- true
-		);
-
 		(* TODO Move request and response to new module *)
 		(* Get in sync *)
-		match (bc.sync, reslen) with 
-		| (false, 0) ->
-			if bc.queue_req_last < (Unix.time () -. 10.) then
+		match bc.sync with 
+		| false ->
+			(*if bc.queue_req_last < (Unix.time () -. 10.) then*)
+			Log.debug "Blockchain" "Asking for headers";
 				add_request bc (Request.REQ_HBLOCKS ([bc.header_last.hash], None))
-			else 
-				()
-		| _ -> ()
+			(*else 
+				()*)
+		| _ -> 
+			()
 	) done
 ;;
 

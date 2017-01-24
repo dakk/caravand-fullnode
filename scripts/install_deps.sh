@@ -9,3 +9,6 @@ opam install stdint
 
 # 1.11
 opam install cryptokit
+
+# 2.7.0
+#opam install lwt

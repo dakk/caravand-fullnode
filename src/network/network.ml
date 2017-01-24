@@ -32,10 +32,24 @@ let init p =
 	in
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = init_peers p (Hashtbl.create 16) addrs 4 in
+	let peers = init_peers p (Hashtbl.create 16) addrs 24 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
+;;
+
+let random_peer n =
+	let rec rp addrs = 
+		let rindex = Random.int (List.length addrs) in
+		let x = List.nth addrs rindex in
+		try
+			let p = Hashtbl.find n.peers (Unix.string_of_inet_addr x) in
+			match p.status with
+			| CONNECTED -> p 
+			| _ -> rp addrs
+		with Not_found ->
+			rp addrs
+	in rp n.addrs
 ;;
 
 
@@ -68,15 +82,14 @@ let loop n bc =
 		match reqo with
 		| None -> ()
 		| Some (req) ->
-			Hashtbl.iter (fun k peer -> 
-				match req with
-				| REQ_HBLOCKS (h, addr)	->
-					let msg = {
-						version= Int32.of_int 1;
-						hashes= h;
-						stop= Hash.zero ();
-					} in Peer.send peer (Message.GETHEADERS msg)
-			) n.peers;
+			match req with
+			| REQ_HBLOCKS (h, addr)	->
+				let peer = random_peer n in
+				let msg = {
+					version= Int32.of_int 1;
+					hashes= h;
+					stop= Hash.zero ();
+				} in Peer.send peer (Message.GETHEADERS msg)
 	done;
 	()
 ;;
