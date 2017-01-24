@@ -46,10 +46,12 @@ type t = {
 	(* Queue for incoming resources*)
 	queue			:	(Resource.t) Queue.t;
 	queue_lock		:	Mutex.t;
+	mutable queue_last		:	float;
 	
 	(* Queue for data request *)
 	queue_req		:	(Request.t) Queue.t; (* This should be a map for address*)
 	queue_req_lock	:	Mutex.t;
+	mutable queue_req_last	:	float;
 };;
 
 let genesis p = 
@@ -79,9 +81,11 @@ let genesis p =
 		
 		queue			= Queue.create ();
 		queue_lock		= Mutex.create ();
+		queue_last		= Unix.time ();
 		
 		queue_req		= Queue.create ();
 		queue_req_lock	= Mutex.create ();
+		queue_req_last	= Unix.time ();
 	} in 
 	Log.info "Blockchain" "Created genesis blockchain from block %s" p.genesis.hash;
 	bc
@@ -95,6 +99,7 @@ let load p = genesis p;;
 let add_resource bc r = 
 	Mutex.lock bc.queue_lock;
 	Queue.add r bc.queue;
+	bc.queue_last <- Unix.time ();
 	Mutex.unlock bc.queue_lock;
 ;;
 
@@ -106,10 +111,17 @@ let get_resource bc =
 	r
 ;;
 
+let resource_length bc = 
+	Mutex.lock bc.queue_lock;
+	let r = Queue.length bc.queue in
+	Mutex.unlock bc.queue_lock;	
+	r
+;;
 
 let add_request bc r = 
 	Mutex.lock bc.queue_req_lock;
 	Queue.add r bc.queue_req;
+	bc.queue_req_last <- Unix.time ();
 	Mutex.unlock bc.queue_req_lock;
 ;;
 
@@ -124,10 +136,12 @@ let get_request bc =
 
 
 let loop bc = 
-	while true do
+	while true do (
 		Unix.sleep 5;
 
 		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
+
+		let reslen = resource_length bc in
 
 		(* Handle new resources *)
 		match get_resource bc with 
@@ -164,10 +178,16 @@ let loop bc =
 			bc.sync <- true
 		);
 
+		(* TODO Move request and response to new module *)
 		(* Get in sync *)
-		let req = Request.REQ_HBLOCKS ([bc.header_last.hash], None) in add_request bc req;
-
-	done
+		match (bc.sync, reslen) with 
+		| (false, 0) ->
+			if bc.queue_req_last < (Unix.time () -. 10.) then
+				add_request bc (Request.REQ_HBLOCKS ([bc.header_last.hash], None))
+			else 
+				()
+		| _ -> ()
+	) done
 ;;
 
 let sync bc = 

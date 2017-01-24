@@ -38,10 +38,12 @@ type t = {
 	(* Queue for incoming resources*)
 	queue			:	(Resource.t) Queue.t;
 	queue_lock		:	Mutex.t;
+	mutable queue_last		:	float;
 	
 	(* Queue for data request *)
 	queue_req		:	(Request.t) Queue.t; (* This should be a map for address*)
 	queue_req_lock	:	Mutex.t;
+	mutable queue_req_last	:	float;
 }
 
 

@@ -433,7 +433,6 @@ let serialize_message message =
 	| GETADDR -> empty_bitstring
 	| MEMPOOL -> empty_bitstring
 	| SENDHEADERS -> empty_bitstring
-	
 	| _ -> empty_bitstring
 	in string_of_bitstring bdata
 ;;

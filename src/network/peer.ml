@@ -76,18 +76,21 @@ let recv peer =
 	let rec burn_chunks bsize =
 		if bsize = Uint32.zero then ()
 		else
-			let csize = if bsize >= (Uint32.of_int 0xFFFFFF) then 0xFFFFFF else Uint32.to_int bsize in
+			let csize = if bsize >= (Uint32.of_int 0xFFFF) then 0xFFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
 			let _ = Unix.recv peer.socket rdata 0 csize [] in
 			burn_chunks (Uint32.sub bsize (Uint32.of_int csize)) 
 	in
 	let rec recv_chunks bsize acc = 
-		if bsize = Uint32.zero then Bytes.concat "" acc
+		if bsize = Uint32.zero then 
+			let res = Buffer.to_bytes acc in
+			Buffer.clear acc; res
 		else
-			let csize = if bsize >= (Uint32.of_int 0xFFFFFF) then 0xFFFFFF else Uint32.to_int bsize in
+			let csize = if bsize >= (Uint32.of_int 0xFFFF) then 0xFFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
 			let _ = Unix.recv peer.socket rdata 0 csize [] in
-			recv_chunks (Uint32.sub bsize (Uint32.of_int csize)) (acc @ [rdata])
+			Buffer.add_bytes acc rdata;
+			recv_chunks (Uint32.sub bsize (Uint32.of_int csize)) acc
 	in
 	(* Read and parse the header*)
 	let data = Bytes.create 24 in
@@ -95,23 +98,17 @@ let recv peer =
 	let m = Message.parse_header data in
 				
 	(* Read and parse the message*)
-	if m.length > (Uint32.of_string "9999999") then (
-		burn_chunks m.length; 
-		Log.error "Peer ↚" "%s: %s (skipped big message)" (Unix.string_of_inet_addr peer.address) m.command;
+	let rdata = recv_chunks m.length (Buffer.create 128) in
+	try
+		let m' = Message.parse m rdata in 
+		Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
+		Some (m')
+	with | _ ->
+		if is_readable m.command then
+			Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command
+		else
+			Log.error "Peer ↚" "%s: not readable (parse failed)" (Unix.string_of_inet_addr peer.address);
 		None
-	) else (
-		let rdata = recv_chunks m.length [] in
-		try
-			let m' = Message.parse m rdata in 
-			Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
-			Some (m')
-		with | _ ->
-			if is_readable m.command then
-				Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command
-			else
-				Log.error "Peer ↚" "%s: not readable (parse failed)" (Unix.string_of_inet_addr peer.address);
-			None
-	)
 ;;
 
 
