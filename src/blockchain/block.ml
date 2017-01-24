@@ -48,6 +48,5 @@ let parse data = {
 };;
 
 
-let hash block = "";;
 
 let serialize block = "";

@@ -166,9 +166,7 @@ let handle peer bc =
 		| HEADERS (hl) ->
 			let rec vis h = match h with
 				| x::xl ->
-					Log.info "Network" "Got block header %s %s %f %s %ld %ld %ld" 
-						x.Block.Header.hash x.Block.Header.prev_block x.Block.Header.time 
-						x.Block.Header.merkle_root x.Block.Header.version x.Block.Header.bits x.Block.Header.nonce;
+					Log.info "Network" "Got block header %s" x.Block.Header.hash;
 					vis xl  
 				| [] -> ()
 			in vis hl;

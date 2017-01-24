@@ -48,8 +48,6 @@ let parse data = {
 
 
 
-let hash tx = "";;
-
 
 
 let serialize tx = "";;

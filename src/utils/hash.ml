@@ -32,7 +32,6 @@ let of_binblock b =
 ;;
 
 
-
 (* Hash to binary *)
 let to_bin h =
 	let rec to_bin' h = 
@@ -45,4 +44,3 @@ let to_bin h =
 ;;
 
 let to_binblock b = String.sub b 0 32;;
-

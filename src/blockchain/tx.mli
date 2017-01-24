@@ -30,5 +30,4 @@ type t = {
 }
 
 val parse 		: bytes -> t
-val hash		: t -> Hash.t
 val serialize	: t -> bytes

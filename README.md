@@ -16,4 +16,9 @@ Letchain will be usable as a standalone bitcoin node or through a library that e
 
 - Switch to LWT & LWT_Unix for sockets
 - Remove threaded code and switch to async; peers should be implemented as LWT threads;
-    The only threads should be the modules: network, blockchain, database
+    The only threads should be the modules: network, blockchain
+- Allow to explore the blockchain with indexes for:
+    - Balances and utxo for accounts
+    - Tx (hash)
+    - Blocks (hash and number)
+- Implement all test-case from bitcoincore

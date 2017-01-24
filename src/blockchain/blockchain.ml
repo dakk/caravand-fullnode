@@ -129,6 +129,30 @@ let loop bc =
 
 		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 
+		(* Handle new resources *)
+		match get_resource bc with 
+		| Some (res) -> (match res with 
+			| RES_INV_BLOCKS (bs, addr) -> ()
+			| RES_INV_HBLOCKS (hbs, addr) -> ()
+			| RES_INV_TXS (txs, addr) -> ()
+			| RES_BLOCKS (bs) -> ()
+			| RES_TXS (txs) -> ()
+			| RES_HBLOCKS (hbs) -> 
+				Log.debug "Blockchain" "Got new header blocks %d" (List.length hbs);
+				let rec h_header hl = 
+					match hl with
+					| [] -> ()
+					| h::hl' ->
+						if h.Header.prev_block = bc.header_last.hash then (
+							bc.header_last <- h;
+							bc.header_height <- Int64.succ bc.header_height;
+							h_header hl'
+						) else 
+							h_header hl'
+				in h_header (List.rev hbs)
+		)
+		| None -> ();
+
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
@@ -143,29 +167,6 @@ let loop bc =
 		(* Get in sync *)
 		let req = Request.REQ_HBLOCKS ([bc.header_last.hash], None) in add_request bc req;
 
-		(* Handle new resources *)
-		match get_resource bc with 
-		| Some (res) -> (match res with 
-			| RES_INV_BLOCKS (bs, addr) -> ()
-			| RES_INV_HBLOCKS (hbs, addr) -> ()
-			| RES_INV_TXS (txs, addr) -> ()
-			| RES_BLOCKS (bs) -> ()
-			| RES_TXS (txs) -> ()
-			| RES_HBLOCKS (hbs) -> 
-				Log.debug "Blockchain" "new hblocks!";
-				let rec h_header hl = 
-					match hl with
-					| [] -> ()
-					| h::hl' ->
-						if h.Header.prev_block = bc.header_last.hash then (
-							bc.header_last <- h;
-							bc.header_height <- Int64.succ bc.header_height;
-							h_header hl'
-						) else 
-							h_header hl'
-				in h_header (List.rev hbs)
-		)
-		| None -> ();
 	done
 ;;
 

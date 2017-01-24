@@ -3,6 +3,7 @@ open Bitstring;;
 open Params;;
 open Crypto;;
 open Stdint;;
+open Hash;;
 
 
 type header = {
@@ -126,7 +127,6 @@ let string_from_zeroterminated_string zts =
 	in String.sub zts 0 string_length
 ;;
 
-(*
 let parse_varint bits =
 	let parse_tag_byte bits =
 		bitmatch bits with
@@ -148,31 +148,6 @@ let parse_varint bits =
 		| 0xFD -> parse_value rest 2
 		| x -> (Uint64.of_uint8 tag, rest)
 ;;
-*)
-let parse_varint bits =
-  let parse_tag_byte bits = 
-    bitmatch bits with
-    | { tag : 1*8 : littleendian;
-	rest : -1 : bitstring
-      } -> (tag, rest)
-    | { _ } -> (0, bits)
-  in
-  let parse_value bits bytesize =
-    bitmatch bits with
-    | { value : bytesize*8 : littleendian;
-	rest : -1 : bitstring
-      } -> (Uint64.of_int64 value, rest)
-    | { _ } -> (Uint64.zero, bits)
-  in
-  let tag, rest = parse_tag_byte bits in
-  match tag with
-  | 0 -> (Uint64.zero, rest)
-  | 0xff -> parse_value rest 8
-  | 0xfe -> parse_value rest 4
-  | 0xfd -> parse_value rest 2
-  | x -> (Uint64.of_int x, rest)
-;;
-
 
 let parse_varstring bits =
   let length, bits = parse_varint bits in
@@ -193,11 +168,14 @@ let parse_headers data =
 			bitmatch data with
 			| { raw : 80 * 8 : string; txc : 1 * 8: littleendian; rest : -1 : bitstring } ->
 				let blockh = Block.Header.parse raw in
-				ph' rest (Uint64.sub n Uint64.one) (blockh::acc)
+				if blockh.time = 0.0 then 
+					ph' rest (Uint64.sub n Uint64.one) acc
+				else 
+					ph' rest (Uint64.sub n Uint64.one) (blockh::acc)
 	in  
 	let bdata = bitstring_of_string data in
 	let count, rest = parse_varint bdata in
-	(ph' bdata (Uint64.sub count Uint64.one) [])
+	(ph' rest (Uint64.sub count Uint64.one) [])
 ;;
 
 
