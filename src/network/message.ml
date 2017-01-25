@@ -89,7 +89,8 @@ type t =
 
 
 let string_of_command c = match c with
-	  VERSION (v) -> "version"
+	| INVALID -> "invalid"
+	| VERSION (v) -> "version"
 	| VERACK -> "verack"
 	| PING (p) -> "ping"
 	| PONG (p) -> "pong"
@@ -300,8 +301,16 @@ let parse header payload =
 	| "getheaders" -> GETHEADERS (parse_getheaders payload)
 	| "getblocks" -> GETBLOCKS (parse_getblocks payload)
 	| "inv" -> INV (parse_inv payload)
-	| "tx" -> TX (Tx.parse payload)
-	| "block" -> INVALID (*BLOCK (Block.parse payload)*)
+	| "tx" -> (
+		match Tx.parse payload with
+		| None -> INVALID
+		| Some (tx) -> TX (tx)
+	)
+	| "block" -> (
+		match Block.parse payload with
+		| None -> INVALID
+		| Some (block) -> BLOCK (block)
+	)
 	| "getdata" -> GETDATA (parse_getdata payload)
 	| "addr" -> ADDR
 	| "notfound" -> NOTFOUND (parse_notfound payload)

@@ -8,7 +8,7 @@ module In : sig
 		seq		: uint32;	
 	}
 	
-	val parse 	: bytes -> t
+	val parse 	: bytes -> t option
 end
 
 module Out : sig
@@ -17,7 +17,7 @@ module Out : sig
 		script	: string;	
 	}
 	
-	val parse	: bytes -> t
+	val parse	: bytes -> t option
 end
 
 
@@ -29,5 +29,5 @@ type t = {
 	locktime	: uint32;
 }
 
-val parse 		: bytes -> t
+val parse 		: bytes -> t option
 val serialize	: t -> bytes

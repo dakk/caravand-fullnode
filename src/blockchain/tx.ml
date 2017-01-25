@@ -8,7 +8,7 @@ module In = struct
 		seq		: uint32;	
 	};;
 
-	let parse data = {
+	let parse data = Some {
 		tx= "";
 		n= Uint32.of_int 0;
 		script= "";
@@ -22,7 +22,7 @@ module Out = struct
 		script	: string;	
 	};;
 	
-	let parse data = {
+	let parse data = Some {
 		value= Int64.of_int 0;
 		script= "";
 	};;
@@ -38,7 +38,7 @@ type t = {
 };;
 
 
-let parse data = {
+let parse data = Some {
 	hash	= Crypto.hash256 data;
 	version	= Int32.of_int 0;
 	txin	= [];
