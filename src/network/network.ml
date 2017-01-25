@@ -56,7 +56,9 @@ let random_peer n =
 let loop n bc = 
 	Log.info "Network" "Starting mainloop.";
 	
-	Hashtbl.iter (fun k peer -> Thread.create (Peer.start peer) bc; ()) n.peers;
+	Hashtbl.iter (fun k peer -> 
+		Thread.create (Peer.start peer) bc |> ignore; 
+		()) n.peers;
 					
 	while true do
 		Unix.sleep 5;
@@ -76,20 +78,21 @@ let loop n bc =
 		) n.peers;
 		
 		(* Check for request *)
-		Log.info "Network" "Pending request from blockchain: %d" (Queue.length bc.queue_req);
+		Log.info "Network" "Pending request from blockchain: %d" (Cqueue.len bc.requests);
 
-		let reqo = Blockchain.get_request bc in	
+		let reqo = Cqueue.get bc.requests in	
 		match reqo with
 		| None -> ()
 		| Some (req) ->
 			match req with
-			| REQ_HBLOCKS (h, addr)	->
+			| Blockchain.Request.REQ_HBLOCKS (h, addr)	->
 				let peer = random_peer n in
 				let msg = {
 					version= Int32.of_int 1;
 					hashes= h;
 					stop= Hash.zero ();
 				} in Peer.send peer (Message.GETHEADERS msg)
+			| _ -> ()
 	done;
 	()
 ;;

@@ -44,14 +44,10 @@ type t = {
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
 	
 	(* Queue for incoming resources*)
-	queue			:	(Resource.t) Queue.t;
-	queue_lock		:	Mutex.t;
-	mutable queue_last		:	float;
+	resources		:	(Resource.t) Cqueue.t;
 	
 	(* Queue for data request *)
-	queue_req		:	(Request.t) Queue.t; (* This should be a map for address*)
-	queue_req_lock	:	Mutex.t;
-	mutable queue_req_last	:	float;
+	requests		:	(Request.t) Cqueue.t;
 };;
 
 let genesis p = 
@@ -79,13 +75,8 @@ let genesis p =
 		
 		mempool			= Hashtbl.create 4096;
 		
-		queue			= Queue.create ();
-		queue_lock		= Mutex.create ();
-		queue_last		= Unix.time ();
-		
-		queue_req		= Queue.create ();
-		queue_req_lock	= Mutex.create ();
-		queue_req_last	= Unix.time ();
+		resources		= Cqueue.create ();
+		requests		= Cqueue.create ();
 	} in 
 	Log.info "Blockchain" "Created genesis blockchain from block %s" p.genesis.hash;
 	bc
@@ -96,53 +87,13 @@ let load p = genesis p;;
 
 
 
-let add_resource bc r = 
-	Mutex.lock bc.queue_lock;
-	Queue.add r bc.queue;
-	bc.queue_last <- Unix.time ();
-	Mutex.unlock bc.queue_lock;
-;;
-
-
-let get_resource bc = 
-	Mutex.lock bc.queue_lock;
-	let r = if Queue.is_empty bc.queue then None else Some (Queue.take bc.queue) in
-	Mutex.unlock bc.queue_lock;	
-	r
-;;
-
-let resource_length bc = 
-	Mutex.lock bc.queue_lock;
-	let r = Queue.length bc.queue in
-	Mutex.unlock bc.queue_lock;	
-	r
-;;
-
-let add_request bc r = 
-	Mutex.lock bc.queue_req_lock;
-	Queue.add r bc.queue_req;
-	bc.queue_req_last <- Unix.time ();
-	Mutex.unlock bc.queue_req_lock;
-;;
-
-
-let get_request bc = 
-	Mutex.lock bc.queue_req_lock;
-	let r = if Queue.is_empty bc.queue_req then None else Some (Queue.take bc.queue_req) in
-	Mutex.unlock bc.queue_req_lock;	
-	r
-;;
-
-
-
 let loop bc = 
 	while true do (
 		Unix.sleep 4;
 
 		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 
-		let reslen = resource_length bc in
-
+		let reslen = Cqueue.len bc.resources in
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
@@ -156,36 +107,43 @@ let loop bc =
 		);
 
 		(* Handle new resources *)
-		match get_resource bc with 
-		| Some (res) -> (match res with 
-			| RES_INV_BLOCKS (bs, addr) -> ()
-			| RES_INV_HBLOCKS (hbs, addr) -> ()
-			| RES_INV_TXS (txs, addr) -> ()
-			| RES_BLOCKS (bs) -> ()
-			| RES_TXS (txs) -> ()
-			| RES_HBLOCKS (hbs) -> 
-				Log.debug "Blockchain" "Got new header blocks %d" (List.length hbs);
-				let rec h_header hl = 
-					match hl with
-					| [] -> ()
-					| h::hl' ->
-						if h.Header.prev_block = bc.header_last.hash then (
-							bc.header_last <- h;
-							bc.header_height <- Int64.succ bc.header_height;
-							h_header hl'
-						) else 
-							h_header hl'
-				in h_header (List.rev hbs)
-		)
-		| None -> ();
+		let rec consume () =
+			if Cqueue.len bc.resources = 0 then 
+				()
+			else
+				match Cqueue.get bc.resources with 
+				| Some (res) -> (match (res : Resource.t) with 
+					| RES_INV_BLOCKS (bs, addr) -> consume ()
+					| RES_INV_HBLOCKS (hbs, addr) -> consume ()
+					| RES_INV_TXS (txs, addr) -> consume ()
+					| RES_BLOCKS (bs) -> consume ()
+					| RES_TXS (txs) -> consume ()
+					| RES_HBLOCKS (hbs) -> 
+						Log.debug "Blockchain" "Got new header blocks %d" (List.length hbs);
+						let rec h_header hl = 
+							match hl with
+							| [] -> consume ()
+							| h::hl' ->
+								if h.Header.prev_block = bc.header_last.hash then (
+									bc.header_last <- h;
+									bc.header_height <- Int64.succ bc.header_height;
+									h_header hl'
+								) else 
+									h_header hl'
+						in h_header (List.rev hbs)
+				)
+				| None -> 
+					consume ()
+		in consume ();
 
 		(* TODO Move request and response to new module *)
 		(* Get in sync *)
 		match bc.sync with 
 		| false ->
 			(*if bc.queue_req_last < (Unix.time () -. 10.) then*)
+			Cqueue.clear bc.requests;
 			Log.debug "Blockchain" "Asking for headers";
-				add_request bc (Request.REQ_HBLOCKS ([bc.header_last.hash], None))
+			Cqueue.add bc.requests (Request.REQ_HBLOCKS ([bc.header_last.hash], None))
 			(*else 
 				()*)
 		| _ -> 

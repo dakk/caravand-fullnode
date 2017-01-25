@@ -43,4 +43,15 @@ let to_bin h =
 	in reverse (to_bin' h)
 ;;
 
+
+let print_bin h =
+	let rec of_bin' h =
+		let tos c = Printf.sprintf "%02x" (int_of_char c) in
+		match String.length h with
+		| 0 -> ""
+		| n -> (tos h.[0]) ^ of_bin' (String.sub h 1 ((String.length h) - 1))
+	in Printf.printf "Binary: %s\n" (of_bin' h)
+;;
+
+
 let to_binblock b = String.sub b 0 32;;

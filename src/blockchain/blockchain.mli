@@ -36,14 +36,10 @@ type t = {
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
 	
 	(* Queue for incoming resources*)
-	queue			:	(Resource.t) Queue.t;
-	queue_lock		:	Mutex.t;
-	mutable queue_last		:	float;
+	resources		:	(Resource.t) Cqueue.t;
 	
 	(* Queue for data request *)
-	queue_req		:	(Request.t) Queue.t; (* This should be a map for address*)
-	queue_req_lock	:	Mutex.t;
-	mutable queue_req_last	:	float;
+	requests		:	(Request.t) Cqueue.t;
 }
 
 
@@ -60,14 +56,3 @@ val loop			: t -> unit
 val sync			: t -> unit
 
 
-(* Thread-safe resource add: used by network *)
-val add_resource 	: t -> Resource.t -> unit
-
-(* Thread-safe resource get: used by blockchain *)
-val get_resource	: t -> Resource.t option
-
-(* Thread-safe request add: used by blockchain *)
-val add_request		: t -> Request.t -> unit
-
-(* Thread-safe request get: used by network *)
-val get_request		: t -> Request.t option

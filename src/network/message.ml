@@ -59,7 +59,8 @@ type pong = int64;;
 
 
 type t = 
-	  VERSION of version
+	| INVALID
+	| VERSION of version
 	| VERACK
 	| PING of ping
 	| PONG of pong
@@ -168,10 +169,9 @@ let parse_headers data =
 			bitmatch data with
 			| { raw : 80 * 8 : string; txc : 1 * 8: littleendian; rest : -1 : bitstring } ->
 				let blockh = Block.Header.parse raw in
-				if blockh.time = 0.0 then 
-					ph' rest (Uint64.sub n Uint64.one) acc
-				else 
-					ph' rest (Uint64.sub n Uint64.one) (blockh::acc)
+				match blockh with
+				| None -> ph' rest (Uint64.sub n Uint64.one) acc
+				| Some (header) -> ph' rest (Uint64.sub n Uint64.one) (header::acc)
 	in  
 	let bdata = bitstring_of_string data in
 	let count, rest = parse_varint bdata in
@@ -301,7 +301,7 @@ let parse header payload =
 	| "getblocks" -> GETBLOCKS (parse_getblocks payload)
 	| "inv" -> INV (parse_inv payload)
 	| "tx" -> TX (Tx.parse payload)
-	| "block" -> BLOCK (Block.parse payload)
+	| "block" -> INVALID (*BLOCK (Block.parse payload)*)
 	| "getdata" -> GETDATA (parse_getdata payload)
 	| "addr" -> ADDR
 	| "notfound" -> NOTFOUND (parse_notfound payload)

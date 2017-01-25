@@ -58,7 +58,8 @@ type pong = int64
 
 
 type t = 
-	  VERSION of version
+	| INVALID
+	| VERSION of version
 	| VERACK
 	| PING of ping
 	| PONG of pong

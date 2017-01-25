@@ -14,6 +14,7 @@ module Header = struct
 	};;
 	
 	let parse data = 
+		let check_target = 0 in
 		let bdata = bitstring_of_string data in
 		bitmatch bdata with 
 		| {
@@ -24,15 +25,20 @@ module Header = struct
 			bits		: 32 : littleendian;
 			nonce		: 32 : littleendian
 		} ->
-		{
-			hash			= Hash.of_binblock (hash256 data);
-			version			= version;
-			prev_block		= Hash.of_binblock prev_block;
-			merkle_root		= Hash.of_bin merkle_root;
-			time			= Uint32.to_float (Uint32.of_bytes_little_endian time 0);
-			bits			= bits;
-			nonce			= nonce
-		}
+		(*Hash.print_bin data;
+		Printf.printf "%s\n" (Hash.of_binblock (hash256 data));*)
+		if bits = Int32.of_int 0 && nonce = Int32.of_int 0 then 
+			None
+		else
+			Some {
+				hash			= Hash.of_binblock (hash256 data);
+				version			= version;
+				prev_block		= Hash.of_binblock prev_block;
+				merkle_root		= Hash.of_bin merkle_root;
+				time			= Uint32.to_float (Uint32.of_bytes_little_endian time 0);
+				bits			= bits;
+				nonce			= nonce
+			}
 	;;
 end
 
@@ -42,10 +48,15 @@ type t = {
 };;
 
 
-let parse data = {
-	header= Header.parse data;
-	txs= [];
-};;
+let parse data =
+	let h = Header.parse data in
+	match h with 
+	| None -> None
+	| Some (header) -> Some {
+		header= header;
+		txs= [];
+	}
+;;
 
 
 

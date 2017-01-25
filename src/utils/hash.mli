@@ -11,3 +11,5 @@ val to_binblock		: t -> b
 val of_bin			: b -> t
 val of_binblock 	: b -> t
 val zero			: unit -> t
+
+val print_bin       : b -> unit

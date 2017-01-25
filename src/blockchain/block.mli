@@ -9,7 +9,7 @@ module Header : sig
 		nonce		: int32;
 	}
 	
-	val parse 		: bytes -> t
+	val parse 		: bytes -> t option
 end
 
 type t = {
@@ -17,5 +17,5 @@ type t = {
 	txs		: Tx.t list;
 }
 
-val parse		: bytes -> t
+val parse		: bytes -> t option
 val serialize	: t -> bytes

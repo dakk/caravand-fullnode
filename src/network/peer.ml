@@ -88,9 +88,9 @@ let recv peer =
 		else
 			let csize = if bsize >= (Uint32.of_int 0xFFFF) then 0xFFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
-			let _ = Unix.recv peer.socket rdata 0 csize [] in
+			let rl = Unix.recv peer.socket rdata 0 csize [] in
 			Buffer.add_bytes acc rdata;
-			recv_chunks (Uint32.sub bsize (Uint32.of_int csize)) acc
+			recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
 	in
 	(* Read and parse the header*)
 	let data = Bytes.create 24 in
@@ -151,10 +151,10 @@ let handle peer bc =
 				let _ = (match x with
 					| INV_TX (txid) -> 
 						Log.info "Network" "Got inv tx %s" txid;
-						Blockchain.add_resource bc (Blockchain.Resource.RES_INV_TXS ([txid], peer.address));
+						Cqueue.add bc.resources (Blockchain.Resource.RES_INV_TXS ([txid], peer.address));
 					| INV_BLOCK (bhash) -> 
 						Log.info "Network" "Got inv block %s" bhash;
-						Blockchain.add_resource bc (Blockchain.Resource.RES_INV_BLOCKS ([bhash], peer.address));
+						Cqueue.add bc.resources (Blockchain.Resource.RES_INV_BLOCKS ([bhash], peer.address));
 					| _ -> ()
 				) in vis xl  
 			| [] -> ()
@@ -167,7 +167,7 @@ let handle peer bc =
 					vis xl  
 				| [] -> ()
 			in vis hl;
-			Blockchain.add_resource bc (Blockchain.Resource.RES_HBLOCKS (hl));
+			Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
 		| _ -> ()
 	)
 ;;
