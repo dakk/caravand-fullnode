@@ -14,7 +14,7 @@ module Header = struct
 	};;
 	
 	let parse data = 
-		let check_target = 0 in
+		let check_target h b = true in
 		let bdata = bitstring_of_string data in
 		bitmatch bdata with 
 		| {
@@ -27,11 +27,10 @@ module Header = struct
 		} ->
 		(*Hash.print_bin data;
 		Printf.printf "%s\n" (Hash.of_binblock (hash256 data));*)
-		if bits = Int32.of_int 0 && nonce = Int32.of_int 0 then 
-			None
-		else
+		let hash = Hash.of_binblock (hash256 data) in
+		if check_target hash bits then
 			Some {
-				hash			= Hash.of_binblock (hash256 data);
+				hash			= hash;
 				version			= version;
 				prev_block		= Hash.of_binblock prev_block;
 				merkle_root		= Hash.of_bin merkle_root;
@@ -39,6 +38,8 @@ module Header = struct
 				bits			= bits;
 				nonce			= nonce
 			}
+		else
+			None
 	;;
 end
 

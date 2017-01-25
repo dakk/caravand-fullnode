@@ -91,18 +91,18 @@ let loop bc =
 	while true do (
 		Unix.sleep 4;
 
-		Log.debug "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
+		Log.info "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 
 		let reslen = Cqueue.len bc.resources in
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.debug "Blockchain" "not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
+			Log.info "Blockchain" "not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
 			bc.sync <- false
 		) else (
 			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.debug "Blockchain" "in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
+			Log.info "Blockchain" "in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
 			bc.sync <- true
 		);
 
@@ -119,7 +119,7 @@ let loop bc =
 					| RES_BLOCKS (bs) -> consume ()
 					| RES_TXS (txs) -> consume ()
 					| RES_HBLOCKS (hbs) -> 
-						Log.debug "Blockchain" "Got new header blocks %d" (List.length hbs);
+						Log.info "Blockchain" "Got new %d headers" (List.length hbs);
 						let rec h_header hl = 
 							match hl with
 							| [] -> consume ()
@@ -142,7 +142,6 @@ let loop bc =
 		| false ->
 			(*if bc.queue_req_last < (Unix.time () -. 10.) then*)
 			Cqueue.clear bc.requests;
-			Log.debug "Blockchain" "Asking for headers";
 			Cqueue.add bc.requests (Request.REQ_HBLOCKS ([bc.header_last.hash], None))
 			(*else 
 				()*)

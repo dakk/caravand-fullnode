@@ -18,12 +18,22 @@ type t = {
 	port	: int;
 	params	: Params.t;
 	
+	mutable received	: int;
+	mutable sent		: int;
+
 	mutable status		: status;
 	mutable last_seen	: float;
 	mutable height		: int32;
 	mutable user_agent	: string;
 };;
 
+
+let byten_to_string b =
+	match b with
+	| b' when b < 1024 -> Printf.sprintf "%dB" b'
+	| b' when b < 1024 * 1024 -> Printf.sprintf "%dKB" (b' / 1024)
+	| b' -> Printf.sprintf "%dMB" (b' / 1024 / 1024)
+;;
 
 let rec is_readable s = 
 	match String.length s with
@@ -42,6 +52,10 @@ let create params addr port = {
 	address		= addr; 
 	port		= port; 
 	params		= params; 
+
+	received	= 0;
+	sent		= 0;
+
 	last_seen	= Unix.time ();
 	height		= Int32.of_int 0;
 	user_agent	= ""; 
@@ -67,8 +81,11 @@ let connect peer =
 
 let send peer message = 
 	let data = Message.serialize peer.params message in
-	Unix.send peer.socket data 0 (Bytes.length data) [] |> ignore;
-	Log.debug "Peer →" "%s: %s" (Unix.string_of_inet_addr peer.address) (Message.string_of_command message);
+	let datalen = Bytes.length data in
+	peer.sent <- peer.sent + datalen;
+	Unix.send peer.socket data 0 datalen [] |> ignore;
+	Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+		(Message.string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 ;;
 
 
@@ -98,10 +115,12 @@ let recv peer =
 	let m = Message.parse_header data in
 				
 	(* Read and parse the message*)
+	peer.received <- peer.received + (Uint32.to_int m.length);
 	let rdata = recv_chunks m.length (Buffer.create 4096) in
 	try
 		let m' = Message.parse m rdata in 
-		Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
+		Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+			m.command (byten_to_string peer.sent) (byten_to_string peer.received);
 		Some (m')
 	with | _ ->
 		if is_readable m.command then
@@ -150,10 +169,10 @@ let handle peer bc =
 			| x::xl ->
 				let _ = (match x with
 					| INV_TX (txid) -> 
-						Log.info "Network" "Got inv tx %s" txid;
+						(*Log.info "Network" "Got inv tx %s" txid;*)
 						Cqueue.add bc.resources (Blockchain.Resource.RES_INV_TXS ([txid], peer.address));
 					| INV_BLOCK (bhash) -> 
-						Log.info "Network" "Got inv block %s" bhash;
+						(*Log.info "Network" "Got inv block %s" bhash;*)
 						Cqueue.add bc.resources (Blockchain.Resource.RES_INV_BLOCKS ([bhash], peer.address));
 					| _ -> ()
 				) in vis xl  
@@ -161,12 +180,12 @@ let handle peer bc =
 			in vis i;
 			(*send peer (GETDATA (i));*)			
 		| HEADERS (hl) ->
-			let rec vis h = match h with
+			(*let rec vis h = match h with
 				| x::xl ->
 					Log.info "Network" "Got block header %s" x.Block.Header.hash;
 					vis xl  
 				| [] -> ()
-			in vis hl;
+			in vis hl;*)
 			Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
 		| _ -> ()
 	)

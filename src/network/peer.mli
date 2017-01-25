@@ -12,6 +12,9 @@ type t = {
 	address 			: Unix.inet_addr;
 	port				: int;
 	params				: Params.t;
+
+	mutable received	: int;
+	mutable sent		: int;
 	
 	mutable status		: status;
 	mutable last_seen	: float;

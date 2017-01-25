@@ -32,7 +32,7 @@ let init p =
 	in
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = init_peers p (Hashtbl.create 16) addrs 24 in
+	let peers = init_peers p (Hashtbl.create 16) addrs 8 in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
 	{ addrs= addrs; peers= peers; params= p }
