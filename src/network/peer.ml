@@ -78,18 +78,18 @@ let recv peer =
 		else
 			let csize = if bsize >= (Uint32.of_int 0xFFFF) then 0xFFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
-			let _ = Unix.recv peer.socket rdata 0 csize [] in
-			burn_chunks (Uint32.sub bsize (Uint32.of_int csize)) 
+			let rl = Unix.recv peer.socket rdata 0 csize [] in
+			burn_chunks (Uint32.sub bsize (Uint32.of_int rl)) 
 	in
 	let rec recv_chunks bsize acc = 
 		if bsize = Uint32.zero then 
 			let res = Buffer.to_bytes acc in
 			Buffer.clear acc; res
 		else
-			let csize = if bsize >= (Uint32.of_int 0xFFFF) then 0xFFFF else Uint32.to_int bsize in
+			let csize = if bsize >= (Uint32.of_int 0xFFF) then 0xFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
-			let rl = Unix.recv peer.socket rdata 0 csize [] in
-			Buffer.add_bytes acc rdata;
+			let rl = Unix.read peer.socket rdata 0 csize in
+			Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);
 			recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
 	in
 	(* Read and parse the header*)
@@ -98,7 +98,7 @@ let recv peer =
 	let m = Message.parse_header data in
 				
 	(* Read and parse the message*)
-	let rdata = recv_chunks m.length (Buffer.create 128) in
+	let rdata = recv_chunks m.length (Buffer.create 4096) in
 	try
 		let m' = Message.parse m rdata in 
 		Log.debug "Peer ←" "%s: %s" (Unix.string_of_inet_addr peer.address) m.command;
