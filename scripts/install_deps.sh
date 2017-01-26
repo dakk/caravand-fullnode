@@ -15,3 +15,6 @@ opam install cryptokit
 
 # 1.3.3
 opam install yojson
+
+# 1.1.2
+opam install leveldb

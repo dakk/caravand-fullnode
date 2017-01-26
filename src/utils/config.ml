@@ -11,11 +11,17 @@ let rec load_or_init () =
 	try
 		let json = Yojson.Basic.from_file (Unix.getenv "HOME" ^ "/.letchain/config.json") in
 		Log.info "Config" "Loaded %s" (Unix.getenv "HOME" ^ "/.letchain/config.json");
-		{
+		let conf = {
 			min_peers= json |> member "min_peers" |> to_int;
 			max_peers= json |> member "max_peers" |> to_int;
 			chain= json |> member "chain" |> to_string;
-		}
+		} in
+		try
+			Unix.mkdir (Unix.getenv "HOME" ^ "/.letchain/" ^ conf.chain) 0o777;
+			Log.debug "Config" "Created %s" (Unix.getenv "HOME" ^ "/.letchain/" ^ conf.chain);
+			conf
+		with
+		| _ -> conf			
 	with
 	| _ -> 
 		try

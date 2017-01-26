@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: f24275ade5410f2f98b290466bc3e683)
+# DO NOT EDIT (digest: 1c1f0a9cc002378d56b2348c035f2f0a)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -24,6 +24,7 @@ true: annot, bin_annot
 <src/blockchain/*.ml{,i,y}>: pkg_bitstring
 <src/blockchain/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/blockchain/*.ml{,i,y}>: pkg_cryptokit
+<src/blockchain/*.ml{,i,y}>: pkg_leveldb
 <src/blockchain/*.ml{,i,y}>: pkg_stdint
 <src/blockchain/*.ml{,i,y}>: pkg_threads
 <src/blockchain/*.ml{,i,y}>: pkg_yojson
@@ -34,6 +35,7 @@ true: annot, bin_annot
 <src/network/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/network/*.ml{,i,y}>: pkg_cryptokit
 <src/network/*.ml{,i,y}>: pkg_ctypes
+<src/network/*.ml{,i,y}>: pkg_leveldb
 <src/network/*.ml{,i,y}>: pkg_stdint
 <src/network/*.ml{,i,y}>: pkg_threads
 <src/network/*.ml{,i,y}>: pkg_yojson
@@ -44,6 +46,7 @@ true: annot, bin_annot
 "src/letchain.byte": pkg_bitstring.syntax
 "src/letchain.byte": pkg_cryptokit
 "src/letchain.byte": pkg_ctypes
+"src/letchain.byte": pkg_leveldb
 "src/letchain.byte": pkg_stdint
 "src/letchain.byte": pkg_threads
 "src/letchain.byte": pkg_yojson
@@ -54,6 +57,7 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/*.ml{,i,y}>: pkg_cryptokit
 <src/*.ml{,i,y}>: pkg_ctypes
+<src/*.ml{,i,y}>: pkg_leveldb
 <src/*.ml{,i,y}>: pkg_stdint
 <src/*.ml{,i,y}>: pkg_threads
 <src/*.ml{,i,y}>: pkg_yojson
