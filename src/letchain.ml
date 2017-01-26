@@ -17,7 +17,8 @@ let main () =
 	
 	Random.self_init ();
 	Log.info "letchain" "Starting 0.1";
-	let cn = Params.XTN in
+	let conf = Config.load_or_init () in
+ 	let cn = Params.XTN in
 	Log.info "letchain" "Selected network: %s" (name_of_network cn);
 	let p = Params.of_network cn in	
 	

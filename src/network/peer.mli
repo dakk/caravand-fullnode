@@ -2,7 +2,7 @@ open Message
 open Params
 
 type status = 
-	  CONNECTED
+	| CONNECTED
 	| DISCONNECTED
 	| WAITPING of int64
 	

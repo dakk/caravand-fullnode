@@ -12,3 +12,6 @@ opam install cryptokit
 
 # 2.7.0
 #opam install lwt
+
+# 1.3.3
+opam install yojson

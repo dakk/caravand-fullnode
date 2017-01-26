@@ -11,14 +11,14 @@ BuildTools:  ocamlbuild
 Library utils
   Path:         src/utils
   BuildTools:   ocamlbuild
-  BuildDepends: cryptokit
-  Modules: Log, Crypto, Config, Params, Timediff
+  BuildDepends: cryptokit, stdint, yojson
+  Modules: Log, Crypto, Config, Timediff
 
 Library blockchain
   Path:         src/blockchain
   BuildTools:   ocamlbuild
   BuildDepends: threads, utils, cryptokit, bitstring, bitstring.syntax, stdint
-  Modules:	Tx, Block, Blockchain, Script, Cqueue
+  Modules:	Tx, Block, Blockchain, Script, Cqueue, Params
 
 Library network
   Path:         src/network

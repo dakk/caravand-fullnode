@@ -1,3 +1,5 @@
+open Stdint
+
 module Header : sig
 	type t = {
 		hash		: Hash.t;
@@ -5,8 +7,8 @@ module Header : sig
 		prev_block	: Hash.t;
 		merkle_root : Hash.t;
 		time		: float;
-		bits		: int32;
-		nonce		: int32;
+		bits		: uint32;
+		nonce		: uint32;
 	}
 	
 	val parse 		: bytes -> t option

@@ -27,10 +27,6 @@ let of_bin b =
 ;;
 
 
-let of_binblock b =
-	let h = of_bin b in h (*"000000" ^ (String.sub (h) 0 (64 - 6))*)
-;;
-
 
 (* Hash to binary *)
 let to_bin h =
@@ -43,15 +39,3 @@ let to_bin h =
 	in reverse (to_bin' h)
 ;;
 
-
-let print_bin h =
-	let rec of_bin' h =
-		let tos c = Printf.sprintf "%02x" (int_of_char c) in
-		match String.length h with
-		| 0 -> ""
-		| n -> (tos h.[0]) ^ of_bin' (String.sub h 1 ((String.length h) - 1))
-	in Printf.printf "Binary: %s\n" (of_bin' h)
-;;
-
-
-let to_binblock b = String.sub b 0 32;;

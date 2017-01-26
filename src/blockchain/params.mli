@@ -1,5 +1,6 @@
-type e = BTC | XTN | SIDECHAIN
+open Stdint
 
+type e = BTC | XTN | SIDECHAIN
 
 type genesis = {
 	hash		: Hash.t;
@@ -7,8 +8,8 @@ type genesis = {
 	prev_block	: Hash.t;
 	merkle_root : Hash.t;
 	time		: float;
-	bits		: int32;
-	nonce		: int32;
+	bits		: uint32;
+	nonce		: uint32;
 }
 
 type t = { 
@@ -23,4 +24,4 @@ type t = {
 
 val of_network 			: e -> t
 val name_of_network 	: e -> string
-
+val abbr_to_network		: string -> e

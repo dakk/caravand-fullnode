@@ -7,7 +7,7 @@ open Blockchain;;
 open Random;;
 
 type status = 
-	  CONNECTED
+	| CONNECTED
 	| DISCONNECTED
 	| WAITPING of int64
 ;;
