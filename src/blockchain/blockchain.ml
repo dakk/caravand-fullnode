@@ -88,53 +88,66 @@ let load p = genesis p;;
 
 
 let loop bc = 
+	let rec consume () =
+		let rec consume_headers hl =
+			match hl with
+			| [] -> consume ()
+			| h::hl' ->
+				let check_checkpoint index hash =
+					try
+						let hash' = List.assoc index bc.params.checkpoints in
+						Log.debug "Blockchain" "Checkpoint: %s" hash';
+						hash' = hash
+					with
+					| _ -> true
+				in
+				if h.Header.prev_block = bc.header_last.Header.hash && check_checkpoint ((Int64.to_int bc.header_height) + 1) h.Header.hash then (
+					(* Insert in the chain *)
+					bc.header_last <- h;
+					bc.header_height <- Int64.succ bc.header_height;
+					consume_headers hl'
+				) else 
+					consume_headers hl'
+		in
+
+		if Cqueue.len bc.resources = 0 then ()
+		else
+			match Cqueue.get bc.resources with 
+			| Some (res) -> (match (res : Resource.t) with 
+				| RES_INV_BLOCKS (bs, addr) -> consume ()
+				| RES_INV_HBLOCKS (hbs, addr) -> consume ()
+				| RES_INV_TXS (txs, addr) -> consume ()
+				| RES_BLOCKS (bs) -> consume ()
+				| RES_TXS (txs) -> consume ()
+				| RES_HBLOCKS (hbs) -> 
+					Log.info "Blockchain" "Got new %d headers" (List.length hbs);
+					consume_headers (List.rev hbs)
+			)
+			| None -> 
+				consume ()
+	in 
+	
 	while true do (
 		Unix.sleep 4;
 
-		Log.info "Blockchain" "height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
+		Log.info "Blockchain" "Height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 
 		let reslen = Cqueue.len bc.resources in
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.info "Blockchain" "not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
+			Log.info "Blockchain" "Not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
 			bc.sync <- false
 		) else (
 			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.info "Blockchain" "in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
+			Log.info "Blockchain" "In sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
 			bc.sync <- true
 		);
 
 		(* Handle new resources *)
-		let rec consume () =
-			if Cqueue.len bc.resources = 0 then 
-				()
-			else
-				match Cqueue.get bc.resources with 
-				| Some (res) -> (match (res : Resource.t) with 
-					| RES_INV_BLOCKS (bs, addr) -> consume ()
-					| RES_INV_HBLOCKS (hbs, addr) -> consume ()
-					| RES_INV_TXS (txs, addr) -> consume ()
-					| RES_BLOCKS (bs) -> consume ()
-					| RES_TXS (txs) -> consume ()
-					| RES_HBLOCKS (hbs) -> 
-						Log.info "Blockchain" "Got new %d headers" (List.length hbs);
-						let rec h_header hl = 
-							match hl with
-							| [] -> consume ()
-							| h::hl' ->
-								if h.Header.prev_block = bc.header_last.hash then (
-									bc.header_last <- h;
-									bc.header_height <- Int64.succ bc.header_height;
-									h_header hl'
-								) else 
-									h_header hl'
-						in h_header (List.rev hbs)
-				)
-				| None -> 
-					consume ()
-		in consume ();
+		consume ();
+
 
 		(* TODO Move request and response to new module *)
 		(* Get in sync *)

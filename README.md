@@ -20,5 +20,4 @@ Letchain will be usable as a standalone bitcoin node or through a library that e
     - Tx (hash)
     - Blocks (hash and number)
 - Implement all test-case from bitcoincore
-- Add check points
 - Check for target in parse header

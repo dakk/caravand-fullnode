@@ -2,6 +2,7 @@ open Stdint
 
 type e = BTC | XTN | SIDECHAIN
 
+
 type genesis = {
 	hash		: Hash.t;
 	version		: int32;
@@ -20,6 +21,7 @@ type t = {
 	port			: int;
 	seeds			: string list;
 	network			: e;
+	checkpoints		: (int * Hash.t) list;
 }
 
 val of_network 			: e -> t
