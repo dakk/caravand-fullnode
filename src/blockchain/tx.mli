@@ -2,13 +2,14 @@ open Stdint
 
 module In : sig
 	type t = {
-		tx 		: string;
-		n		: uint32;
+		out_hash: string;
+		out_n	: uint32;
 		script	: Script.t;
-		seq		: uint32;	
+		sequence: uint32;	
 	}
 	
-	val parse 		: bytes -> t option
+	val parse 		: bytes -> bytes * t option
+	val parse_all	: bytes -> bytes * t list
 	val serialize	: t -> bytes
 end
 
@@ -18,7 +19,8 @@ module Out : sig
 		script	: Script.t;	
 	}
 	
-	val parse		: bytes -> t option
+	val parse		: bytes -> bytes * t option
+	val parse_all	: bytes -> bytes * t list
 	val serialize	: t -> bytes
 end
 
@@ -31,5 +33,5 @@ type t = {
 	locktime	: uint32;
 }
 
-val parse 		: bytes -> t option
+val parse 		: bytes -> bytes * t option
 val serialize	: t -> bytes

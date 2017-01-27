@@ -303,8 +303,8 @@ let parse header payload =
 	| "inv" -> INV (parse_inv payload)
 	| "tx" -> (
 		match Tx.parse payload with
-		| None -> INVALID
-		| Some (tx) -> TX (tx)
+		| rest, None -> INVALID
+		| rest, Some (tx) -> TX (tx)
 	)
 	| "block" -> (
 		match Block.parse payload with
@@ -334,7 +334,7 @@ let bitstring_of_addr (addr: addr) : Bitstring.t =
   }
 ;;
 
-let bitstring_of_int i = 
+let bitstring_of_varint i = 
 	match i with
 	| i when i < 0xFDL -> BITSTRING { Int64.to_int i : 1*8 : littleendian }
 	| i when i < 0xFFFFL -> BITSTRING { 0xFD : 1*8; Int64.to_int i : 2*8 : littleendian }
@@ -346,7 +346,7 @@ let bitstring_of_varstring s =
 	match String.length s with
 	| 0 -> bitstring_of_string "\x00"
 	| n -> 
-		let length_varint_bitstring = bitstring_of_int (Int64.of_int (String.length s)) in
+		let length_varint_bitstring = bitstring_of_varint (Int64.of_int (String.length s)) in
 		BITSTRING {
 			length_varint_bitstring : -1 : bitstring;
 			s 						: (String.length s) * 8 : string
@@ -362,7 +362,7 @@ let int_of_bool b =
 let serialize_getheaders v = 
 	BITSTRING {
 		v.version 												: 4*8 : littleendian;
-		bitstring_of_int (Int64.of_int (List.length v.hashes))	: -1 : bitstring;
+		bitstring_of_varint (Int64.of_int (List.length v.hashes))	: -1 : bitstring;
 		Hash.to_bin (List.nth v.hashes 0)						: 32*8 : string; (*TODO: this should be an array *)
 		Hash.to_bin (v.stop)									: 32*8 : string
 	} 
@@ -407,7 +407,7 @@ let serialize_getdata gd =
 	in
 	let invvects = ser_ivs gd in
 	BITSTRING {
-		bitstring_of_int (Int64.of_int (List.length gd)): -1 : bitstring;
+		bitstring_of_varint (Int64.of_int (List.length gd)): -1 : bitstring;
 		Bitstring.concat invvects 						: -1 : bitstring
 	}
 ;;
