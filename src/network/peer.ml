@@ -90,14 +90,6 @@ let send peer message =
 
 
 let recv peer = 
-	let rec burn_chunks bsize =
-		if bsize = Uint32.zero then ()
-		else
-			let csize = if bsize >= (Uint32.of_int 0xFFFF) then 0xFFFF else Uint32.to_int bsize in
-			let rdata = Bytes.create csize in
-			let rl = Unix.recv peer.socket rdata 0 csize [] in
-			burn_chunks (Uint32.sub bsize (Uint32.of_int rl)) 
-	in
 	let rec recv_chunks bsize acc = 
 		if bsize = Uint32.zero then 
 			let res = Buffer.to_bytes acc in
@@ -111,22 +103,25 @@ let recv peer =
 	in
 	(* Read and parse the header*)
 	let data = Bytes.create 24 in
-	let _ = Unix.recv peer.socket data 0 24 [] in
-	let m = Message.parse_header data in
-				
-	(* Read and parse the message*)
-	peer.received <- peer.received + (Uint32.to_int m.length);
-	let rdata = recv_chunks m.length (Buffer.create 4096) in
-	try
-		let m' = Message.parse m rdata in 
-		Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-			m.command (byten_to_string peer.sent) (byten_to_string peer.received);
-		Some (m')
-	with | _ ->
-		if is_readable m.command then
-			Log.error "Peer ↚" "%s: %s (parse failed)" (Unix.string_of_inet_addr peer.address) m.command
-		else
-			Log.error "Peer ↚" "%s: not readable (parse failed)" (Unix.string_of_inet_addr peer.address);
+
+	try (
+		let rl = Unix.recv peer.socket data 0 24 [] in
+		if rl <> 24 then (
+			None
+		) else (
+			let m = Message.parse_header data in
+						
+			(* Read and parse the message*)
+			peer.received <- peer.received + (Uint32.to_int m.length);
+			let rdata = recv_chunks m.length (Buffer.create 4096) in
+			let m' = Message.parse m rdata in 
+			Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+				m.command (byten_to_string peer.sent) (byten_to_string peer.received);
+			Some (m')
+		)
+	) with 
+	| _ -> 
+		Log.error "Peer ↚" "Invalid message from %s" (Unix.string_of_inet_addr peer.address);
 		None
 ;;
 
@@ -177,15 +172,8 @@ let handle peer bc =
 					| _ -> ()
 				) in vis xl  
 			| [] -> ()
-			in vis i;
-			(*send peer (GETDATA (i));*)			
+			in vis i;			
 		| HEADERS (hl) ->
-			(*let rec vis h = match h with
-				| x::xl ->
-					Log.info "Network" "Got block header %s" x.Block.Header.hash;
-					vis xl  
-				| [] -> ()
-			in vis hl;*)
 			Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
 		| _ -> ()
 	)

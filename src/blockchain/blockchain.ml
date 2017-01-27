@@ -154,8 +154,6 @@ let loop bc =
 
 		Log.info "Blockchain" "Height: %d, block: %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 
-		let reslen = Cqueue.len bc.resources in
-
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			let df = Timediff.diff (Unix.time ()) bc.header_last.time in

@@ -8,6 +8,8 @@ module In = struct
 		seq		: uint32;	
 	};;
 
+	let serialize txin = "";;
+
 	let parse data = Some {
 		tx= "";
 		n= Uint32.of_int 0;
@@ -21,6 +23,8 @@ module Out = struct
 		value	: int64;
 		script	: string;	
 	};;
+
+	let serialize txout = "";;
 	
 	let parse data = Some {
 		value= Int64.of_int 0;
@@ -45,9 +49,6 @@ let parse data = Some {
 	txout	= [];
 	locktime= Uint32.of_int 0;
 };;
-
-
-
 
 
 let serialize tx = "";;
