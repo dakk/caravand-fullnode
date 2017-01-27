@@ -12,6 +12,7 @@ module Header : sig
 	}
 	
 	val parse 		: bytes -> t option
+	val serialize	: t -> bytes
 end
 
 type t = {

@@ -8,7 +8,8 @@ module In : sig
 		seq		: uint32;	
 	}
 	
-	val parse 	: bytes -> t option
+	val parse 		: bytes -> t option
+	val serialize	: t -> bytes
 end
 
 module Out : sig
@@ -17,7 +18,8 @@ module Out : sig
 		script	: string;	
 	}
 	
-	val parse	: bytes -> t option
+	val parse		: bytes -> t option
+	val serialize	: t -> bytes
 end
 
 

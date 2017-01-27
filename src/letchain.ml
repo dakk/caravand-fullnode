@@ -23,7 +23,7 @@ let main () =
 	let p = Params.of_network cn in	
 	
 	(* Start blockchain thread *)
-	let bc = Blockchain.genesis p in
+	let bc = Blockchain.load conf.path p in
 	let chain_thread = Thread.create chain_job bc in
 	
 	(* Start network thread *)

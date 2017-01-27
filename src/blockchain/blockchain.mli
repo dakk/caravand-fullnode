@@ -21,6 +21,8 @@ end
 type t = {
 	params	: 	Params.t;
 	basedir	:	string;
+
+	storage :	Storage.t;
 	
 	(* Sync status *)
 	mutable sync			:	bool;
@@ -44,10 +46,10 @@ type t = {
 
 
 (* Load blockchain state *)
-val load			: Params.t -> t
+val load			: string -> Params.t -> t
 
 (* Create the genesis blockchain state *)
-val genesis 		: Params.t -> t
+val genesis 		: string -> Params.t -> t
 
 (* Start the event loop for blockchain *)
 val loop			: t -> unit

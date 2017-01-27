@@ -4,6 +4,7 @@ type t = {
 	min_peers 	: int;
 	max_peers 	: int;
 	chain		: string;
+	path		: string;
 };;
 
 
@@ -15,6 +16,7 @@ let rec load_or_init () =
 			min_peers= json |> member "min_peers" |> to_int;
 			max_peers= json |> member "max_peers" |> to_int;
 			chain= json |> member "chain" |> to_string;
+			path= (Unix.getenv "HOME" ^ "/.letchain/" ^ (json |> member "chain" |> to_string));
 		} in
 		try
 			Unix.mkdir (Unix.getenv "HOME" ^ "/.letchain/" ^ conf.chain) 0o777;

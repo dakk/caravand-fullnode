@@ -3,6 +3,7 @@ open Tx;;
 open Params;;
 open Block;;
 open Timediff;;
+open Stdint;;
 
 module Resource = struct
 	type t = 
@@ -30,6 +31,8 @@ type t = {
 	params	: 	Params.t;
 	basedir	:	string;
 	
+	storage :	Storage.t;
+
 	(* Sync status *)
 	mutable sync			:	bool;
 	
@@ -50,7 +53,7 @@ type t = {
 	requests		:	(Request.t) Cqueue.t;
 };;
 
-let genesis p = 
+let genesis path p = 
 	let genesis_header : Block.Header.t = {
 		hash		= p.genesis.hash;
 		version		= p.genesis.version;
@@ -64,6 +67,7 @@ let genesis p =
 		params			= p;
 		basedir			= "";
 		
+		storage			= Storage.load path;
 		sync			= false;
 		
 		header_height	= 0L;
@@ -78,11 +82,28 @@ let genesis p =
 		resources		= Cqueue.create ();
 		requests		= Cqueue.create ();
 	} in 
-	Log.info "Blockchain" "Created genesis blockchain from block %s" p.genesis.hash;
 	bc
 ;;
 
-let load p = genesis p;;
+let load path p = 
+	let res bcg =
+		Log.info "Blockchain" "Starting from block header %s at height %d" bcg.header_last.hash (Int64.to_int bcg.header_height);
+		bcg
+	in
+	let bcg = genesis path p in
+	if bcg.storage.chainstate.header <> "" && bcg.storage.chainstate.header_height <> Uint32.zero then (
+		match Storage.get_header bcg.storage bcg.storage.chainstate.header with
+		| Some (bdata) -> (
+			match Block.Header.parse bdata with
+			| Some (header) ->
+				bcg.header_last <- header;
+				bcg.header_height <- Uint32.to_int64 bcg.storage.chainstate.header_height;
+				res bcg
+			| None -> res bcg
+		)
+		| None -> res bcg
+	) else res bcg
+;;
 
 
 
@@ -105,6 +126,7 @@ let loop bc =
 					(* Insert in the chain *)
 					bc.header_last <- h;
 					bc.header_height <- Int64.succ bc.header_height;
+					Storage.insert_header bc.storage bc.header_height bc.header_last.hash (Block.Header.serialize bc.header_last);
 					consume_headers hl'
 				) else 
 					consume_headers hl'
@@ -147,6 +169,7 @@ let loop bc =
 
 		(* Handle new resources *)
 		consume ();
+		Storage.sync bc.storage;
 
 
 		(* TODO Move request and response to new module *)

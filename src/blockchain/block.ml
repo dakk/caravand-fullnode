@@ -12,6 +12,23 @@ module Header = struct
 		bits		: uint32;
 		nonce		: uint32;	
 	};;
+
+	let serialize h = 
+		let btime = Bytes.create 4 in
+		Uint32.to_bytes_little_endian (Uint32.of_float h.time) btime 0;
+		let bbits = Bytes.create 4 in
+		Uint32.to_bytes_little_endian h.bits bbits 0;
+		let bnonce = Bytes.create 4 in
+		Uint32.to_bytes_little_endian h.nonce bnonce 0;
+		let bs = BITSTRING {
+			h.version 							: 4*8 : littleendian;
+			Hash.to_bin h.prev_block			: 32*8: string; 
+			Hash.to_bin h.merkle_root			: 32*8: string;
+			btime								: 32 : string;
+			bbits								: 32 : string;
+			bnonce								: 32 : string
+		} in Bitstring.string_of_bitstring bs
+	;;
 	
 	let parse data = 
 		let check_target h b =
