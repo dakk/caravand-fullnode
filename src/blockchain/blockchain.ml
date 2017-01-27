@@ -2,8 +2,11 @@ open Block;;
 open Tx;;
 open Params;;
 open Block;;
+open Block.Header;;
+open Hash;;
 open Timediff;;
 open Stdint;;
+open Storage;;
 
 module Resource = struct
 	type t = 
@@ -25,8 +28,7 @@ module Request = struct
 	;;
 end	
 
-
-
+open Resource;;
 
 type t = {
 	params	: 	Params.t;
@@ -93,16 +95,17 @@ let load path p =
 		bcg
 	in
 	let bcg = genesis path p in
-	if bcg.storage.chainstate.header <> "0000000000000000000000000000000000000000000000000000000000000000" && bcg.storage.chainstate.header_height <> Uint32.zero then (
+	if bcg.storage.chainstate.Chainstate.header <> "0000000000000000000000000000000000000000000000000000000000000000" 
+	&& bcg.storage.chainstate.Chainstate.header_height <> Uint32.zero then (
 		bcg.block_last <- None;
-		bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.height;
+		bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height;
 
-		match Storage.get_header bcg.storage bcg.storage.chainstate.header with
+		match Storage.get_header bcg.storage bcg.storage.chainstate.Chainstate.header with
 		| Some (bdata) -> (
 			match Block.Header.parse bdata with
 			| Some (header) ->
 				bcg.header_last <- header;
-				bcg.header_height <- Uint32.to_int64 bcg.storage.chainstate.header_height;
+				bcg.header_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.header_height;
 				res bcg
 			| None -> res bcg
 		)
@@ -217,11 +220,12 @@ let loop bc =
 					let succ = Int64.succ h in
 					let nh = Storage.get_headeri bc.storage succ in
 					match nh with
+					| None -> acc
 					| Some (b) -> 
 						let bh = Block.Header.parse b in
 						match bh with 
-						| Some (bh') ->
-							getblockhashes succ (n-1) (bh'.hash::acc)
+						| Some (bh') -> getblockhashes succ (n-1) (bh'.hash::acc)
+						| None -> acc
 				in 
 				let hashes = getblockhashes (bc.block_height) 8 [] 
 				in Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None));

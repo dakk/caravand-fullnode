@@ -3,6 +3,7 @@ open Log;;
 open Params;;
 open Thread;;
 open Random;;
+open Config;;
 open Blockchain;;
 
 

@@ -4,7 +4,7 @@ module In = struct
 	type t = {
 		tx 		: string;
 		n		: uint32;
-		script	: string;
+		script	: Script.t;
 		seq		: uint32;	
 	};;
 
@@ -21,7 +21,7 @@ end
 module Out = struct 
 	type t = {
 		value	: int64;
-		script	: string;	
+		script	: Script.t;	
 	};;
 
 	let serialize txout = "";;

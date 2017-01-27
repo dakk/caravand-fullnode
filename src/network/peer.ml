@@ -79,10 +79,9 @@ let connect peer =
 
 let send peer message = 
 	let data = Message.serialize peer.params message in
-	let datalen = Bytes.length data in
-	peer.sent <- peer.sent + datalen;
 	try (
-		Unix.single_write peer.socket data 0 datalen;
+		let wl = Unix.single_write peer.socket data 0 (Bytes.length data) in
+		peer.sent <- peer.sent + wl;
 		Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
 			(Message.string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 	) with

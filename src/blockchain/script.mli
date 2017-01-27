@@ -1,1 +1,1 @@
-type t
+type t = string

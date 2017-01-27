@@ -4,7 +4,7 @@ module In : sig
 	type t = {
 		tx 		: string;
 		n		: uint32;
-		script	: string;
+		script	: Script.t;
 		seq		: uint32;	
 	}
 	
@@ -15,7 +15,7 @@ end
 module Out : sig
 	type t = {
 		value	: int64;
-		script	: string;	
+		script	: Script.t;	
 	}
 	
 	val parse		: bytes -> t option

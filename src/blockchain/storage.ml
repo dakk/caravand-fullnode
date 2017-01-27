@@ -37,6 +37,8 @@ module Chainstate = struct
 	;;
 end
 
+open Chainstate;;
+
 type t = {
 	chainstate		:	Chainstate.t;
 	db              :   LevelDB.db;
