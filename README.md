@@ -11,3 +11,24 @@ Letchain will be usable as a standalone bitcoin node or through a library that e
 - full compatibility with bitcoin core nodes
 - low memory and disk footprint
 - pruned node with full utxo, address -> (balance, utxo) capabilities
+
+## Installation
+
+1. Switch to Ocaml 4.04:
+``` opam switch 4.04 ```
+
+2. Install oasis:
+``` opam install oasis ```
+
+3. Install letchain dependencies:
+``` ./scripts/install_deps.sh ```
+
+4. Build:
+```bash
+oasis setup
+./configure
+make
+```
+
+5. Start:
+``` ./letchain.byte ```

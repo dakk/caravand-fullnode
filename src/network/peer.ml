@@ -13,10 +13,11 @@ type status =
 ;;
 
 type t = {
-	socket	: Unix.file_descr;
-	address : Unix.inet_addr;
-	port	: int;
-	params	: Params.t;
+	socket		: Unix.file_descr;
+	socket_lock : Mutex.t;
+	address 	: Unix.inet_addr;
+	port		: int;
+	params		: Params.t;
 	
 	mutable received	: int;
 	mutable sent		: int;
@@ -49,6 +50,7 @@ let rec is_readable s =
 
 let create params addr port = {
 	socket		= Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0; 
+	socket_lock	= Mutex.create ();
 	address		= addr; 
 	port		= port; 
 	params		= params; 
@@ -65,8 +67,6 @@ let create params addr port = {
 let connect peer =
 	Log.debug "Peer" "Connecting to peer %s:%d..." (Unix.string_of_inet_addr peer.address) peer.port;
 	try
-		(*Unix.set_nonblock psock;*)
-		(*Make the socket a non-blocking socket, and then use select() or poll() with a timeout value to check for writability. If the select() returns with a timeout you did not connect in time, and you can close the socket and deal with the connection failure. If it returns with a completion, everything is fine and you can proceed.*)
 		Unix.connect peer.socket (ADDR_INET (peer.address, peer.port));
 		Log.debug "Peer" "Connected to peer %s:%d" (Unix.string_of_inet_addr peer.address) peer.port;
 		peer.status <- CONNECTED; CONNECTED					
@@ -83,7 +83,9 @@ let send peer message =
 	let data = Message.serialize peer.params message in
 	let datalen = Bytes.length data in
 	peer.sent <- peer.sent + datalen;
-	Unix.send peer.socket data 0 datalen [] |> ignore;
+	Mutex.lock peer.socket_lock;
+	Unix.single_write peer.socket data 0 datalen;
+	Mutex.unlock peer.socket_lock;
 	Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
 		(Message.string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 ;;
@@ -97,7 +99,9 @@ let recv peer =
 		else
 			let csize = if bsize >= (Uint32.of_int 0xFFF) then 0xFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
+			Mutex.lock peer.socket_lock;
 			let rl = Unix.read peer.socket rdata 0 csize in
+			Mutex.unlock peer.socket_lock;
 			Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);
 			recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
 	in
@@ -105,7 +109,9 @@ let recv peer =
 	let data = Bytes.create 24 in
 
 	try (
+		Mutex.lock peer.socket_lock;
 		let rl = Unix.recv peer.socket data 0 24 [] in
+		Mutex.unlock peer.socket_lock;
 		if rl <> 24 then (
 			None
 		) else (
@@ -184,7 +190,7 @@ let start peer bc =
 	
 	match connect peer with 
 	| DISCONNECTED -> ()
-	| _ -> 
+	| _ -> (
 		handshake peer;
 		(*send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }));*)
 		
@@ -193,4 +199,5 @@ let start peer bc =
 			(* send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }))*)
 			(* This should get requests filtered by addr Blockchain.get_request*)
 		done
+	)
 ;;

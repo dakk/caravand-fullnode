@@ -45,7 +45,7 @@ let random_peer n =
 		try
 			let p = Hashtbl.find n.peers (Unix.string_of_inet_addr x) in
 			match p.status with
-			| CONNECTED -> p 
+			| CONNECTED -> p
 			| _ -> rp addrs
 		with Not_found ->
 			rp addrs
