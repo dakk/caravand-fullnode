@@ -24,11 +24,7 @@ Letchain will be usable as a standalone bitcoin node or through a library that e
 ``` ./scripts/install_deps.sh ```
 
 4. Build:
-```bash
-oasis setup
-./configure
-make
-```
+``` oasis setup && ./configure && make ```
 
 5. Start:
 ``` ./letchain.byte ```

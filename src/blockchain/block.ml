@@ -94,13 +94,15 @@ type t = {
 
 
 let parse data =
-	let h = Header.parse data in
+	let h = Header.parse (Bytes.sub data 0 80) in
 	match h with 
 	| None -> None
-	| Some (header) -> Some {
-		header= header;
-		txs= [];
-	}
+	| Some (header) -> 
+		let bdata = Bytes.sub data 80 ((Bytes.length data) - 80) in
+		Some {
+			header= header;
+			txs= [];
+		}
 ;;
 
 

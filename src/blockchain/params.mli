@@ -1,6 +1,6 @@
 open Stdint
 
-type e = BTC | XTN | SIDECHAIN
+type e = BTC | XTN | SIDECHAIN | NOTFOUND
 
 
 type genesis = {

@@ -80,19 +80,29 @@ let loop n bc =
 		(* Check for request *)
 		Log.info "Network" "Pending request from blockchain: %d" (Cqueue.len bc.requests);
 
-		let reqo = Cqueue.get bc.requests in	
-		match reqo with
-		| None -> ()
-		| Some (req) ->
-			match req with
-			| Blockchain.Request.REQ_HBLOCKS (h, addr)	->
-				let peer = random_peer n in
-				let msg = {
-					version= Int32.of_int 1;
-					hashes= h;
-					stop= Hash.zero ();
-				} in Peer.send peer (Message.GETHEADERS msg)
-			| _ -> ()
+		let rec consume_requests () =
+			let reqo = Cqueue.get bc.requests in	
+			match reqo with
+			| None -> ()
+			| Some (req) ->
+				(match req with
+				| Blockchain.Request.REQ_HBLOCKS (h, addr)	->
+					let peer = random_peer n in
+					let msg = {
+						version= Int32.of_int 1;
+						hashes= h;
+						stop= Hash.zero ();
+					} in Peer.send peer (Message.GETHEADERS msg)
+				| Blockchain.Request.REQ_BLOCKS (hs, addr)	->
+					(* Qua andra' un GETDATA *)
+					let peer = random_peer n in
+					let rec create_invs hs acc = match hs with
+					| [] -> acc
+					| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)
+					in Peer.send peer (Message.GETDATA (create_invs hs []));
+				| _ -> ());
+				consume_requests ()
+		in consume_requests ();
 	done;
 	()
 ;;

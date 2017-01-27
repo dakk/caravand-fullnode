@@ -92,6 +92,13 @@ let get_header storage hash =
 	(* TODO crop the txs if any with a substring *)
 	LevelDB.get storage.db ("blk_" ^ hash)
 ;;
+let get_headeri storage height = 
+	match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Int64.to_int height)) with
+	| Some (h) ->
+		get_header storage h 
+	| None -> 
+		None
+;;
 
 let get_blocks storage hashes = [];;
 let get_headers storage hashes = [];;

@@ -1,6 +1,6 @@
 open Stdint;;
 
-type e = BTC | XTN | SIDECHAIN;;
+type e = BTC | XTN | SIDECHAIN | NOTFOUND;;
 
 type genesis = {
 	hash		: Hash.t;
@@ -122,5 +122,5 @@ let abbr_to_network n =
 	match n with 
 	| "BTC" -> BTC
 	| "XTN" -> XTN
-	| _ -> XTN
+	| _ -> NOTFOUND
 ;;

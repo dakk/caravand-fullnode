@@ -9,7 +9,6 @@ type status =
 
 type t = {
 	socket		: Unix.file_descr;
-	socket_lock : Mutex.t;
 	address 	: Unix.inet_addr;
 	port		: int;
 	params		: Params.t;

@@ -30,6 +30,7 @@ val insert_block            :   t -> Int64.t -> Hash.t -> bytes -> unit
 val get_blocki              :   t -> Int64.t -> bytes option
 val get_block               :   t -> Hash.t -> bytes option
 val get_header				:	t -> Hash.t -> bytes option
+val get_headeri				:	t -> Int64.t -> bytes option
 val get_blocks 				:	t -> Hash.t list -> bytes list
 val get_headers				:	t -> Hash.t list -> bytes list
 

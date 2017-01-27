@@ -14,7 +14,6 @@ type status =
 
 type t = {
 	socket		: Unix.file_descr;
-	socket_lock : Mutex.t;
 	address 	: Unix.inet_addr;
 	port		: int;
 	params		: Params.t;
@@ -50,7 +49,6 @@ let rec is_readable s =
 
 let create params addr port = {
 	socket		= Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0; 
-	socket_lock	= Mutex.create ();
 	address		= addr; 
 	port		= port; 
 	params		= params; 
@@ -83,11 +81,12 @@ let send peer message =
 	let data = Message.serialize peer.params message in
 	let datalen = Bytes.length data in
 	peer.sent <- peer.sent + datalen;
-	Mutex.lock peer.socket_lock;
-	Unix.single_write peer.socket data 0 datalen;
-	Mutex.unlock peer.socket_lock;
-	Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-		(Message.string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
+	try (
+		Unix.single_write peer.socket data 0 datalen;
+		Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+			(Message.string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
+	) with
+	| _ -> ()
 ;;
 
 
@@ -99,9 +98,7 @@ let recv peer =
 		else
 			let csize = if bsize >= (Uint32.of_int 0xFFF) then 0xFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
-			Mutex.lock peer.socket_lock;
 			let rl = Unix.read peer.socket rdata 0 csize in
-			Mutex.unlock peer.socket_lock;
 			Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);
 			recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
 	in
@@ -109,9 +106,7 @@ let recv peer =
 	let data = Bytes.create 24 in
 
 	try (
-		Mutex.lock peer.socket_lock;
 		let rl = Unix.recv peer.socket data 0 24 [] in
-		Mutex.unlock peer.socket_lock;
 		if rl <> 24 then (
 			None
 		) else (
@@ -178,7 +173,9 @@ let handle peer bc =
 					| _ -> ()
 				) in vis xl  
 			| [] -> ()
-			in vis i;			
+			in vis i;
+		| BLOCK (b) -> 
+			Cqueue.add bc.resources (Blockchain.Resource.RES_BLOCK (b));			
 		| HEADERS (hl) ->
 			Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
 		| _ -> ()
