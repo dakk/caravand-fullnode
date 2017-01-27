@@ -211,17 +211,17 @@ let loop bc =
 				bc.sync <- false;
 
 				(* Ask the storage for next n blocks hashes *)
-				let rec getblockhashes h n acc =
-					if n = 0 then acc
-					else
-						let succ = Int64.succ h in
-						let nh = Storage.get_headeri bc.storage succ in
-						match nh with
-						| Some (b) -> 
-							let bh = Block.Header.parse b in
-							match bh with 
-							| Some (bh') ->
-								getblockhashes succ (n-1) (bh'.hash::acc)
+				let rec getblockhashes h n acc = match n with
+				| 0 -> acc
+				| n ->
+					let succ = Int64.succ h in
+					let nh = Storage.get_headeri bc.storage succ in
+					match nh with
+					| Some (b) -> 
+						let bh = Block.Header.parse b in
+						match bh with 
+						| Some (bh') ->
+							getblockhashes succ (n-1) (bh'.hash::acc)
 				in 
 				let hashes = getblockhashes (bc.block_height) 8 [] 
 				in Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None));
