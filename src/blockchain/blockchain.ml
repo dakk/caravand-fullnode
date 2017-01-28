@@ -246,8 +246,9 @@ let loop bc =
 						| Some (bh') -> getblockhashes succ (n-1) (bh'.hash::acc)
 						| None -> acc
 				in 
-				let hashes = getblockhashes (bc.block_height) 64 [] 
-				in Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None));
+				let hashes = getblockhashes (bc.block_height) 128 [] in
+				Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None));
+				Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None))
 			) else (
 				let df = Timediff.diff (Unix.time ()) block.header.time in
 				Log.info "Blockchain" "Blocks in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
