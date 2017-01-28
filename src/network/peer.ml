@@ -81,6 +81,8 @@ let send peer message =
 	let data = Message.serialize peer.params message in
 	try (
 		let wl = Unix.single_write peer.socket data 0 (Bytes.length data) in
+		Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+				(string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 		peer.sent <- peer.sent + wl;
 	) with
 	| _ -> ()
@@ -96,8 +98,12 @@ let recv peer =
 			let csize = if bsize >= (Uint32.of_int 0xFFF) then 0xFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
 			let rl = Unix.read peer.socket rdata 0 csize in
-			Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);
-			recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
+			if rl >= 1 then (
+				Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);
+				recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
+			) else (
+				recv_chunks bsize acc
+			)
 	in
 	(* Read and parse the header*)
 	let data = Bytes.create 24 in
@@ -114,9 +120,8 @@ let recv peer =
 			let rdata = recv_chunks m.length (Buffer.create 4096) in
 			let m' = Message.parse m rdata in 
 
-
-			(*Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-			m.command (byten_to_string peer.sent) (byten_to_string peer.received);*)
+			Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+				m.command (byten_to_string peer.sent) (byten_to_string peer.received);
 			
 			Some (m')
 		)
@@ -189,12 +194,9 @@ let start peer bc =
 	| DISCONNECTED -> ()
 	| _ -> (
 		handshake peer;
-		(*send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }));*)
 		
 		while peer.status <> DISCONNECTED do
 			Unix.select [peer.socket] [] [] 5.0 |> read_step; ();
-			(* send peer (GETHEADERS ({ version= Int32.one; hashes= [bc.header_last]; stop= Hash.zero () }))*)
-			(* This should get requests filtered by addr Blockchain.get_request*)
 		done
 	)
 ;;

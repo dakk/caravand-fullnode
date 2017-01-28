@@ -246,7 +246,7 @@ let loop bc =
 						| Some (bh') -> getblockhashes succ (n-1) (bh'.hash::acc)
 						| None -> acc
 				in 
-				let hashes = getblockhashes (bc.block_height) 256 [] 
+				let hashes = getblockhashes (bc.block_height) 64 [] 
 				in Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None));
 			) else (
 				let df = Timediff.diff (Unix.time ()) block.header.time in
