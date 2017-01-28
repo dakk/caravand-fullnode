@@ -32,6 +32,6 @@ let get q =
 	r
 ;;
 
-let getn q = None;;
+let get_n q = None;;
 
-let len q = Queue.length q.q;;
+let length q = Queue.length q.q;;

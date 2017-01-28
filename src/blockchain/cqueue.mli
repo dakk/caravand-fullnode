@@ -7,6 +7,6 @@ type 'a t = {
 val create  : unit -> 'a t
 val add     : 'a t -> 'a -> unit
 val get     : 'a t -> 'a option
-val getn    : 'a t -> 'a list option
-val len     : 'a t -> int
+val get_n   : 'a t -> 'a list option
+val length	: 'a t -> int
 val clear	: 'a t -> unit

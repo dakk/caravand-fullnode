@@ -86,20 +86,36 @@ let insert_header storage height hash header =
 	save_cs storage    
 ;;
 
-let insert_block storage height hash block = ();;
+let insert_block storage height hash block = 
+	LevelDB.put storage.db ("blk_" ^ hash) block;
+	storage.chainstate.block <- hash;
+	storage.chainstate.height <- Uint32.of_int64 height;
+	save_cs storage 
+;;
 
-let get_blocki storage height = None;;
-let get_block storage hash = None;;
-let get_header storage hash = 
-	(* TODO crop the txs if any with a substring *)
+
+let get_block storage hash = 
 	LevelDB.get storage.db ("blk_" ^ hash)
 ;;
+
+let get_blocki storage height = 
+	match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Int64.to_int height)) with
+	| Some (h) -> get_block storage h 
+	| None -> None
+;;
+	
+
+
+let get_header storage hash = 
+	match LevelDB.get storage.db ("blk_" ^ hash) with
+	| None -> None
+	| Some (data) -> Some (Bytes.sub data 0 80)
+;;
+
 let get_headeri storage height = 
 	match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Int64.to_int height)) with
-	| Some (h) ->
-		get_header storage h 
-	| None -> 
-		None
+	| Some (h) -> get_header storage h 
+	| None -> None
 ;;
 
 let get_blocks storage hashes = [];;

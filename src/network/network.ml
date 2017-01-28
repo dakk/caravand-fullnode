@@ -78,7 +78,7 @@ let loop n bc =
 		) n.peers;
 		
 		(* Check for request *)
-		Log.info "Network" "Pending request from blockchain: %d" (Cqueue.len bc.requests);
+		Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);
 
 		let rec consume_requests () =
 			let reqo = Cqueue.get bc.requests in	

@@ -82,8 +82,6 @@ let send peer message =
 	try (
 		let wl = Unix.single_write peer.socket data 0 (Bytes.length data) in
 		peer.sent <- peer.sent + wl;
-		Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-			(Message.string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 	) with
 	| _ -> ()
 ;;
@@ -115,8 +113,11 @@ let recv peer =
 			peer.received <- peer.received + (Uint32.to_int m.length);
 			let rdata = recv_chunks m.length (Buffer.create 4096) in
 			let m' = Message.parse m rdata in 
-			Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-				m.command (byten_to_string peer.sent) (byten_to_string peer.received);
+
+
+			(*Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+			m.command (byten_to_string peer.sent) (byten_to_string peer.received);*)
+			
 			Some (m')
 		)
 	) with 

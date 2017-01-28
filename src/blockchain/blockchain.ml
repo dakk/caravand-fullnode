@@ -97,8 +97,25 @@ let load path p =
 	let bcg = genesis path p in
 	if bcg.storage.chainstate.Chainstate.header <> "0000000000000000000000000000000000000000000000000000000000000000" 
 	&& bcg.storage.chainstate.Chainstate.header_height <> Uint32.zero then (
-		bcg.block_last <- None;
-		bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height;
+		if bcg.storage.chainstate.Chainstate.block <> "0000000000000000000000000000000000000000000000000000000000000000" 
+		&& bcg.storage.chainstate.Chainstate.height <> Uint32.zero then (
+			match Storage.get_block bcg.storage bcg.storage.chainstate.Chainstate.block with
+			| Some (bdata) -> (
+				match Block.parse bdata with
+				| None -> 				
+					bcg.block_last <- None;
+					bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
+				| Some (block) ->
+					bcg.block_last <- Some (block);
+					bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
+			)
+			| None ->
+				bcg.block_last <- None;
+				bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
+		) else (
+			bcg.block_last <- None;
+			bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
+		);
 
 		match Storage.get_header bcg.storage bcg.storage.chainstate.Chainstate.header with
 		| Some (bdata) -> (
@@ -124,6 +141,7 @@ let loop bc =
 				if b.header.hash = bc.params.genesis.hash then (
 					bc.block_height <- Int64.zero;
 					bc.block_last <- Some (b);
+					Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
 					consume ()
 				) else
 					consume ()
@@ -131,6 +149,7 @@ let loop bc =
 				if b.header.prev_block = block.header.hash then (
 					bc.block_height <- Int64.succ bc.block_height;
 					bc.block_last <- Some (b);
+					Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
 					consume ()
 				) else
 					consume ()
@@ -157,7 +176,7 @@ let loop bc =
 					consume_headers hl'
 		in
 
-		if Cqueue.len bc.resources = 0 then ()
+		if Cqueue.length bc.resources = 0 then ()
 		else
 			match Cqueue.get bc.resources with 
 			| Some (res) -> (match (res : Resource.t) with 
@@ -168,7 +187,8 @@ let loop bc =
 				| RES_INV_HBLOCKS (hbs, addr) -> consume ()
 				| RES_INV_TXS (txs, addr) -> consume ()
 				| RES_BLOCK (bs) -> 
-					Log.debug "Blockchain" "Got new block %s" bs.header.hash;
+					let df = Timediff.diff (Unix.time ()) bs.header.time in
+					Log.debug "Blockchain" "Got new block %s : %d y, %d m, %d d, %d h and %d m ago" bs.header.hash df.years df.months df.days df.hours df.minutes;
 					consume_block (bs)
 				| RES_TXS (txs) -> consume ()
 				| RES_HBLOCKS (hbs) -> 
@@ -181,13 +201,8 @@ let loop bc =
 	in 
 	
 	while true do (
-		Unix.sleep 4;
+		Unix.sleep 5;
 		Cqueue.clear bc.requests;
-
-		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
-		(match bc.block_last with 
-		| None -> ()
-		| Some (b) -> Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) b.header.hash);
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
@@ -227,7 +242,7 @@ let loop bc =
 						| Some (bh') -> getblockhashes succ (n-1) (bh'.hash::acc)
 						| None -> acc
 				in 
-				let hashes = getblockhashes (bc.block_height) 8 [] 
+				let hashes = getblockhashes (bc.block_height) 128 [] 
 				in Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None));
 			) else (
 				let df = Timediff.diff (Unix.time ()) block.header.time in
@@ -240,5 +255,9 @@ let loop bc =
 		consume ();
 		Storage.sync bc.storage;
 
+		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
+		(match bc.block_last with 
+		| None -> ()
+		| Some (b) -> Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) b.header.hash);
 	) done
 ;;

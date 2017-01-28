@@ -15,9 +15,9 @@ module In = struct
 			Hash.to_bin txin.out_hash : 32 * 8 : string;
 			Uint32.to_int32 txin.out_n : 32 : littleendian
 		}) in 
-		let sclen = string_of_bitstring (Parser.bitstring_of_varint (Int64.of_int (String.length txin.script))) in
+		let sclen = string_of_bitstring (Parser.bitstring_of_varint (Int64.of_int (Script.length txin.script))) in
 		let sequence = Bitstring.string_of_bitstring (BITSTRING { Uint32.to_int32 txin.sequence : 32 : littleendian }) in 
-		out ^ sclen ^ txin.script ^ sequence
+		out ^ sclen ^ Script.serialize (txin.script) ^ sequence
 	;;
 
 	let serialize_all txins = 
@@ -72,8 +72,8 @@ module Out = struct
 
 	let serialize txout = 
 		let value = Bitstring.string_of_bitstring (BITSTRING { txout.value : 64 : littleendian }) in 
-		let sclen = string_of_bitstring (Parser.bitstring_of_varint (Int64.of_int (String.length txout.script))) in
-		value ^ sclen ^ txout.script
+		let sclen = string_of_bitstring (Parser.bitstring_of_varint (Int64.of_int (Script.length txout.script))) in
+		value ^ sclen ^ Script.serialize (txout.script)
 	;;
 
 	let serialize_all txouts = 
