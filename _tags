@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 1c1f0a9cc002378d56b2348c035f2f0a)
+# DO NOT EDIT (digest: 2b3c180abe39607e39a57957859aa773)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -16,6 +16,8 @@ true: annot, bin_annot
 "_darcs": not_hygienic
 # Library utils
 "src/utils/utils.cmxs": use_utils
+<src/utils/*.ml{,i,y}>: pkg_bitstring
+<src/utils/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/utils/*.ml{,i,y}>: pkg_cryptokit
 <src/utils/*.ml{,i,y}>: pkg_stdint
 <src/utils/*.ml{,i,y}>: pkg_yojson

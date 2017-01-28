@@ -11,8 +11,8 @@ BuildTools:  ocamlbuild
 Library utils
   Path:         src/utils
   BuildTools:   ocamlbuild
-  BuildDepends: cryptokit, stdint, yojson
-  Modules: Log, Crypto, Config, Timediff
+  BuildDepends: cryptokit, stdint, yojson, bitstring, bitstring.syntax
+  Modules: Log, Crypto, Config, Timediff, Parser
 
 Library blockchain
   Path:         src/blockchain

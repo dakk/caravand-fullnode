@@ -1,6 +1,7 @@
 open Stdint;;
 open Bitstring;;
 open Crypto;;
+open Parser;;
 
 module Header = struct
 	type t = {
@@ -98,13 +99,18 @@ let parse data =
 	match h with 
 	| None -> None
 	| Some (header) -> 
-		let bdata = Bytes.sub data 80 ((Bytes.length data) - 80) in
+		let bdata = bitstring_of_string  (Bytes.sub data 80 ((Bytes.length data) - 80)) in
+		let txn, rest' = parse_varint bdata in
 		Some {
 			header= header;
-			txs= [];
+			txs= Tx.parse_all (string_of_bitstring rest') (Uint64.to_int txn);
 		}
 ;;
 
 
 
-let serialize block = "";
+let serialize block = 
+	let d = Header.serialize (block.header) in
+	let d = Bytes.cat d (string_of_bitstring (bitstring_of_varint (Int64.of_int (List.length block.txs)))) in
+	Bytes.cat d (Tx.serialize_all block.txs)	
+;;

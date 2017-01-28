@@ -8,9 +8,10 @@ module In : sig
 		sequence: uint32;	
 	}
 	
-	val parse 		: bytes -> bytes * t option
-	val parse_all	: bytes -> bytes * t list
-	val serialize	: t -> bytes
+	val parse 			: bytes -> bytes * t option
+	val parse_all		: bytes -> bytes * t list
+	val serialize		: t -> bytes
+	val serialize_all	: t list -> bytes
 end
 
 module Out : sig
@@ -19,9 +20,10 @@ module Out : sig
 		script	: Script.t;	
 	}
 	
-	val parse		: bytes -> bytes * t option
-	val parse_all	: bytes -> bytes * t list
-	val serialize	: t -> bytes
+	val parse			: bytes -> bytes * t option
+	val parse_all		: bytes -> bytes * t list
+	val serialize		: t -> bytes
+	val serialize_all	: t list -> bytes
 end
 
 
@@ -33,5 +35,10 @@ type t = {
 	locktime	: uint32;
 }
 
-val parse 		: bytes -> bytes * t option
-val serialize	: t -> bytes
+val parse 			: bytes -> bytes * t option
+val parse_all		: bytes -> int -> t list
+
+val serialize		: t -> bytes
+val serialize_all	: t list -> bytes
+
+val print			: t -> unit
