@@ -93,40 +93,44 @@ let recv peer =
 	let rec recv_chunks bsize acc = 
 		if bsize = Uint32.zero then 
 			let res = Buffer.to_bytes acc in
-			Buffer.clear acc; res
+			Buffer.clear acc; Some (res)
 		else
 			let csize = if bsize >= (Uint32.of_int 0xFFF) then 0xFFF else Uint32.to_int bsize in
 			let rdata = Bytes.create csize in
 			let rl = Unix.read peer.socket rdata 0 csize in
-			if rl >= 1 then (
+			match rl with
+			| rl when rl < 0 -> None
+			| rl when rl = 0 ->	recv_chunks bsize acc
+			| rl when rl > 0 ->
 				Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);
 				recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
-			) else (
-				recv_chunks bsize acc
-			)
 	in
 	(* Read and parse the header*)
 	let data = Bytes.create 24 in
 
 	try (
-		let rl = Unix.recv peer.socket data 0 24 [] in
-		if rl <> 24 then (
-			None
-		) else (
+		match Unix.recv peer.socket data 0 24 [] with
+		| rl when rl < 0 -> peer.status <- DISCONNECTED; None
+		| rl when rl = 0 ->	None
+		| rl when rl > 0 -> (
 			let m = Message.parse_header data in
 						
 			(* Read and parse the message*)
 			peer.received <- peer.received + (Uint32.to_int m.length);
-			let rdata = recv_chunks m.length (Buffer.create 4096) in
-			let m' = Message.parse m rdata in 
+			match recv_chunks m.length (Buffer.create 4096) with
+			| None -> peer.status <- DISCONNECTED; None
+			| Some (rdata) -> (
+				let m' = Message.parse m rdata in 
 
-			Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-				m.command (byten_to_string peer.sent) (byten_to_string peer.received);
-			
-			Some (m')
+				Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+					m.command (byten_to_string peer.sent) (byten_to_string peer.received);
+				
+				Some (m')
+			)
 		)
 	) with 
 	| _ -> 
+		peer.status <- DISCONNECTED; 
 		Log.error "Peer ↚" "Invalid message from %s" (Unix.string_of_inet_addr peer.address);
 		None
 ;;

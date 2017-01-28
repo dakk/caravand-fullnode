@@ -106,6 +106,33 @@ let get_blocki storage height =
 	
 
 
+let insert_txi storage txhash blockhash offset len =
+	let data = Bitstring.string_of_bitstring (BITSTRING {
+		Hash.to_bin blockhash		: 32*8 : string;
+		Int32.of_int offset			: 32 : littleendian;
+		Int32.of_int len			: 32 : littleendian
+	}) in
+	LevelDB.put storage.db ("txi_" ^ txhash) data;
+;;
+
+let get_tx storage txhash =
+	match LevelDB.get storage.db ("txi_" ^ txhash) with
+	| None -> None
+	| Some (data) -> 
+		let bdata = Bitstring.bitstring_of_string data in
+		bitmatch bdata with
+		| { 
+			blockhash	    : 32*8 	: string;
+			offset          : 32 	: littleendian;
+			len 	        : 32 	: littleendian
+		} ->
+		let block = Hash.of_bin blockhash in
+		match get_block storage block with
+		| None -> None
+		| Some (bdata) -> Some (Bytes.sub data (Int32.to_int offset) (Int32.to_int len))
+;;
+
+
 let get_header storage hash = 
 	match LevelDB.get storage.db ("blk_" ^ hash) with
 	| None -> None
@@ -118,5 +145,20 @@ let get_headeri storage height =
 	| None -> None
 ;;
 
-let get_blocks storage hashes = [];;
-let get_headers storage hashes = [];;
+let get_blocks storage hashes = 
+	let rec get_blocks' hs acc = match hashes with
+	| [] -> acc
+	| h::hs' -> match get_block storage h with
+		| None -> get_blocks' hs' acc
+		| Some (h') -> get_blocks' hs' (h'::acc)
+	in get_blocks' hashes []
+;;
+
+let get_headers storage hashes = 
+	let rec get_headers' hs acc = match hashes with
+	| [] -> acc
+	| h::hs' -> match get_header storage h with
+		| None -> get_headers' hs' acc
+		| Some (h') -> get_headers' hs' (h'::acc)
+	in get_headers' hashes []
+;;

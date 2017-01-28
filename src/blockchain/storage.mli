@@ -26,7 +26,9 @@ val sync					:	t -> unit
 
 val insert_header      		:   t -> Int64.t -> Hash.t -> bytes -> unit
 val insert_block            :   t -> Int64.t -> Hash.t -> bytes -> unit
+val insert_txi				:	t -> Hash.t -> Hash.t -> int -> int -> unit
 
+val get_tx					:	t -> Hash.t -> bytes option
 val get_blocki              :   t -> Int64.t -> bytes option
 val get_block               :   t -> Hash.t -> bytes option
 val get_header				:	t -> Hash.t -> bytes option
