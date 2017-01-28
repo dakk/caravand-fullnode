@@ -201,7 +201,7 @@ let loop bc =
 	in 
 	
 	while true do (
-		Unix.sleep 5;
+		Unix.sleep 8;
 		Cqueue.clear bc.requests;
 
 		(* Check sync status *)
@@ -215,6 +215,10 @@ let loop bc =
 			Log.info "Blockchain" "Headers in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
 			bc.sync_headers <- true
 		);
+
+		(* Handle new resources *)
+		consume ();
+		Storage.sync bc.storage;
 
 		(match bc.block_last with
 		| None -> (
@@ -242,7 +246,7 @@ let loop bc =
 						| Some (bh') -> getblockhashes succ (n-1) (bh'.hash::acc)
 						| None -> acc
 				in 
-				let hashes = getblockhashes (bc.block_height) 128 [] 
+				let hashes = getblockhashes (bc.block_height) 256 [] 
 				in Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None));
 			) else (
 				let df = Timediff.diff (Unix.time ()) block.header.time in
@@ -251,9 +255,6 @@ let loop bc =
 			)
 		));
 
-		(* Handle new resources *)
-		consume ();
-		Storage.sync bc.storage;
 
 		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 		(match bc.block_last with 
