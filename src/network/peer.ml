@@ -77,7 +77,8 @@ let connect peer =
 let disconnect peer = 
 	Log.debug "Peer" "Disconnecting peer %s:%d..." (Unix.string_of_inet_addr peer.address) peer.port;
 	peer.status <- DISCONNECTED;
-	Unix.shutdown peer.socket Unix.SHUTDOWN_ALL
+	Unix.shutdown peer.socket Unix.SHUTDOWN_ALL;
+	Thread.exit ()
 ;;
 
 let send peer message = 
@@ -195,15 +196,17 @@ let handle peer bc =
 ;;
 
 let start peer bc = 
-	let read_step = function | (rs,ws,es) -> handle peer bc in	
-	
 	match connect peer with 
 	| DISCONNECTED -> ()
 	| _ -> (
 		handshake peer;
 		
 		while peer.status <> DISCONNECTED do
-			Unix.select [peer.socket] [] [] 5.0 |> read_step; ();
+			Thread.wait_read peer.socket;
+			handle peer bc;
+			Thread.yield
 		done
-	)
+	);
+
+	Thread.exit ()
 ;;
