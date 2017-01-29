@@ -247,7 +247,6 @@ let loop bc =
 						| None -> acc
 				in 
 				let hashes = getblockhashes (bc.block_height) 128 [] in
-				Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None));
 				Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None))
 			) else (
 				let df = Timediff.diff (Unix.time ()) block.header.time in

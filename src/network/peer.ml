@@ -74,6 +74,11 @@ let connect peer =
 ;;
 
 
+let disconnect peer = 
+	Log.debug "Peer" "Disconnecting peer %s:%d..." (Unix.string_of_inet_addr peer.address) peer.port;
+	peer.status <- DISCONNECTED;
+	Unix.shutdown peer.socket Unix.SHUTDOWN_ALL
+;;
 
 let send peer message = 
 	let data = Message.serialize peer.params message in
@@ -109,7 +114,7 @@ let recv peer =
 
 	try (
 		match Unix.recv peer.socket data 0 24 [] with
-		| rl when rl < 0 -> peer.status <- DISCONNECTED; None
+		| rl when rl < 0 -> disconnect peer; None
 		| rl when rl = 0 ->	None
 		| rl when rl > 0 -> (
 			let m = Message.parse_header data in
@@ -117,7 +122,7 @@ let recv peer =
 			(* Read and parse the message*)
 			peer.received <- peer.received + 24;
 			match recv_chunks m.length (Buffer.create 4096) with
-			| None -> peer.status <- DISCONNECTED; None
+			| None -> disconnect peer; None
 			| Some (rdata) -> (
 				peer.received <- peer.received + String.length rdata;
 				let m' = Message.parse m rdata in 
@@ -152,7 +157,6 @@ let handshake peer =
 
 
 
-let disconnect peer = Unix.shutdown peer.socket Unix.SHUTDOWN_ALL;;
 
 let handle peer bc = 
 	let m = recv peer in

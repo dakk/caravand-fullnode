@@ -66,7 +66,7 @@ let loop n bc =
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
 			match peer.last_seen with
-			| x when x < (Unix.time () -. 60. *. 3.) ->
+			| x when x < (Unix.time () -. 60. *. 1.5) ->
 				Peer.disconnect peer;
 				Hashtbl.remove n.peers k;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
@@ -76,6 +76,33 @@ let loop n bc =
 				Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
 			| _ -> () 
 		) n.peers;
+
+		(* Count available peers and reconnect to others *)
+		let connected_peers = 
+			Hashtbl.fold (fun k p c -> (match p.status with | CONNECTED -> c + 1 | _ -> c)) n.peers 0
+		in 
+			Log.info "Network" "Connected peers: %d" connected_peers;
+			match connected_peers with
+			| cp when cp < 8 ->
+				let rec iterate_connect addrs = 
+					let rindex = Random.int (List.length addrs) in
+					let a = List.nth addrs rindex in	
+					try 
+						Hashtbl.find n.peers (Unix.string_of_inet_addr a);
+						iterate_connect addrs
+					with
+					| Not_found ->
+						let peer = Peer.create n.params a n.params.port in
+						Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
+						Thread.create (Peer.start peer) bc;
+						1
+				in
+				Log.error "Network" "Peers below the number of peers";
+				let nc = iterate_connect n.addrs in
+				Log.info "Network" "Connected to %d new peers" nc;
+				()
+			| _ -> ()
+		;
 		
 		(* Check for request *)
 		Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);
