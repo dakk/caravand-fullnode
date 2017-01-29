@@ -7,14 +7,15 @@ open Message;;
 open Blockchain;;
 
 type t = {
-	addrs:  Unix.inet_addr list;
-	peers:	(string, Peer.t) Hashtbl.t;
-	params: Params.t;
+	addrs: 		Unix.inet_addr list;
+	peers:		(string, Peer.t) Hashtbl.t;
+	params: 	Params.t;
+	peers_n:	int;
 };;
 
 
 
-let init p =
+let init p pc =
 	let rec init_peers par pt addrs n =
 		match (n, addrs) with
 		| (0, a::al') -> pt
@@ -32,10 +33,10 @@ let init p =
 	in
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = init_peers p (Hashtbl.create 16) addrs 8 in
+	let peers = init_peers p (Hashtbl.create pc) addrs pc in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
-	{ addrs= addrs; peers= peers; params= p }
+	{ addrs= addrs; peers= peers; params= p; peers_n= pc }
 ;;
 
 let random_peer n =
@@ -83,7 +84,7 @@ let loop n bc =
 		in 
 			Log.info "Network" "Connected peers: %d" connected_peers;
 			match connected_peers with
-			| cp when cp < 8 ->
+			| cp when cp < n.peers_n ->
 				let rec iterate_connect addrs = 
 					let rindex = Random.int (List.length addrs) in
 					let a = List.nth addrs rindex in	

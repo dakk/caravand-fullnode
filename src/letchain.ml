@@ -11,8 +11,8 @@ let main () =
 	let chain_job bc = 
 		Blockchain.loop bc 
 	in
-	let net_job bc = 
-		let n = Network.init bc.params in 
+	let net_job (bc, conf) = 
+		let n = Network.init bc.params conf.peers in 
 		Network.loop n bc
 	in
 	
@@ -31,7 +31,7 @@ let main () =
 		let chain_thread = Thread.create chain_job bc in
 		
 		(* Start network thread *)
-		let net_thread = Thread.create net_job bc in
+		let net_thread = Thread.create net_job (bc, conf) in
 		
 		Log.info "letchain" "Waiting for childs";
 		Thread.join net_thread;
