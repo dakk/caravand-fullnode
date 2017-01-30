@@ -99,12 +99,12 @@ let recv peer =
 		let res = Buffer.to_bytes acc in
 		Buffer.clear acc; Some (res)
 	| bsize ->
-		let csize = if bsize >= (Uint32.of_int 0xFFF) then 0xFFF else Uint32.to_int bsize in
+		let csize = if bsize >= (Uint32.of_int 0xFFFF) then 0xFFFF else Uint32.to_int bsize in
 		let rdata = Bytes.create csize in
 		let rl = Unix.read peer.socket rdata 0 csize in
 		match rl with
-		| rl when rl < 0 -> None
-		| rl when rl = 0 ->	recv_chunks bsize acc
+		| rl when rl < 0 -> disconnect peer; None
+		| rl when rl = 0 -> None
 		| rl when rl > 0 ->
 			Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);
 			recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
@@ -121,21 +121,22 @@ let recv peer =
 						
 			(* Read and parse the message*)
 			peer.received <- peer.received + 24;
-			match recv_chunks m.length (Buffer.create 4096) with
-			| None -> disconnect peer; None
-			| Some (rdata) -> (
-				peer.received <- peer.received + String.length rdata;
-				let m' = Message.parse m rdata in 
 
-				Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-					m.command (byten_to_string peer.sent) (byten_to_string peer.received);
-				
-				Some (m')
-			)
+			match recv_chunks m.length (Buffer.create 4096) with
+				| None -> None
+				| Some (rdata) -> (
+					peer.received <- peer.received + String.length rdata;
+					let m' = Message.parse m rdata in 
+
+					Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+						m.command (byten_to_string peer.sent) (byten_to_string peer.received);
+					
+					Some (m')
+				)
 		)
 	) with 
 	| _ -> 
-		Log.error "Peer ↚" "Invalid message from %s" (Unix.string_of_inet_addr peer.address);
+		(*Log.error "Peer ↚" "Invalid message from %s" (Unix.string_of_inet_addr peer.address);*)
 		None
 ;;
 
@@ -149,7 +150,7 @@ let handshake peer =
 		addr_recv	= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
 		addr_from	= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
 		nonce		= Random.int64 0xFFFFFFFFFFFFFFFL;
-		user_agent	= "/letchain:0.12.1/";
+		user_agent	= "/letchain:0.13.1/";
 		start_height= Int32.of_int 0;
 		relay		= true;
 	} in send peer (Message.VERSION (verm))
@@ -165,6 +166,7 @@ let handle peer bc =
 	| Some (m') -> (
 		peer.last_seen <- Unix.time ();
 		match m' with 
+		| PONG (p) -> peer.status <- CONNECTED;
 		| PING (p) -> send peer (PONG (p));
 		| VERSION (v) ->
 			peer.height <- v.start_height;
@@ -172,6 +174,10 @@ let handle peer bc =
 			send peer VERACK;
 			Log.info "Network" "Peer %s with agent %s starting from height %d" 
 				(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
+		| BLOCK (b) -> 
+			Cqueue.add bc.resources (Blockchain.Resource.RES_BLOCK (b));			
+		| HEADERS (hl) ->
+			Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
 		| INV (i) ->
 			let rec vis h = match h with
 			| x::xl ->
@@ -186,10 +192,6 @@ let handle peer bc =
 				) in vis xl  
 			| [] -> ()
 			in vis i;
-		| BLOCK (b) -> 
-			Cqueue.add bc.resources (Blockchain.Resource.RES_BLOCK (b));			
-		| HEADERS (hl) ->
-			Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
 		| _ -> ()
 	)
 ;;

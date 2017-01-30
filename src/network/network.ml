@@ -56,10 +56,10 @@ let random_peer n =
 let socket_list n =
 	Hashtbl.fold (fun k p c -> (
 		match p.status with 
-		| CONNECTED -> 
+		| DISCONNECTED -> c
+		| _ -> 
 			Hashtbl.add (snd c) p.socket k;
 			(p.socket :: fst (c), snd c)
-		| _ -> c
 	)) n.peers ([], Hashtbl.create 8)
 ;;
 
@@ -69,19 +69,19 @@ let loop n bc =
 	
 	Hashtbl.iter (fun k peer -> 
 		match Peer.connect peer with
-		| CONNECTED ->
-			Peer.handshake peer
+		| CONNECTED -> Peer.handshake peer
+		| _ -> ()
 	) n.peers;
 					
 	while true do
+		(* Wait for socket read *)
 		let sl = socket_list n in
-		let rs, ws, ls = Unix.select (fst sl) [] [] 2.0 in
+		let rs, ws, ls = Unix.select (fst sl) [] [] 1.0 in
 		let rec consume_recv rs = match rs with 
 		| [] -> ()
 		| s::rs' -> 
 			let pk = Hashtbl.find (snd sl) s in
 			let peer = Hashtbl.find n.peers pk in
-			(*TODO use LWT *)
 			Peer.handle peer bc; 
 			consume_recv rs'
 		in consume_recv rs;
@@ -89,13 +89,15 @@ let loop n bc =
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
 			match (peer.status, peer.last_seen) with
-			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 0.3) ->
+			| (WAITPING (rnd), x) when x < (Unix.time () -. 60. *. 1.0) ->
 				Peer.disconnect peer;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
 				if Hashtbl.length n.peers < 4 then ()
 				else ()
-			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 0.2) ->
-				Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
+			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 0.5) ->
+				let rnd = Random.int64 0xFFFFFFFFFFFFFFFL in
+				peer.status <- WAITPING (rnd);
+				Peer.send peer (PING (rnd))
 			| (DISCONNECTED, x) ->
 				Hashtbl.remove n.peers k
 			| _ -> () 
@@ -103,9 +105,9 @@ let loop n bc =
 
 		(* Count available peers and reconnect to others *)		
 		let connected_peers = 
-			Hashtbl.fold (fun k p c -> (match p.status with | CONNECTED -> c + 1 | _ -> c)) n.peers 0
+			Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0
 		in 
-			Log.info "Network" "Connected peers: %d" connected_peers;
+			(*Log.info "Network" "Connected peers: %d" connected_peers;*)
 			match connected_peers with
 			| cp when cp < n.peers_n ->
 				let rec iterate_connect addrs = 
@@ -130,7 +132,7 @@ let loop n bc =
 		;
 		
 		(* Check for request *)
-		Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);
+		(*Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);*)
 		let rec consume_requests () =
 			let reqo = Cqueue.get bc.requests in	
 			match reqo with
@@ -145,7 +147,6 @@ let loop n bc =
 						stop= Hash.zero ();
 					} in Peer.send peer (Message.GETHEADERS msg)
 				| Blockchain.Request.REQ_BLOCKS (hs, addr)	->
-					(* Qua andra' un GETDATA *)
 					let peer = random_peer n in
 					let rec create_invs hs acc = match hs with
 					| [] -> acc

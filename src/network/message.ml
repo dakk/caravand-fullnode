@@ -255,13 +255,13 @@ let parse_header data =
 	| { 
 		magic 		: 4*8 	: littleendian;
 		command 	: 12*8 	: string;
-		length 		: 4*8 	: string;
+		length 		: 4*8 	: littleendian;
 		checksum	: 4*8 	: string
 	} ->
 	{
 		magic 		= magic;
 		command 	= string_from_zeroterminated_string command;
-		length 		= Uint32.of_bytes_little_endian length 0;
+		length 		= Uint32.of_int32 length;
 		checksum	= checksum;
 	}
 	| { _ } -> raise (Invalid_argument "Invalid protocol header")

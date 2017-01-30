@@ -31,10 +31,11 @@ let main () =
 		let chain_thread = Thread.create chain_job bc in
 		
 		(* Start network thread *)
-		let net_thread = Thread.create net_job (bc, conf) in
+		(*let net_thread = Thread.create net_job (bc, conf) in*)
 		
+		net_job (bc, conf);
 		Log.info "letchain" "Waiting for childs";
-		Thread.join net_thread;
+		(*Thread.join net_thread;*)
 		Thread.join chain_thread;
 		Log.info "letchain" "Exit.";
 ;;
