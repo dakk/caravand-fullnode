@@ -37,5 +37,6 @@ Document letchain
 Executable letchain
   Path:         src/
   MainIs:       letchain.ml
+  CompiledObject: native
   BuildTools:   ocamlbuild
   BuildDepends: network, blockchain
