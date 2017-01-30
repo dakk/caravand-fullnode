@@ -250,7 +250,7 @@ let loop bc =
 						| Some (bh') -> getblockhashes succ (n-1) (bh'.hash::acc)
 						| None -> acc
 				in 
-				if bc.block_last_received < (Unix.time () -. 8.) then (
+				if bc.block_last_received < (Unix.time () -. 3.) then (
 					let hashes = getblockhashes (bc.block_height) 512 [] in
 					Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None))
 				) else ()

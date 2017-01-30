@@ -53,38 +53,16 @@ let random_peer n =
 	in rp n.addrs
 ;;
 
-let socket_list n =
-	Hashtbl.fold (fun k p c -> (
-		match p.status with 
-		| DISCONNECTED -> c
-		| _ -> 
-			Hashtbl.add (snd c) p.socket k;
-			(p.socket :: fst (c), snd c)
-	)) n.peers ([], Hashtbl.create 8)
-;;
-
 
 let loop n bc = 
 	Log.info "Network" "Starting mainloop.";
 	
 	Hashtbl.iter (fun k peer -> 
-		match Peer.connect peer with
-		| CONNECTED -> Peer.handshake peer
-		| _ -> ()
+		Thread.create (Peer.start peer) bc; ()
 	) n.peers;
 					
 	while true do
-		(* Wait for socket read *)
-		let sl = socket_list n in
-		let rs, ws, ls = Unix.select (fst sl) [] [] 1.0 in
-		let rec consume_recv rs = match rs with 
-		| [] -> ()
-		| s::rs' -> 
-			let pk = Hashtbl.find (snd sl) s in
-			let peer = Hashtbl.find n.peers pk in
-			Peer.handle peer bc; 
-			consume_recv rs'
-		in consume_recv rs;
+		Unix.sleep 5;
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
@@ -120,9 +98,8 @@ let loop n bc =
 					| Not_found ->
 						let peer = Peer.create n.params a n.params.port in
 						Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
-						match Peer.connect peer with
-						| CONNECTED -> Peer.handshake peer; 1
-						| _ -> 0
+						Thread.create (Peer.start peer) bc; 1
+					| _ -> 0
 				in
 				Log.error "Network" "Peers below the number of peers";
 				let nc = iterate_connect n.addrs in
