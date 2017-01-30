@@ -36,6 +36,7 @@ type t = {
 	(* Last block status *)
 	mutable block_height 	:	int64;
 	mutable block_last 		:	Block.t option;
+	mutable block_last_received : float;
 	
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
 	

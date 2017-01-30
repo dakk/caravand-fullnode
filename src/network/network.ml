@@ -53,27 +53,48 @@ let random_peer n =
 	in rp n.addrs
 ;;
 
+let socket_list n =
+	Hashtbl.fold (fun k p c -> (
+		match p.status with 
+		| CONNECTED -> 
+			Hashtbl.add (snd c) p.socket k;
+			(p.socket :: fst (c), snd c)
+		| _ -> c
+	)) n.peers ([], Hashtbl.create 8)
+;;
+
 
 let loop n bc = 
 	Log.info "Network" "Starting mainloop.";
 	
 	Hashtbl.iter (fun k peer -> 
-		let t = Thread.create (Peer.start peer) bc in
-		()
+		match Peer.connect peer with
+		| CONNECTED ->
+			Peer.handshake peer
 	) n.peers;
 					
 	while true do
-		Unix.sleep 5;
+		let sl = socket_list n in
+		let rs, ws, ls = Unix.select (fst sl) [] [] 2.0 in
+		let rec consume_recv rs = match rs with 
+		| [] -> ()
+		| s::rs' -> 
+			let pk = Hashtbl.find (snd sl) s in
+			let peer = Hashtbl.find n.peers pk in
+			(*TODO use LWT *)
+			Peer.handle peer bc; 
+			consume_recv rs'
+		in consume_recv rs;
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
 			match (peer.status, peer.last_seen) with
-			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 0.8) ->
+			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 0.3) ->
 				Peer.disconnect peer;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
 				if Hashtbl.length n.peers < 4 then ()
 				else ()
-			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 0.4) ->
+			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 0.2) ->
 				Peer.send peer (PING (Random.int64 0xFFFFFFFFFFFFFFFL))
 			| (DISCONNECTED, x) ->
 				Hashtbl.remove n.peers k
@@ -97,8 +118,9 @@ let loop n bc =
 					| Not_found ->
 						let peer = Peer.create n.params a n.params.port in
 						Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
-						let t = Thread.create (Peer.start peer) bc in
-						1
+						match Peer.connect peer with
+						| CONNECTED -> Peer.handshake peer; 1
+						| _ -> 0
 				in
 				Log.error "Network" "Peers below the number of peers";
 				let nc = iterate_connect n.addrs in

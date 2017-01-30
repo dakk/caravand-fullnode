@@ -47,6 +47,7 @@ type t = {
 	(* Last block status *)
 	mutable block_height 	:	int64;
 	mutable block_last 		:	Block.t option;
+	mutable block_last_received : float;
 	
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
 	
@@ -80,6 +81,7 @@ let genesis path p =
 
 		block_height 	= 0L;
 		block_last 		= None;
+		block_last_received = Unix.time ();
 		
 		mempool			= Hashtbl.create 4096;
 		
@@ -150,6 +152,7 @@ let loop bc =
 					bc.block_height <- Int64.succ bc.block_height;
 					bc.block_last <- Some (b);
 					Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
+					bc.block_last_received <- Unix.time ();
 					consume ()
 				) else
 					consume ()
@@ -199,6 +202,7 @@ let loop bc =
 			| None -> 
 				consume ()
 	in 
+
 	
 	while true do (
 		Unix.sleep 4;
@@ -246,8 +250,10 @@ let loop bc =
 						| Some (bh') -> getblockhashes succ (n-1) (bh'.hash::acc)
 						| None -> acc
 				in 
-				let hashes = getblockhashes (bc.block_height) 128 [] in
-				Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None))
+				if bc.block_last_received < (Unix.time () -. 3.) then (
+					let hashes = getblockhashes (bc.block_height) 512 [] in
+					Cqueue.add bc.requests (Request.REQ_BLOCKS (hashes, None))
+				) else ()
 			) else (
 				let df = Timediff.diff (Unix.time ()) block.header.time in
 				Log.info "Blockchain" "Blocks in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;

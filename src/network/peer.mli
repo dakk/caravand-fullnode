@@ -29,3 +29,4 @@ val recv		: t -> Message.t option
 val handshake	: t -> unit
 val disconnect	: t -> unit
 val start		: t -> Blockchain.t -> unit
+val handle		: t -> Blockchain.t -> unit
