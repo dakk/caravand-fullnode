@@ -201,7 +201,7 @@ let loop bc =
 	in 
 	
 	while true do (
-		Unix.sleep 8;
+		Unix.sleep 4;
 		Cqueue.clear bc.requests;
 
 		(* Check sync status *)
