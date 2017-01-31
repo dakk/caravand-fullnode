@@ -1,6 +1,7 @@
-open Blockchain;;
-open Params;;
-open Stdint;;
+open Blockchain
+open Params
+open Stdint
+open Stdint
 
 
 
@@ -18,9 +19,9 @@ type invvect =
 	| INV_FILTERED_BLOCK of Hash.t
 
 type addr = {
-	services	: int64;
+	services	: uint64;
 	address		: string;
-	port		: int;
+	port		: uint16;
 }
 
 type inv = invvect list

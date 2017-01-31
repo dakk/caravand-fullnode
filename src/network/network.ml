@@ -58,11 +58,12 @@ let loop n bc =
 	Log.info "Network" "Starting mainloop.";
 	
 	Hashtbl.iter (fun k peer -> 
-		Thread.create (Peer.start peer) bc; ()
+		Thread.create (Peer.start peer) bc |> ignore; 
+		()
 	) n.peers;
 					
 	while true do
-		Unix.sleep 5;
+		Unix.sleep 2;
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
@@ -92,13 +93,14 @@ let loop n bc =
 					let rindex = Random.int (List.length addrs) in
 					let a = List.nth addrs rindex in	
 					try 
-						Hashtbl.find n.peers (Unix.string_of_inet_addr a);
+						Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
 						iterate_connect addrs
 					with
 					| Not_found ->
 						let peer = Peer.create n.params a n.params.port in
 						Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
-						Thread.create (Peer.start peer) bc; 1
+						Thread.create (Peer.start peer) bc |> ignore; 
+						1
 					| _ -> 0
 				in
 				Log.error "Network" "Peers below the number of peers";

@@ -22,9 +22,9 @@ type invvect =
 	| INV_FILTERED_BLOCK of Hash.t
 
 type addr = {
-	services	: int64;
+	services	: uint64;
 	address		: string;
-	port		: int
+	port		: uint16;
 };;
 
 
@@ -185,6 +185,22 @@ let parse_inv data =
 let parse_notfound data = parse_inv data;;
 let parse_getdata data = parse_inv data;;
 
+let parse_netaddr data =
+	let bdata = bitstring_of_string data in
+	bitmatch bdata with
+	| {
+		time		: 4*8 : string;
+		services	: 8*8 : littleendian;
+		address		: 16*8 : string;
+		port		: 16 : littleendian
+	} -> 
+		{ 
+			address="0000000000000000" ; 
+			services= Uint64.of_int64 services; 
+			port= Uint16.of_int port 
+		}
+;;
+
 let parse_version data =
 	let bdata = bitstring_of_string data in
 	bitmatch bdata with 
@@ -192,8 +208,8 @@ let parse_version data =
 		version 			: 4*8 : littleendian;
 		services 			: 8*8 : littleendian;
 		time 				: 8*8 : littleendian;
-		addr_recv			: 26*8 : bitstring;
-		addr_from	 		: 26*8 : bitstring;
+		addr_recv			: 26*8 : string;
+		addr_from	 		: 26*8 : string;
 		nonce				: 8*8 : littleendian;
 		rest				: -1 : bitstring
 	} -> 
@@ -204,8 +220,8 @@ let parse_version data =
 				start_height		: 4*8 : littleendian;
 				relay				: 1*8 : littleendian						
 			} -> {
-				addr_recv= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
-				addr_from= { address="0000000000000000" ; services=(Int64.of_int 1) ; port= 8333 };
+				addr_recv= parse_netaddr addr_recv;
+				addr_from= parse_netaddr addr_from;
 				version= version;
 				services= services;
 				time= Int64.to_float (time);
@@ -308,9 +324,9 @@ let parse header payload =
 (******************************************************************)
 let bitstring_of_addr (addr: addr) : Bitstring.t =
   BITSTRING {
-    addr.services	: 8*8 	: littleendian;
+    Uint64.to_int64 addr.services	: 8*8 	: littleendian;
     addr.address	: 16*8 	: string;
-    addr.port		: 2*8 	: bigendian
+    Uint16.to_int addr.port		: 2*8 	: littleendian
   }
 ;;
 

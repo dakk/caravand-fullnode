@@ -6,7 +6,7 @@ Letchain will be usable as a standalone bitcoin node or through a library that e
 
 ## Planned features
 
-- zlib compression for data storage (or flac) and exchange between nodes
+- zlib compression for data storage (or flac) 
 - utxo double index (autxo, utxo of address for instant wallet import)
 - full compatibility with bitcoin core nodes
 - low memory and disk footprint

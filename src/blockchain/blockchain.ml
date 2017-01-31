@@ -153,6 +153,10 @@ let loop bc =
 					bc.block_last <- Some (b);
 					Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
 					bc.block_last_received <- Unix.time ();
+
+					let df = Timediff.diff (Unix.time ()) block.header.time in
+					Log.debug "Blockchain ←" "Block %s, height: %d, time: %d y, %d m, %d d, %d h and %d m ago" block.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
+
 					consume ()
 				) else
 					consume ()
@@ -190,13 +194,13 @@ let loop bc =
 				| RES_INV_HBLOCKS (hbs, addr) -> consume ()
 				| RES_INV_TXS (txs, addr) -> consume ()
 				| RES_BLOCK (bs) -> 
-					let df = Timediff.diff (Unix.time ()) bs.header.time in
-					Log.debug "Blockchain" "Got new block %s : %d y, %d m, %d d, %d h and %d m ago" bs.header.hash df.years df.months df.days df.hours df.minutes;
+					(*let df = Timediff.diff (Unix.time ()) bs.header.time in
+					Log.debug "Blockchain" "Got new block %s : %d y, %d m, %d d, %d h and %d m ago" bs.header.hash df.years df.months df.days df.hours df.minutes;*)
 					consume_block (bs)
 				| RES_TXS (txs) -> consume ()
 				| RES_HBLOCKS (hbs) -> 
 					if List.length hbs > 0 then
-						Log.debug "Blockchain" "Got new %d headers" (List.length hbs);
+						Log.debug "Blockchain ←" "Headers %d" (List.length hbs);
 						consume_headers (List.rev hbs)
 			)
 			| None -> 
@@ -222,7 +226,7 @@ let loop bc =
 
 		(* Handle new resources *)
 		consume ();
-		Storage.sync bc.storage;
+		(*Storage.sync bc.storage;*)
 
 		(match bc.block_last with
 		| None -> (
