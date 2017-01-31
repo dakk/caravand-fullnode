@@ -81,14 +81,14 @@ let disconnect peer =
 ;;
 
 let send peer message = 
-	let data = Message.serialize peer.params message in
 	try (
-		let wl = Unix.single_write peer.socket data 0 (Bytes.length data) in
+		let data = Message.serialize peer.params message in
+		let wl = Unix.send peer.socket data 0 (Bytes.length data) [] in
 		Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
 				(string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 		peer.sent <- peer.sent + wl;
 	) with
-	| _ -> ()
+	| _ -> disconnect peer; Log.error "Peer →" "Broken pipe"; ()
 ;;
 
 
@@ -200,14 +200,16 @@ let handle peer bc =
 ;;
 
 let start peer bc = 
+	Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
+
 	match connect peer with 
 	| DISCONNECTED -> Thread.exit ()
 	| _ -> (
 		handshake peer;
 		
 		let rec loop () = (match peer.status with
-		| CONNECTED ->
-			let toread = Thread.wait_timed_read peer.socket 5.0 in
+		| CONNECTED ->		
+			let toread = Thread.wait_timed_read peer.socket 2.0 in
 			(if toread then handle peer bc);
 			loop ()
 		| _ -> Thread.exit ())

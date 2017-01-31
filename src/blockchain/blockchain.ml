@@ -138,28 +138,36 @@ let load path p =
 let loop bc = 
 	let rec consume () =
 		let consume_block b = 
-			match bc.block_last with
-			| None -> 
-				if b.header.hash = bc.params.genesis.hash then (
-					bc.block_height <- Int64.zero;
-					bc.block_last <- Some (b);
-					Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
-					consume ()
-				) else
-					consume ()
-			| Some (block) ->
-				if b.header.prev_block = block.header.hash then (
-					bc.block_height <- Int64.succ bc.block_height;
-					bc.block_last <- Some (b);
-					Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
-					bc.block_last_received <- Unix.time ();
+			match (b, bc.block_last, bc.header_last) with
+			(* Genesis block *)
+			| (b, None, hl) when b.header.prev_block = bc.params.genesis.hash ->
+				bc.block_height <- Int64.zero;
+				bc.block_last <- Some (b);
+				Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
+				consume ()
+				
+			(* Next block *)
+			| (b, Some (block), hl) when b.header.prev_block = block.header.hash ->
+				bc.block_height <- Int64.succ bc.block_height;
+				bc.block_last <- Some (b);
+				Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
+				bc.block_last_received <- Unix.time ();
 
-					let df = Timediff.diff (Unix.time ()) block.header.time in
-					Log.debug "Blockchain ←" "Block %s, height: %d, time: %d y, %d m, %d d, %d h and %d m ago" block.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
+				let df = Timediff.diff (Unix.time ()) block.header.time in
+				Log.debug "Blockchain ←" "Block %s, height: %d, time: %d y, %d m, %d d, %d h and %d m ago" block.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
+				consume ()
 
-					consume ()
-				) else
-					consume ()
+			(* New block *)
+			| (b, Some (block), hl) when b.header.prev_block = hl.hash ->
+				bc.header_last <- b.header;
+				bc.header_height <- Int64.succ bc.header_height;
+				Storage.insert_header bc.storage bc.header_height bc.header_last.hash (Block.Header.serialize bc.header_last);
+
+				let df = Timediff.diff (Unix.time ()) block.header.time in
+				Log.debug "Blockchain ←" "Block header %s, height: %d, time: %d y, %d m, %d d, %d h and %d m ago" b.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
+				consume ()
+			| _ ->
+				consume ()
 		in
 		let rec consume_headers hl =
 			match hl with
@@ -212,6 +220,9 @@ let loop bc =
 		Unix.sleep 4;
 		Cqueue.clear bc.requests;
 
+		(* Handle new resources *)
+		consume ();
+
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
@@ -223,10 +234,6 @@ let loop bc =
 			Log.info "Blockchain" "Headers in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
 			bc.sync_headers <- true
 		);
-
-		(* Handle new resources *)
-		consume ();
-		(*Storage.sync bc.storage;*)
 
 		(match bc.block_last with
 		| None -> (
