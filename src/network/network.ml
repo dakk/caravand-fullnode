@@ -133,7 +133,12 @@ let loop n bc =
 					in Peer.send peer (Message.GETDATA (create_invs hs []));
 				| _ -> ());
 				consume_requests ()
-		in consume_requests ();
+		in 
+		let available_peers = 
+			Hashtbl.fold (fun k p c -> (match p.status with | CONNECTED -> c + 1 | _ -> c)) n.peers 0
+		in match available_peers with 
+		| 0 -> ()
+		| n -> consume_requests ();
 	done;
 	()
 ;;
