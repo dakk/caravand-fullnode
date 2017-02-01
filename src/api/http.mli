@@ -1,4 +1,7 @@
 (* REST api interface *)
+open Blockchain
+
+val loop : Blockchain.t -> unit
 
 (*
     /transaction/:id

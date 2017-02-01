@@ -162,42 +162,39 @@ let handshake peer =
 
 
 
-let handle peer bc = 
-	let m = recv peer in
-	match m with
-	| None -> ()
-	| Some (m') -> (
-		peer.last_seen <- Unix.time ();
-		match m' with 
-		| PONG (p) -> peer.status <- CONNECTED;
-		| PING (p) -> send peer (PONG (p));
-		| VERSION (v) ->
-			peer.height <- v.start_height;
-			peer.user_agent <- v.user_agent;
-			send peer VERACK;
-			Log.info "Network" "Peer %s with agent %s starting from height %d" 
-				(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
-		| BLOCK (b) -> 
-			Cqueue.add bc.resources (Blockchain.Resource.RES_BLOCK (b));			
-		| HEADERS (hl) ->
-			Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
-		| INV (i) ->
-			let rec vis h = match h with
-			| x::xl ->
-				let _ = (match x with
-					| INV_TX (txid) -> 
-						(*Log.info "Network" "Got inv tx %s" txid;*)
-						Cqueue.add bc.resources (Blockchain.Resource.RES_INV_TXS ([txid], peer.address));
-					| INV_BLOCK (bhash) -> 
-						(*Log.info "Network" "Got inv block %s" bhash;*)
-						Cqueue.add bc.resources (Blockchain.Resource.RES_INV_BLOCKS ([bhash], peer.address));
-					| _ -> ()
-				) in vis xl  
-			| [] -> ()
-			in vis i;
-		| _ -> ()
-	)
-;;
+let handle peer bc = match recv peer with
+| None -> ()
+| Some (m') -> (
+	peer.last_seen <- Unix.time ();
+	match m' with 
+	| PONG (p) -> peer.status <- CONNECTED;
+	| PING (p) -> send peer (PONG (p));
+	| VERSION (v) ->
+		peer.height <- v.start_height;
+		peer.user_agent <- v.user_agent;
+		send peer VERACK;
+		Log.info "Network" "Peer %s with agent %s starting from height %d" 
+			(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
+	| BLOCK (b) -> 
+		Cqueue.add bc.resources (Blockchain.Resource.RES_BLOCK (b));			
+	| HEADERS (hl) ->
+		Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
+	| INV (i) ->
+		let rec vis h = match h with
+		| x::xl ->
+			let _ = (match x with
+				| INV_TX (txid) -> 
+					(*Log.info "Network" "Got inv tx %s" txid;*)
+					Cqueue.add bc.resources (Blockchain.Resource.RES_INV_TXS ([txid], peer.address));
+				| INV_BLOCK (bhash) -> 
+					(*Log.info "Network" "Got inv block %s" bhash;*)
+					Cqueue.add bc.resources (Blockchain.Resource.RES_INV_BLOCKS ([bhash], peer.address));
+				| _ -> ()
+			) in vis xl  
+		| [] -> ()
+		in vis i;
+	| _ -> ()
+);;
 
 let start peer bc = 
 	Sys.set_signal Sys.sigpipe Sys.Signal_ignore;

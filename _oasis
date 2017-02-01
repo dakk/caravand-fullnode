@@ -8,6 +8,8 @@ Plugins:     META (0.4), DevFiles (0.4)
 AlphaFeatures: ocamlbuild_more_args
 BuildTools:  ocamlbuild
 
+
+
 Library utils
   Path:         src/utils
   BuildTools:   ocamlbuild
@@ -26,6 +28,12 @@ Library network
   BuildDepends: ctypes, threads, utils, bitstring, bitstring.syntax, cryptokit, blockchain, stdint
   Modules:      Dns, Network, Message, Peer  
 
+Library api 
+  Path:         src/api
+  BuildTools:   ocamlbuild
+  BuildDepends: cohttp, async, threads, cohttp.async, blockchain
+  Modules: Http
+
 Document letchain
   Title:                API reference for simplelib
   Type:                 ocamlbuild (0.1.0)
@@ -39,4 +47,4 @@ Executable letchain
   MainIs:       letchain.ml
   CompiledObject: native
   BuildTools:   ocamlbuild
-  BuildDepends: network, blockchain
+  BuildDepends: network, blockchain, api

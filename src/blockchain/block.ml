@@ -101,10 +101,8 @@ let parse data =
 	| Some (header) -> 
 		let bdata = bitstring_of_string  (Bytes.sub data 80 ((Bytes.length data) - 80)) in
 		let txn, rest' = parse_varint bdata in
-		Some {
-			header= header;
-			txs= Tx.parse_all (string_of_bitstring rest') (Uint64.to_int txn);
-		}
+		let txs = Tx.parse_all (string_of_bitstring rest') (Uint64.to_int txn) in
+		Some { header= header; txs= txs; }
 ;;
 
 

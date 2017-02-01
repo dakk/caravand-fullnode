@@ -29,8 +29,7 @@ module In = struct
 		len ^ (serialize_all' txins) 
 	;;
 
-	let parse data = 
-		let bdata = bitstring_of_string data in
+	let parse bdata = 
 		bitmatch bdata with 
 		| {
 			out_hash	: 32*8: string; 
@@ -43,7 +42,7 @@ module In = struct
 				script 		: Uint64.to_int (sclen) * 8 : string;
 				sequence	: 32 : littleendian;
 				rest'		: -1 : bitstring
-			} -> (string_of_bitstring rest', Some {
+			} -> (rest', Some {
 				out_hash= Hash.of_bin out_hash;
 				out_n= Uint32.of_int32 out_n;
 				script= script;
@@ -52,7 +51,7 @@ module In = struct
 	;;
 
 	let parse_all data = 
-		let inlen, rest' = parse_varint (bitstring_of_string data) in
+		let inlen, rest' = parse_varint data in
 		let rec parse_all' n d acc = match n with
 		| 0 -> (d, acc)
 		| n -> 
@@ -60,7 +59,7 @@ module In = struct
 			match txin with
 			| None -> parse_all' (n-1) rest acc
 			| Some (txi) -> parse_all' (n-1) rest (txi::acc)
-		in parse_all' (Uint64.to_int inlen) (string_of_bitstring rest') []
+		in parse_all' (Uint64.to_int inlen) rest' []
 	;;
 end
 
@@ -85,8 +84,7 @@ module Out = struct
 		len ^ (serialize_all' txouts) 
 	;;
 	
-	let parse data =
-		let bdata = bitstring_of_string data in
+	let parse bdata =
 		bitmatch bdata with 
 		| {
 			value		: 64 : littleendian;
@@ -97,12 +95,12 @@ module Out = struct
 			| {
 				script 		: Uint64.to_int (sclen) * 8 : string;
 				rest''		: -1 : bitstring
-			} -> (string_of_bitstring rest'', Some { value= value; script= script; })
+			} -> (rest'', Some { value= value; script= script; })
 	;;
 
 
 	let parse_all data = 
-		let outlen, rest' = parse_varint (bitstring_of_string data) in
+		let outlen, rest' = parse_varint data in
 		let rec parse_all' n d acc = match n with
 		| 0 -> (d, acc)
 		| n -> 
@@ -110,7 +108,7 @@ module Out = struct
 			match txout with
 			| None -> parse_all' (n-1) rest acc
 			| Some (txo) -> parse_all' (n-1) rest (txo::acc)
-		in parse_all' (Uint64.to_int outlen) (string_of_bitstring rest') []
+		in parse_all' (Uint64.to_int outlen) rest' []
 	;;
 end
 
@@ -131,9 +129,9 @@ let parse data =
 		version		: 32 : littleendian;
 		rest		: -1 : bitstring
 	} -> 
-		let rest', txin = In.parse_all (string_of_bitstring rest) in
-		let rest'', txout = Out.parse_all (rest') in
-		let bdata = bitstring_of_string rest'' in
+		let rest', txin = In.parse_all rest in
+		let rest'', txout = Out.parse_all rest' in
+		let bdata = rest'' in
 		bitmatch bdata with 
 		| {
 			locktime	: 32 : littleendian;
