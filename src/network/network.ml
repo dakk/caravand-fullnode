@@ -39,29 +39,29 @@ let init p pc =
 	{ addrs= addrs; peers= peers; params= p; peers_n= pc }
 ;;
 
-let random_peer n =
-	let rec rp addrs = 
-		match List.length addrs with
-		| 0 -> None
-		| _ ->
-			let rindex = Random.int (List.length addrs) in
-			let x = List.nth addrs rindex in
-			try
-				let p = Hashtbl.find n.peers (Unix.string_of_inet_addr x) in
-				match p.status with
-				| CONNECTED -> Some (p)
-				| _ -> rp addrs
-			with Not_found ->
-				rp addrs
-	in rp n.addrs
-;;
-
-let random_send n m =
-	let peer = random_peer n in
+let send n m =
+	let rec best_peers addrs bests = match addrs with
+	| [] -> bests
+	| a::addrs' ->
+		match Hashtbl.mem n.peers (Unix.string_of_inet_addr a) with
+		| false -> best_peers addrs' bests
+		| true ->
+			let p = Hashtbl.find n.peers (Unix.string_of_inet_addr a) in
+			match p.status, p.last_seen with
+			| CONNECTED, ls when (Unix.time () -. 30.) < ls -> best_peers addrs' (p::bests)
+			| _, _ -> best_peers addrs' bests
+	in
+	let bests = best_peers n.addrs [] in
+	let peer = match List.length bests with
+	| 0 -> None
+	| _ -> Some (List.nth bests (Random.int (List.length bests)))
+	in 
 	match peer with 
 	| Some (peer) -> Peer.send peer m; ()
 	| None -> ()
 ;;
+
+
 
 
 let loop n bc = 
@@ -136,12 +136,12 @@ let loop n bc =
 						version= Int32.of_int 1;
 						hashes= h;
 						stop= Hash.zero ();
-					} in random_send n (Message.GETHEADERS msg)
+					} in send n (Message.GETHEADERS msg)
 				| Blockchain.Request.REQ_BLOCKS (hs, addr)	->
 					let rec create_invs hs acc = match hs with
 					| [] -> acc
 					| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)
-					in random_send n (Message.GETDATA (create_invs hs []));
+					in send n (Message.GETDATA (create_invs hs []));
 				| _ -> ());
 				consume_requests ()
 		in 

@@ -51,9 +51,6 @@ type t = {
 (* Load blockchain state *)
 val load			: string -> Params.t -> t
 
-(* Create the genesis blockchain state *)
-val genesis 		: string -> Params.t -> t
-
 (* Start the event loop for blockchain *)
 val loop			: t -> unit
 

@@ -154,7 +154,7 @@ let loop bc =
 				bc.block_last_received <- Unix.time ();
 
 				let df = Timediff.diff (Unix.time ()) block.header.time in
-				Log.debug "Blockchain ←" "Block %s, height: %d, time: %d y, %d m, %d d, %d h and %d m ago" block.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
+				Log.debug "Blockchain ←" "Block %s - %d, time: %d y, %d m, %d d, %d h and %d m ago" block.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
 				consume ()
 
 			(* New block *)
@@ -164,7 +164,7 @@ let loop bc =
 				Storage.insert_header bc.storage bc.header_height bc.header_last.hash (Block.Header.serialize bc.header_last);
 
 				let df = Timediff.diff (Unix.time ()) block.header.time in
-				Log.debug "Blockchain ←" "Block header %s, height: %d, time: %d y, %d m, %d d, %d h and %d m ago" b.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
+				Log.debug "Blockchain ←" "Block header %s - %d, time: %d y, %d m, %d d, %d h and %d m ago" b.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
 				consume ()
 			| _ ->
 				consume ()
