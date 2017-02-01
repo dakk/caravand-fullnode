@@ -41,16 +41,26 @@ let init p pc =
 
 let random_peer n =
 	let rec rp addrs = 
-		let rindex = Random.int (List.length addrs) in
-		let x = List.nth addrs rindex in
-		try
-			let p = Hashtbl.find n.peers (Unix.string_of_inet_addr x) in
-			match p.status with
-			| CONNECTED -> p
-			| _ -> rp addrs
-		with Not_found ->
-			rp addrs
+		match List.length addrs with
+		| 0 -> None
+		| _ ->
+			let rindex = Random.int (List.length addrs) in
+			let x = List.nth addrs rindex in
+			try
+				let p = Hashtbl.find n.peers (Unix.string_of_inet_addr x) in
+				match p.status with
+				| CONNECTED -> Some (p)
+				| _ -> rp addrs
+			with Not_found ->
+				rp addrs
 	in rp n.addrs
+;;
+
+let random_send n m =
+	let peer = random_peer n in
+	match peer with 
+	| Some (peer) -> Peer.send peer m; ()
+	| None -> ()
 ;;
 
 
@@ -68,12 +78,12 @@ let loop n bc =
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
 			match (peer.status, peer.last_seen) with
-			| (WAITPING (rnd), x) when x < (Unix.time () -. 60. *. 1.0) ->
+			| (WAITPING (rnd), x) when x < (Unix.time () -. 60. *. 2.0) ->
 				Peer.disconnect peer;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
 				if Hashtbl.length n.peers < 4 then ()
 				else ()
-			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 0.5) ->
+			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 1.0) ->
 				let rnd = Random.int64 0xFFFFFFFFFFFFFFFL in
 				peer.status <- WAITPING (rnd);
 				Peer.send peer (PING (rnd))
@@ -90,18 +100,21 @@ let loop n bc =
 			match connected_peers with
 			| cp when cp < n.peers_n ->
 				let rec iterate_connect addrs = 
-					let rindex = Random.int (List.length addrs) in
-					let a = List.nth addrs rindex in	
-					try 
-						Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
-						iterate_connect addrs
-					with
-					| Not_found ->
-						let peer = Peer.create n.params a n.params.port in
-						Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
-						Thread.create (Peer.start peer) bc |> ignore; 
-						1
-					| _ -> 0
+					match List.length addrs with
+					| 0 -> 0
+					| _ ->
+						let rindex = Random.int (List.length addrs) in
+						let a = List.nth addrs rindex in	
+						try 
+							Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
+							iterate_connect addrs
+						with
+						| Not_found ->
+							let peer = Peer.create n.params a n.params.port in
+							Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
+							Thread.create (Peer.start peer) bc |> ignore; 
+							1
+						| _ -> 0
 				in
 				Log.error "Network" "Peers below the number of peers";
 				let nc = iterate_connect n.addrs in
@@ -119,18 +132,16 @@ let loop n bc =
 			| Some (req) ->
 				(match req with
 				| Blockchain.Request.REQ_HBLOCKS (h, addr)	->
-					let peer = random_peer n in
 					let msg = {
 						version= Int32.of_int 1;
 						hashes= h;
 						stop= Hash.zero ();
-					} in Peer.send peer (Message.GETHEADERS msg)
+					} in random_send n (Message.GETHEADERS msg)
 				| Blockchain.Request.REQ_BLOCKS (hs, addr)	->
-					let peer = random_peer n in
 					let rec create_invs hs acc = match hs with
 					| [] -> acc
 					| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)
-					in Peer.send peer (Message.GETDATA (create_invs hs []));
+					in random_send n (Message.GETDATA (create_invs hs []));
 				| _ -> ());
 				consume_requests ()
 		in 

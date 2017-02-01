@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 89fcc40192d3822b318767d73713db95)
+# DO NOT EDIT (digest: d2f23035a17e8b9bc761322d370e99b2)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -20,6 +20,7 @@ true: annot, bin_annot
 <src/utils/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/utils/*.ml{,i,y}>: pkg_cryptokit
 <src/utils/*.ml{,i,y}>: pkg_stdint
+<src/utils/*.ml{,i,y}>: pkg_threads
 <src/utils/*.ml{,i,y}>: pkg_yojson
 # Library blockchain
 "src/blockchain/blockchain.cmxs": use_blockchain
@@ -38,8 +39,6 @@ true: annot, bin_annot
 <src/network/*.ml{,i,y}>: pkg_cryptokit
 <src/network/*.ml{,i,y}>: pkg_ctypes
 <src/network/*.ml{,i,y}>: pkg_leveldb
-<src/network/*.ml{,i,y}>: pkg_lwt
-<src/network/*.ml{,i,y}>: pkg_lwt.unix
 <src/network/*.ml{,i,y}>: pkg_stdint
 <src/network/*.ml{,i,y}>: pkg_threads
 <src/network/*.ml{,i,y}>: pkg_yojson
@@ -51,8 +50,6 @@ true: annot, bin_annot
 "src/letchain.native": pkg_cryptokit
 "src/letchain.native": pkg_ctypes
 "src/letchain.native": pkg_leveldb
-"src/letchain.native": pkg_lwt
-"src/letchain.native": pkg_lwt.unix
 "src/letchain.native": pkg_stdint
 "src/letchain.native": pkg_threads
 "src/letchain.native": pkg_yojson
@@ -64,8 +61,6 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: pkg_cryptokit
 <src/*.ml{,i,y}>: pkg_ctypes
 <src/*.ml{,i,y}>: pkg_leveldb
-<src/*.ml{,i,y}>: pkg_lwt
-<src/*.ml{,i,y}>: pkg_lwt.unix
 <src/*.ml{,i,y}>: pkg_stdint
 <src/*.ml{,i,y}>: pkg_threads
 <src/*.ml{,i,y}>: pkg_yojson
