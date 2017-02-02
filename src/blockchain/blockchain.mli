@@ -5,9 +5,9 @@ module Resource : sig
 	| RES_TXS of Tx.t list
 	| RES_BLOCK of Block.t
 	| RES_HBLOCKS of Block.Header.t list
-	| RES_INV_TXS of Hash.t list * Unix.inet_addr
-	| RES_INV_BLOCKS of Hash.t list * Unix.inet_addr
-	| RES_INV_HBLOCKS of Hash.t list * Unix.inet_addr
+	| RES_INV_TX of Hash.t * Unix.inet_addr
+	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
+	| RES_GETHEADERS of Hash.t list * Hash.t * Unix.inet_addr
 end
 
 module Request : sig

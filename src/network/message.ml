@@ -156,7 +156,7 @@ let parse_headers data =
 	in  
 	let bdata = bitstring_of_string data in
 	let count, rest = parse_varint bdata in
-	(ph' rest (Uint64.sub count Uint64.one) [])
+	(ph' rest count [])
 ;;
 
 

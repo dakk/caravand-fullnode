@@ -93,6 +93,28 @@ let insert_block storage height hash block =
 	save_cs storage 
 ;;
 
+let remove_last_block storage hash = 
+	LevelDB.delete storage.db ("blk_" ^ hash);
+	storage.chainstate.height <- Uint32.sub (storage.chainstate.height) Uint32.one;
+	match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.height)) with
+	| None -> ()
+	| Some (h) -> 
+		storage.chainstate.block <- h;
+		save_cs storage 
+;;
+
+let remove_last_header storage hash = 
+	LevelDB.delete storage.db ("blk_" ^ hash);
+	storage.chainstate.header_height <- Uint32.sub (storage.chainstate.header_height) Uint32.one;
+	match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height)) with
+	| None -> ()
+	| Some (h) -> 
+		storage.chainstate.header <- h;
+		save_cs storage 
+;;
+
+
+
 
 let get_block storage hash = 
 	LevelDB.get storage.db ("blk_" ^ hash)

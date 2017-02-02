@@ -71,7 +71,7 @@ module Out = struct
 
 	let serialize txout = 
 		let value = Bitstring.string_of_bitstring (BITSTRING { txout.value : 64 : littleendian }) in 
-		let sclen = string_of_bitstring (Parser.bitstring_of_varint (Int64.of_int (Script.length txout.script))) in
+		let sclen = string_of_bitstring @@ Parser.bitstring_of_varint (Int64.of_int (Script.length txout.script)) in
 		value ^ sclen ^ Script.serialize (txout.script)
 	;;
 
@@ -80,7 +80,7 @@ module Out = struct
 		| [] -> ""
 		| o::outs' -> (serialize o) ^ (serialize_all' outs')
 		in
-		let len = string_of_bitstring (Parser.bitstring_of_varint (Int64.of_int (List.length txouts))) in
+		let len = string_of_bitstring @@ Parser.bitstring_of_varint (Int64.of_int (List.length txouts)) in
 		len ^ (serialize_all' txouts) 
 	;;
 	

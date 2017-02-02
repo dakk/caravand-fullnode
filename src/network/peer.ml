@@ -93,7 +93,7 @@ let send peer message =
 
 
 let recv peer = 
-	let rec recv_chunks bsize acc = match bsize with
+	let rec recv_chunks bsize acc zerol = match bsize with
 	| bsize when Uint32.compare bsize (Uint32.zero) < 0 -> None
 	| bsize when Uint32.compare bsize (Uint32.zero) = 0 -> 
 		let res = Buffer.to_bytes acc in
@@ -102,12 +102,15 @@ let recv peer =
 		let csize = if bsize >= (Uint32.of_int 0xFFFF) then 0xFFFF else Uint32.to_int bsize in
 		let rdata = Bytes.create csize in
 		let rl = Unix.read peer.socket rdata 0 csize in
-		match rl with
-		| rl when rl < 0 -> disconnect peer; None
-		| rl when rl = 0 -> None
-		| rl when rl > 0 -> (
+		match rl, zerol with
+		| rl, zerol when rl < 0 -> disconnect peer; None
+		| rl, zerol when rl = 0 && zerol = 5 -> None
+		| rl, zerol when rl = 0 && zerol < 5 -> 
+			Thread.wait_timed_read peer.socket 0.1;
+			recv_chunks bsize acc (zerol+1)
+		| rl, zerol when rl > 0 -> (
 			Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);
-			recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc
+			recv_chunks (Uint32.sub bsize (Uint32.of_int rl)) acc 0
 		)
 		| _ -> None
 	in
@@ -124,7 +127,7 @@ let recv peer =
 			(* Read and parse the message*)
 			peer.received <- peer.received + 24;
 
-			match recv_chunks m.length (Buffer.create 4096) with
+			match recv_chunks m.length (Buffer.create 4096) 0 with
 				| None -> None
 				| Some (rdata) -> (
 					peer.received <- peer.received + String.length rdata;
@@ -179,16 +182,18 @@ let handle peer bc = match recv peer with
 		Cqueue.add bc.resources (Blockchain.Resource.RES_BLOCK (b));			
 	| HEADERS (hl) ->
 		Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
+	| GETHEADERS (hl) ->
+		Cqueue.add bc.resources (Blockchain.Resource.RES_GETHEADERS (hl.hashes, hl.stop, peer.address));
 	| INV (i) ->
 		let rec vis h = match h with
 		| x::xl ->
 			let _ = (match x with
 				| INV_TX (txid) -> 
 					(*Log.info "Network" "Got inv tx %s" txid;*)
-					Cqueue.add bc.resources (Blockchain.Resource.RES_INV_TXS ([txid], peer.address));
+					Cqueue.add bc.resources (Blockchain.Resource.RES_INV_TX (txid, peer.address));
 				| INV_BLOCK (bhash) -> 
 					(*Log.info "Network" "Got inv block %s" bhash;*)
-					Cqueue.add bc.resources (Blockchain.Resource.RES_INV_BLOCKS ([bhash], peer.address));
+					Cqueue.add bc.resources (Blockchain.Resource.RES_INV_BLOCK (bhash, peer.address));
 				| _ -> ()
 			) in vis xl  
 		| [] -> ()
