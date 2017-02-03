@@ -50,7 +50,6 @@ type opcode =
 | OP_TUCK
 | OP_2DROP
 | OP_2DUP
-| OP_3DROP
 | OP_3DUP
 | OP_2OVER
 | OP_2ROT
@@ -251,7 +250,7 @@ let opcode_to_hex oc = match oc with
 | OP_HASH256 -> [ 0xaa ]
 | OP_CODESEPARATOR -> [ 0xab ]
 | OP_CHECKSIG -> [ 0xac ]
-| OP_CHECKSIGVERIFY -> [ 0xd ]
+| OP_CHECKSIGVERIFY -> [ 0xad ]
 | OP_CHECKMULTISIG -> [ 0xae ]
 | OP_CHECKMULTISIGVERIFY -> [ 0xaf ]
 
@@ -325,8 +324,101 @@ let opcode_of_hex s =
     | 0x5e -> (OP_14, s')
     | 0x5f -> (OP_15, s')
     | 0x60 -> (OP_16, s')
-    
+
+    (* Flow *)
     | 0x61 -> (OP_NOP, s')
+    | 0x63 -> (OP_IF, s')
+    | 0x64 -> (OP_NOTIF, s')
+    | 0x67 -> (OP_ELSE, s')
+    | 0x68 -> (OP_ENDIF, s')
+    | 0x69 -> (OP_VERIFY, s')
+    | 0x6a -> (OP_RETURN, s')
+
+    (* Stack *)
+    | 0x6b -> (OP_TOALTSTACK, s')
+    | 0x6c -> (OP_FROMALTSTACK, s')
+    | 0x73 -> (OP_IFDUP, s')
+    | 0x74 -> (OP_DEPTH, s')
+    | 0x75 -> (OP_DROP, s')
+    | 0x76 -> (OP_DUP, s')
+    | 0x77 -> (OP_NIP, s')
+    | 0x78 -> (OP_OVER, s')
+    | 0x79 -> (OP_PICK, s')
+    | 0x7a -> (OP_ROLL, s')
+    | 0x7b -> (OP_ROT, s')
+    | 0x7c -> (OP_SWAP, s')
+    | 0x7d -> (OP_TUCK, s')
+    | 0x6d -> (OP_2DROP, s')
+    | 0x6e -> (OP_2DUP, s')
+    | 0x6f -> (OP_3DUP, s')
+    | 0x70 -> (OP_2OVER, s')
+    | 0x71 -> (OP_2ROT, s')
+    | 0x72 -> (OP_2SWAP, s')
+
+    (* Splice *)
+    | 0x7e -> (OP_CAT, s')
+    | 0x7f -> (OP_SUBSTR, s')
+    | 0x80 -> (OP_LEFT, s')
+    | 0x81 -> (OP_RIGHT, s')
+    | 0x82 -> (OP_SIZE, s')
+
+    (* Bitwise logic *)
+    | 0x83 -> (OP_INVERT, s')
+    | 0x84 -> (OP_AND, s')
+    | 0x85 -> (OP_OR, s')
+    | 0x86 -> (OP_XOR, s')
+    | 0x87 -> (OP_EQUAL, s')
+    | 0x88 -> (OP_EQUALVERIFY, s')
+
+    (* Arithmetic*)
+    | 0x8b -> (OP_1ADD, s')
+    | 0x8c -> (OP_1SUB, s')
+    | 0x8d -> (OP_2MUL, s')
+    | 0x8e -> (OP_2DIV, s')
+    | 0x8f -> (OP_NEGATE, s')
+    | 0x90 -> (OP_ABS, s')
+    | 0x91 -> (OP_NOT, s')
+    | 0x92 -> (OP_0NOTEQUAL, s')
+    | 0x93 -> (OP_ADD, s')
+    | 0x94 -> (OP_SUB, s')
+    | 0x95 -> (OP_MUL, s')
+    | 0x96 -> (OP_DIV, s')
+    | 0x97 -> (OP_MOD, s')
+    | 0x98 -> (OP_LSHIFT, s')
+    | 0x99 -> (OP_RSHIFT, s')
+    | 0x9a -> (OP_BOOLAND, s')
+    | 0x9b -> (OP_BOOLOR, s')
+    | 0x9c -> (OP_NUMEQUAL, s')
+    | 0x9d -> (OP_NUMEQUALVERIFY, s')
+    | 0x9e -> (OP_NUMNOTEQUAL, s')
+    | 0x9f -> (OP_LESSTHAN, s')
+    | 0xa0 -> (OP_GREATERTHAN, s')
+    | 0xa1 -> (OP_LESSTHANOREQUAL, s')
+    | 0xa2 -> (OP_GREATERTHANOREQUAL, s')
+    | 0xa3 -> (OP_MIN, s')
+    | 0xa4 -> (OP_MAX, s')
+    | 0xa5 -> (OP_WITHIN, s')
+
+    (* Crypto *)
+    | 0xa6 -> (OP_RIPEMD160, s')
+    | 0xa7 -> (OP_SHA1, s')
+    | 0xa8 -> (OP_SHA256, s')
+    | 0xa9 -> (OP_HASH160, s')
+    | 0xaa -> (OP_HASH256, s')
+    | 0xab -> (OP_CODESEPARATOR, s')
+    | 0xac -> (OP_CHECKSIG, s')
+    | 0xad -> (OP_CHECKSIGVERIFY, s')
+    | 0xae -> (OP_CHECKMULTISIG, s')
+    | 0xaf -> (OP_CHECKMULTISIGVERIFY, s')
+
+    (* Lock time *)
+    | 0xb1 -> (OP_CHECKLOCKTIMEVERIFY, s')
+    | 0xb2 -> (OP_CHECKSEQUENCEVERIFY, s')
+
+    (* Pseudo words *)
+    | 0xfd -> (OP_PUBKEYHASH, s')
+    | 0xfe -> (OP_PUBKEY, s')
+    | 0xff -> (OP_INVALIDOPCODE , s')
 
     (* Reserved words*)
     | 0x50 -> (OP_RESERVED, s')

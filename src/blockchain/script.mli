@@ -51,7 +51,6 @@ type opcode =
     | OP_TUCK
     | OP_2DROP
     | OP_2DUP
-    | OP_3DROP
     | OP_3DUP
     | OP_2OVER
     | OP_2ROT
