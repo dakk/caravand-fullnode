@@ -1,5 +1,3 @@
-type t = string;;
-
 type opcode = 
 (* Constants *)
 | OP_0
@@ -139,6 +137,9 @@ type opcode =
 | OP_NOP9
 | OP_NOP10
 ;;
+
+type t = opcode list * int;;
+
 
 
 let opcode_to_hex oc = match oc with
@@ -346,10 +347,31 @@ let opcode_of_hex s =
     | _ -> (OP_INVALIDOPCODE, s')
 ;;
 
-let eval s = true;;
+let eval scr = true;;
 
-let length s = String.length s;;
+let length scr = snd scr;;
 
-let serialize s = s;;
+let serialize scr = 
+    let rec serialize' scr = match scr with
+    | [] -> ""
+    | op::scr' ->
+        let rec hlist_to_bytes il = match il with
+        | [] -> ""
+        | i::il' -> (Bytes.make 1 (Char.chr i)) ^ (hlist_to_bytes il')
+        in
+        let r = hlist_to_bytes @@ opcode_to_hex op in
+        r ^ (serialize' scr')
+    in 
+    let s = serialize' (fst scr) in
+    match (snd scr, Bytes.length s) with
+    | (n, n') when n = n' -> s 
+    | (n, n') -> failwith "Wrong serialize size"
+;;
 
-let parse s = Some (s);;
+let parse s = 
+    let len = String.length s in
+    let rec parse' s = match Bytes.length s with
+    | 0 -> []
+    | n -> let op, s' = opcode_of_hex s in op :: (parse' s')
+    in (parse' s, len)
+;;

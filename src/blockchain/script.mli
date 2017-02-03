@@ -142,8 +142,8 @@ val opcode_to_hex : opcode -> int list
 val opcode_of_hex : bytes -> opcode * bytes
 val eval : opcode list -> bool
 
-type t = bytes (* opcode list *)
+type t = opcode list * int
 
 val length      :   t -> int
 val serialize   :   t -> bytes
-val parse       :   bytes -> t option
+val parse       :   bytes -> t

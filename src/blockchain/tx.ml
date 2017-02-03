@@ -45,7 +45,7 @@ module In = struct
 			} -> (rest', Some {
 				out_hash= Hash.of_bin out_hash;
 				out_n= Uint32.of_int32 out_n;
-				script= script;
+				script= Script.parse script;
 				sequence= Uint32.of_int32 sequence;
 			})
 	;;
@@ -95,7 +95,7 @@ module Out = struct
 			| {
 				script 		: Uint64.to_int (sclen) * 8 : string;
 				rest''		: -1 : bitstring
-			} -> (rest'', Some { value= value; script= script; })
+			} -> (rest'', Some { value= value; script= Script.parse script; })
 	;;
 
 
