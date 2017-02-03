@@ -139,7 +139,7 @@ type opcode =
 
 val opcode_to_hex : opcode -> int list
 val opcode_of_hex : bytes -> opcode * bytes
-val eval : opcode list -> bool
+val eval : int Stack.t -> opcode list -> bool
 
 type t = opcode list * int
 
