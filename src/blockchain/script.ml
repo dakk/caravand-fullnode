@@ -438,153 +438,162 @@ let opcode_of_hex s =
     | _ -> (OP_INVALIDOPCODE, s')
 ;;
 
-let rec eval st scr = match scr with
-| [] -> false
-| op::scr' -> match op with
-    (* Constants *)
-    | OP_0
-    | OP_FALSE -> Stack.push 0x00 st; eval st scr'
-    | OP_DATA (d)
-    | OP_PUSHDATA1 (d) -> Stack.push d st; eval st scr'
-    | OP_PUSHDATA2 (a, b) -> 
-        Stack.push a st; 
-        Stack.push b st; 
-        eval st scr'
-    | OP_PUSHDATA4 (a, b, c, d) ->
-        Stack.push a st; 
-        Stack.push b st; 
-        Stack.push c st; 
-        Stack.push d st; 
-        eval st scr'
-    | OP_1NEGATE -> Stack.push (-0x01) st; eval st scr'
-    | OP_1
-    | OP_TRUE -> Stack.push 0x01 st; eval st scr'
-    | OP_2 -> Stack.push 0x02 st; eval st scr'
-    | OP_3 -> Stack.push 0x03 st; eval st scr'
-    | OP_4 -> Stack.push 0x04 st; eval st scr'
-    | OP_5 -> Stack.push 0x05 st; eval st scr'
-    | OP_6 -> Stack.push 0x06 st; eval st scr'
-    | OP_7 -> Stack.push 0x07 st; eval st scr'
-    | OP_8 -> Stack.push 0x08 st; eval st scr'
-    | OP_9 -> Stack.push 0x09 st; eval st scr'
-    | OP_10 -> Stack.push 0x0a st; eval st scr'
-    | OP_11 -> Stack.push 0x0b st; eval st scr'
-    | OP_12 -> Stack.push 0x0c st; eval st scr'
-    | OP_13 -> Stack.push 0x0d st; eval st scr'
-    | OP_14 -> Stack.push 0x0e st; eval st scr'
-    | OP_15 -> Stack.push 0x0f st; eval st scr'
-    | OP_16 -> Stack.push 0x10 st; eval st scr'
+(* 
+    https://github.com/bitcoin/bitcoin/blob/master/src/script/interpreter.cpp 
+    https://en.bitcoin.it/wiki/Script
+*)
+let rec eval st altst scr = 
+    let rec to_endif_or_else st altst scr = match scr with
+    | [] -> false
+    | op::scr' -> match op with
+        | OP_ENDIF -> eval st altst scr'
+        | OP_ELSE -> eval st altst scr'
+        | _ -> to_endif_or_else st altst scr'
+    in
+    let rec to_endif st altst scr = match scr with
+    | [] -> false
+    | op::scr' -> match op with
+        | OP_ENDIF -> eval st altst scr'
+        | _ -> to_endif st altst scr'
+    in
+    match scr with
+    | [] -> false
+    | op::scr' -> match op with
+        (* Constants *)
+        | OP_0
+        | OP_FALSE -> Stack.push 0x00 st; eval st altst scr'
+        | OP_DATA (d)
+        | OP_PUSHDATA1 (d) -> Stack.push d st; eval st altst scr'
+        | OP_PUSHDATA2 (a, b) -> 
+            Stack.push a st; 
+            Stack.push b st; 
+            eval st altst scr'
+        | OP_PUSHDATA4 (a, b, c, d) ->
+            Stack.push a st; 
+            Stack.push b st; 
+            Stack.push c st; 
+            Stack.push d st; 
+            eval st altst scr'
+        | OP_1NEGATE -> Stack.push (-0x01) st; eval st altst scr'
+        | OP_1
+        | OP_TRUE -> Stack.push 0x01 st; eval st altst scr'
+        | OP_2 -> Stack.push 0x02 st; eval st altst scr'
+        | OP_3 -> Stack.push 0x03 st; eval st altst scr'
+        | OP_4 -> Stack.push 0x04 st; eval st altst scr'
+        | OP_5 -> Stack.push 0x05 st; eval st altst scr'
+        | OP_6 -> Stack.push 0x06 st; eval st altst scr'
+        | OP_7 -> Stack.push 0x07 st; eval st altst scr'
+        | OP_8 -> Stack.push 0x08 st; eval st altst scr'
+        | OP_9 -> Stack.push 0x09 st; eval st altst scr'
+        | OP_10 -> Stack.push 0x0a st; eval st altst scr'
+        | OP_11 -> Stack.push 0x0b st; eval st altst scr'
+        | OP_12 -> Stack.push 0x0c st; eval st altst scr'
+        | OP_13 -> Stack.push 0x0d st; eval st altst scr'
+        | OP_14 -> Stack.push 0x0e st; eval st altst scr'
+        | OP_15 -> Stack.push 0x0f st; eval st altst scr'
+        | OP_16 -> Stack.push 0x10 st; eval st altst scr'
 
-    (* Flow *)
-    | OP_NOP -> eval st scr'
-    | OP_IF -> true
-    | OP_NOTIF -> true
-    | OP_ELSE -> true
-    | OP_ENDIF -> true
-    | OP_VERIFY -> if Stack.pop st <> 0x00 then true else false
-    | OP_RETURN -> false
+        (* Flow *)
+        | OP_NOP -> eval st altst scr'
+        | OP_IF -> if Stack.pop st <> 0x00 then eval st altst scr' else to_endif_or_else st altst scr'
+        | OP_NOTIF -> if Stack.pop st = 0x00 then eval st altst scr' else to_endif_or_else st altst scr'
+        | OP_ELSE -> to_endif st altst scr'
+        | OP_ENDIF -> eval st altst scr'
+        | OP_VERIFY -> if Stack.pop st <> 0x00 then true else false
+        | OP_RETURN -> false
 
-    (* Stack *)
-    | OP_TOALTSTACK -> true
-    | OP_FROMALTSTACK -> true
-    | OP_IFDUP -> true
-    | OP_DEPTH -> true
-    | OP_DROP -> true
-    | OP_DUP -> true
-    | OP_NIP -> true
-    | OP_OVER -> true
-    | OP_PICK -> true
-    | OP_ROLL -> true
-    | OP_ROT -> true
-    | OP_SWAP -> true
-    | OP_TUCK -> true
-    | OP_2DROP -> true
-    | OP_2DUP -> true
-    | OP_3DUP -> true
-    | OP_2OVER -> true
-    | OP_2ROT -> true
-    | OP_2SWAP -> true
+        (* Stack *)
+        | OP_TOALTSTACK -> 
+            let ap = Stack.pop st in Stack.push ap altst; 
+            eval st altst scr'
+        | OP_FROMALTSTACK -> 
+            let ap = Stack.pop altst in Stack.push ap st; 
+            eval st altst scr'
+        | OP_IFDUP -> true
+        | OP_DEPTH -> true
+        | OP_DROP -> true
+        | OP_DUP -> true
+        | OP_NIP -> true
+        | OP_OVER -> true
+        | OP_PICK -> true
+        | OP_ROLL -> true
+        | OP_ROT -> true
+        | OP_SWAP -> true
+        | OP_TUCK -> true
+        | OP_2DROP -> true
+        | OP_2DUP -> true
+        | OP_3DUP -> true
+        | OP_2OVER -> true
+        | OP_2ROT -> true
+        | OP_2SWAP -> true
 
-    (* Splice *)
-    | OP_CAT -> true
-    | OP_SUBSTR -> true
-    | OP_LEFT -> true
-    | OP_RIGHT -> true
-    | OP_SIZE -> true
+        (* Splice *)
+        | OP_SIZE -> true
 
-    (* Bitwise logic *)
-    | OP_INVERT -> true
-    | OP_AND -> true
-    | OP_OR -> true
-    | OP_XOR -> true
-    | OP_EQUAL -> true
-    | OP_EQUALVERIFY -> true
+        (* Bitwise logic *)
+        | OP_EQUAL -> true
+        | OP_EQUALVERIFY -> true
 
-    (* Arithmetic*)
-    | OP_1ADD -> true
-    | OP_1SUB -> true
-    | OP_2MUL -> true
-    | OP_2DIV -> true
-    | OP_NEGATE -> true
-    | OP_ABS -> true
-    | OP_NOT -> true
-    | OP_0NOTEQUAL -> true
-    | OP_ADD -> true
-    | OP_SUB -> true
-    | OP_MUL -> true
-    | OP_DIV -> true
-    | OP_MOD -> true
-    | OP_LSHIFT -> true
-    | OP_RSHIFT -> true
-    | OP_BOOLAND -> true
-    | OP_BOOLOR -> true
-    | OP_NUMEQUAL -> true
-    | OP_NUMEQUALVERIFY -> true
-    | OP_NUMNOTEQUAL -> true
-    | OP_LESSTHAN -> true
-    | OP_GREATERTHAN -> true
-    | OP_LESSTHANOREQUAL -> true
-    | OP_GREATERTHANOREQUAL -> true
-    | OP_MIN -> true
-    | OP_MAX -> true
-    | OP_WITHIN -> true
+        (* Arithmetic*)
+        | OP_1ADD -> true
+        | OP_1SUB -> true
+        | OP_NEGATE -> true
+        | OP_ABS -> true
+        | OP_NOT -> true
+        | OP_0NOTEQUAL -> true
+        | OP_ADD -> true
+        | OP_SUB -> true
+        | OP_BOOLAND -> true
+        | OP_BOOLOR -> true
+        | OP_NUMEQUAL -> true
+        | OP_NUMEQUALVERIFY -> true
+        | OP_NUMNOTEQUAL -> true
+        | OP_LESSTHAN -> true
+        | OP_GREATERTHAN -> true
+        | OP_LESSTHANOREQUAL -> true
+        | OP_GREATERTHANOREQUAL -> true
+        | OP_MIN -> true
+        | OP_MAX -> true
+        | OP_WITHIN -> true
 
-    (* Crypto *)
-    | OP_RIPEMD160 -> true
-    | OP_SHA1 -> true
-    | OP_SHA256 -> true
-    | OP_HASH160 -> true
-    | OP_HASH256 -> true
-    | OP_CODESEPARATOR -> true
-    | OP_CHECKSIG -> true
-    | OP_CHECKSIGVERIFY -> true
-    | OP_CHECKMULTISIG -> true
-    | OP_CHECKMULTISIGVERIFY -> true
+        (* Crypto *)
+        | OP_RIPEMD160 -> true
+        | OP_SHA1 -> true
+        | OP_SHA256 -> true
+        | OP_HASH160 -> true
+        | OP_HASH256 -> true
+        | OP_CODESEPARATOR -> true
+        | OP_CHECKSIG -> true
+        | OP_CHECKSIGVERIFY -> true
+        | OP_CHECKMULTISIG -> true
+        | OP_CHECKMULTISIGVERIFY -> true
 
-    (* Lock time *)
-    | OP_CHECKLOCKTIMEVERIFY -> true
-    | OP_CHECKSEQUENCEVERIFY -> true
+        (* Lock time *)
+        | OP_CHECKLOCKTIMEVERIFY -> true
+        | OP_CHECKSEQUENCEVERIFY -> true
 
-    (* Pseudo words *)
-    | OP_PUBKEYHASH -> true
-    | OP_PUBKEY -> true
-    | OP_INVALIDOPCODE -> true
+        (* Pseudo words *)
+        | OP_PUBKEYHASH -> true
+        | OP_PUBKEY -> true
+        | OP_INVALIDOPCODE -> true
 
-    (* Reserved words*)
-    | OP_RESERVED -> true
-    | OP_VER -> true
-    | OP_VERIF -> true
-    | OP_VERNOTIF -> true
-    | OP_RESERVED1 -> true
-    | OP_RESERVED2 -> true
-    | OP_NOP1 -> eval st scr'
-    | OP_NOP4 -> eval st scr'
-    | OP_NOP5 -> eval st scr'
-    | OP_NOP6 -> eval st scr'
-    | OP_NOP7 -> eval st scr'
-    | OP_NOP8 -> eval st scr'
-    | OP_NOP9 -> eval st scr'
-    | OP_NOP10 -> eval st scr'
+        (* Reserved words*)
+        | OP_RESERVED -> true
+        | OP_VER -> true
+        | OP_VERIF -> true
+        | OP_VERNOTIF -> true
+        | OP_RESERVED1 -> true
+        | OP_RESERVED2 -> true
+        | OP_NOP1 -> eval st altst scr'
+        | OP_NOP4 -> eval st altst scr'
+        | OP_NOP5 -> eval st altst scr'
+        | OP_NOP6 -> eval st altst scr'
+        | OP_NOP7 -> eval st altst scr'
+        | OP_NOP8 -> eval st altst scr'
+        | OP_NOP9 -> eval st altst scr'
+        | OP_NOP10 -> eval st altst scr'
+
+        | _ -> false
 ;;
 
 let length scr = snd scr;;
