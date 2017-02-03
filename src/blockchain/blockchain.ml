@@ -15,7 +15,6 @@ module Resource = struct
 	| RES_HBLOCKS of Block.Header.t list
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
-	| RES_GETHEADERS of Hash.t list * Hash.t * Unix.inet_addr
 	;;
 end
 
@@ -234,9 +233,6 @@ let loop bc =
 		else
 			match Cqueue.get bc.resources with 
 			| Some (res) -> (match (res : Resource.t) with 
-				| RES_GETHEADERS (bs, stop, addr) -> 
-					Log.debug "Blockchain" "Requested headers %d %s" (List.length bs) stop;
-					consume ()
 				| RES_INV_BLOCK (bs, addr) -> 
 					(if bc.sync then  Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bs], Some (addr)));
 					consume ()

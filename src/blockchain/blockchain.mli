@@ -7,7 +7,6 @@ module Resource : sig
 	| RES_HBLOCKS of Block.Header.t list
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
-	| RES_GETHEADERS of Hash.t list * Hash.t * Unix.inet_addr
 end
 
 module Request : sig

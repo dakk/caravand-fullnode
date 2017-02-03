@@ -183,7 +183,7 @@ let handle peer bc = match recv peer with
 	| HEADERS (hl) ->
 		Cqueue.add bc.resources (Blockchain.Resource.RES_HBLOCKS (hl));
 	| GETHEADERS (hl) ->
-		Cqueue.add bc.resources (Blockchain.Resource.RES_GETHEADERS (hl.hashes, hl.stop, peer.address));
+		();
 	| INV (i) ->
 		let rec vis h = match h with
 		| x::xl ->
