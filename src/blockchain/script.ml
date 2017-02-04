@@ -852,3 +852,6 @@ let parse s =
         op :: (parse' s')
     in (parse' s, String.length s)
 ;;
+
+
+let verify s1 s2 = join s1 s2 |> eval;;

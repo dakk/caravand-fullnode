@@ -153,12 +153,6 @@ type t = opcode list * int
 val length              : t -> int
 val serialize           : t -> bytes
 val parse               : bytes -> t
-
-(* Evalute a script *)
-val eval                : t -> bool
-
-(* Join used to join a txout with a txin *)
-val join                : t -> t -> t
-
+val verify              : t -> t -> bool
 val to_string           : t -> string
 
