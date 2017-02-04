@@ -1,12 +1,26 @@
+module SStack : sig
+    type t = bytes Stack.t
+
+    val create  : unit -> t 
+    val pop     : t -> bytes
+    val popi    : t -> int 
+    
+    val top     : t -> bytes
+    val topi    : t -> int 
+
+    val push    : bytes -> t -> unit
+    val pushi    : int -> t -> unit
+end
+
 
 type opcode = 
     (* Constants *)
     | OP_0
     | OP_FALSE
-    | OP_DATA of int
-    | OP_PUSHDATA1 of int
-    | OP_PUSHDATA2 of int * int
-    | OP_PUSHDATA4 of int * int * int * int
+    | OP_DATA of int * bytes
+    | OP_PUSHDATA1 of int * bytes
+    | OP_PUSHDATA2 of int * int * bytes
+    | OP_PUSHDATA4 of int * int * int * int * bytes
     | OP_1NEGATE
     | OP_1
     | OP_TRUE
@@ -137,12 +151,22 @@ type opcode =
     | OP_NOP9
     | OP_NOP10
 
-val opcode_to_hex : opcode -> int list
-val opcode_of_hex : bytes -> opcode * bytes
-val eval : int Stack.t -> int Stack.t -> opcode list -> bool
+val opcode_to_string    : opcode -> string
+val opcode_to_hex       : opcode -> int list
+val opcode_of_hex       : bytes -> opcode * bytes
 
 type t = opcode list * int
 
-val length      :   t -> int
-val serialize   :   t -> bytes
-val parse       :   bytes -> t
+
+val length              : t -> int
+val serialize           : t -> bytes
+val parse               : bytes -> t
+
+(* Evalute a script *)
+val eval                : t -> bool
+
+(* Join used to join a txout with a txin *)
+val join                : t -> t -> t
+
+val to_string           : t -> string
+

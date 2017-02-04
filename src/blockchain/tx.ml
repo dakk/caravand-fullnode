@@ -42,12 +42,15 @@ module In = struct
 				script 		: Uint64.to_int (sclen) * 8 : string;
 				sequence	: 32 : littleendian;
 				rest'		: -1 : bitstring
-			} -> (rest', Some {
-				out_hash= Hash.of_bin out_hash;
-				out_n= Uint32.of_int32 out_n;
-				script= Script.parse script;
-				sequence= Uint32.of_int32 sequence;
-			})
+			} -> 
+				let sc = Script.parse script in
+				Printf.printf "ScriptIn: %s\n%!" (Script.to_string sc);		
+				(rest', Some {
+					out_hash= Hash.of_bin out_hash;
+					out_n= Uint32.of_int32 out_n;
+					script= sc;
+					sequence= Uint32.of_int32 sequence;
+				})
 	;;
 
 	let parse_all data = 
@@ -95,7 +98,10 @@ module Out = struct
 			| {
 				script 		: Uint64.to_int (sclen) * 8 : string;
 				rest''		: -1 : bitstring
-			} -> (rest'', Some { value= value; script= Script.parse script; })
+			} -> 
+			let sc = Script.parse script in
+			Printf.printf "ScriptOut: %s\n%!" (Script.to_string sc);			
+			(rest'', Some { value= value; script= sc; })
 	;;
 
 
