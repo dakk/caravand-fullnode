@@ -15,6 +15,7 @@ end
 
 
 type opcode = 
+| OP_COINBASE of bytes
 (* Constants *)
 | OP_0
 | OP_FALSE
@@ -149,6 +150,7 @@ type t = opcode list * int;;
 
 
 let opcode_to_string oc = match oc with
+| OP_COINBASE (data) -> Printf.sprintf "OP_COINBASE(%s)" (Hash.of_bin data)
 | OP_0 -> "OP_0"
 | OP_FALSE -> "OP_FALSE"
 | OP_DATA (s, data) -> Printf.sprintf "OP_DATA(%x, %s)" s (Hash.of_bin data)
@@ -284,6 +286,8 @@ let opcode_to_hex oc =
     | n -> (Char.code @@ Bytes.get d 0) :: data_to_bytearray (Bytes.sub d 1 (n-1))
     in
     match oc with
+    | OP_COINBASE (d) -> data_to_bytearray d
+
     (* Constants *)
     | OP_0 -> [ 0x00 ]
     | OP_FALSE -> [ 0x00 ]
@@ -417,9 +421,13 @@ let opcode_to_hex oc =
 
 let opcode_of_hex s = 
     let consume_next s =
-        let c = Char.code (Bytes.get s 0) in
-        let s' = Bytes.sub s 1 ((Bytes.length s) - 1) in
-        (c, s')
+        match Bytes.length s with
+        | 0 -> (0x00, "")
+        | 1 -> (Bytes.get s 0 |> Char.code, "")
+        | n ->
+            let c = Bytes.get s 0 |> Char.code in
+            let s' = Bytes.sub s 1 @@ n - 1 in
+            (c, s')
     in
     let consume_bytes s sizea =
         let rec sizea_to_int sizea acc = match sizea with
@@ -847,11 +855,15 @@ let parse s =
     let rec parse' s = match Bytes.length s with
     | 0 -> []
     | n -> 
+        (*(Printf.printf "%x\n%!" @@ Char.code (String.get s 0));*)
         let op, s' = opcode_of_hex s in 
         (*(Printf.printf "%s\n%!" @@ opcode_to_string op);*)
         op :: (parse' s')
     in (parse' s, String.length s)
 ;;
+
+
+let parse_coinbase s = ([ OP_COINBASE (s) ], String.length s);;
 
 
 let verify s1 s2 = join s1 s2 |> eval;;

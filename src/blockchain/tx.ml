@@ -30,7 +30,7 @@ module In = struct
 		len ^ (serialize_all' txins) 
 	;;
 
-	let parse bdata = 
+	let parse ?(coinbase=false) bdata = 
 		bitmatch bdata with 
 		| {
 			out_hash	: 32*8: string; 
@@ -44,22 +44,27 @@ module In = struct
 				sequence	: 32 : littleendian;
 				rest'		: -1 : bitstring
 			} -> 
-				let sc = Script.parse script in	
+				let sc = match coinbase with 
+					| true -> Script.parse_coinbase script
+					| false -> Script.parse script 
+				in	
+				
 				(rest', Some ({
 					out_hash= Hash.of_bin out_hash;
 					out_n= Uint32.of_int32 out_n;
 					script= sc;
 					sequence= Uint32.of_int32 sequence;
-				}))
+					}))
+				
 		| { _ } -> (bitstring_of_string "", None)
 	;;
 
-	let parse_all data = 
+	let parse_all ?(coinbase=false) data = 
 		let inlen, rest' = parse_varint data in
 		let rec parse_all' n d acc = match n with
 		| 0 -> (d, Some (acc))
 		| n -> 
-			let rest, txin = parse d in
+			let rest, txin = parse ~coinbase:coinbase d in
 			match txin with 
 			| None -> (bitstring_of_string "", None)
 			| Some (txin) -> parse_all' (n-1) rest (txin::acc)
@@ -129,16 +134,17 @@ type t = {
 };;
 
 
-let parse data = 
+let parse ?(coinbase=false) data = 
 	let bdata = bitstring_of_string data in
 	bitmatch bdata with 
 	| {
 		version		: 32 : littleendian;
 		rest		: -1 : bitstring
 	} -> 
-		let rest', txin = In.parse_all rest in
+		let rest', txin = In.parse_all ~coinbase:coinbase rest in
 		let rest'', txout = Out.parse_all rest' in
 		match (txin, txout) with
+		| None, None -> ("", None)
 		| None, Some (txout) -> ("", None)
 		| Some (txout), None -> ("", None)
 		| Some (txin), Some (txout) ->
@@ -181,21 +187,28 @@ let rec serialize_all txs = match txs with
 | tx::txs' -> (serialize tx) ^ (serialize_all txs')
 ;;
 
-let parse_all data n =
-	let rec parse_all' n d acc = match n with
-	| 0 -> Some (acc)
+let parse_all data ntx =
+	let rec parse_all' n d acc = 
+		(*Printf.printf "Loop! %d\n%!" n;*)
+		
+	match n with
+	| 0 -> (*Printf.printf "End! %d\n%!" n;*) Some (acc)
 	| n ->
-		let rest, tx = parse d in
+		(*Printf.printf "Parsing TX %d\n%!" n;*)
+		let rest, tx = if n = ntx then parse d ~coinbase:true else parse d in
 		match tx with
-		| None -> None
+		| None -> (*Printf.printf "Failed to parse TX\n%!"*) None
 		| Some (mtx) -> 
-			(if (String.sub d 0 ((String.length d) - (String.length rest))) <> (serialize mtx) then (
+			(*Printf.printf "Parsed TX %s %d\n%!" mtx.hash (String.length rest);*)
+			
+			if (String.sub d 0 ((String.length d) - (String.length rest))) <> (serialize mtx) then (
 				Printf.printf "Wrong!\n%!"; 
 				Printf.printf "Original: %s\n%!" (Hash.print_bin d); 
 				Printf.printf "New: %s\n%!" (Hash.print_bin (serialize mtx)); 
-				failwith "Size of serialized / parsed data does not match"
-			)); (*else Printf.printf "Correct!\n%!");*)
-			parse_all' (n-1) rest (mtx::acc)
+				None
+			) else ( 
+				parse_all' (n-1) rest (mtx::acc)
+			)
 	in
-	parse_all' n data []
+	parse_all' ntx data []
 ;;

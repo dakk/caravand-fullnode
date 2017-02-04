@@ -14,6 +14,8 @@ end
 
 
 type opcode = 
+    | OP_COINBASE of bytes
+
     (* Constants *)
     | OP_0
     | OP_FALSE
@@ -153,6 +155,8 @@ type t = opcode list * int
 val length              : t -> int
 val serialize           : t -> bytes
 val parse               : bytes -> t
+val parse_coinbase      : bytes -> t
 val verify              : t -> t -> bool
 val to_string           : t -> string
+(*val is_spendable        : t -> bool*)
 

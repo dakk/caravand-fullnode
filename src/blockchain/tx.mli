@@ -10,8 +10,8 @@ module In : sig
 		sequence: uint32;	
 	}
 	
-	val parse 			: bitstring -> bitstring * t option
-	val parse_all		: bitstring -> bitstring * t list option
+	val parse 			: ?coinbase:bool -> bitstring -> bitstring * t option
+	val parse_all		: ?coinbase:bool -> bitstring -> bitstring * t list option
 	val serialize		: t -> bytes
 	val serialize_all	: t list -> bytes
 end
@@ -26,6 +26,7 @@ module Out : sig
 	val parse_all		: bitstring -> bitstring * t list option
 	val serialize		: t -> bytes
 	val serialize_all	: t list -> bytes
+	(*val is_spendable	: t -> bool*)
 end
 
 
@@ -37,7 +38,7 @@ type t = {
 	locktime	: uint32;
 }
 
-val parse 			: bytes -> bytes * t option
+val parse 			: ?coinbase:bool -> bytes -> bytes * t option
 val parse_all		: bytes -> int -> t list option
 
 val serialize		: t -> bytes
