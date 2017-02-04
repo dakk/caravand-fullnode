@@ -9,3 +9,5 @@ val to_bin			: t -> b
 
 val of_bin			: b -> t
 val zero			: unit -> t
+
+val print_bin       : bytes -> string

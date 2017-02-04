@@ -41,7 +41,6 @@ type opcode =
     | OP_16
 
     (* Flow *)
-    | OP_NOP
     | OP_IF
     | OP_NOTIF
     | OP_ELSE
@@ -142,14 +141,7 @@ type opcode =
     | OP_VERNOTIF
     | OP_RESERVED1
     | OP_RESERVED2
-    | OP_NOP1
-    | OP_NOP4
-    | OP_NOP5
-    | OP_NOP6
-    | OP_NOP7
-    | OP_NOP8
-    | OP_NOP9
-    | OP_NOP10
+    | OP_NOP of int
 
 val opcode_to_string    : opcode -> string
 val opcode_to_hex       : opcode -> int list

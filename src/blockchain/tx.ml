@@ -43,8 +43,7 @@ module In = struct
 				sequence	: 32 : littleendian;
 				rest'		: -1 : bitstring
 			} -> 
-				let sc = Script.parse script in
-				Printf.printf "ScriptIn: %s\n%!" (Script.to_string sc);		
+				let sc = Script.parse script in	
 				(rest', Some {
 					out_hash= Hash.of_bin out_hash;
 					out_n= Uint32.of_int32 out_n;
@@ -60,7 +59,7 @@ module In = struct
 		| n -> 
 			let rest, txin = parse d in
 			match txin with
-			| None -> parse_all' (n-1) rest acc
+			| None -> failwith "Parse failed"; parse_all' (n-1) rest acc
 			| Some (txi) -> parse_all' (n-1) rest (txi::acc)
 		in parse_all' (Uint64.to_int inlen) rest' []
 	;;
@@ -99,8 +98,7 @@ module Out = struct
 				script 		: Uint64.to_int (sclen) * 8 : string;
 				rest''		: -1 : bitstring
 			} -> 
-			let sc = Script.parse script in
-			Printf.printf "ScriptOut: %s\n%!" (Script.to_string sc);			
+			let sc = Script.parse script in		
 			(rest'', Some { value= value; script= sc; })
 	;;
 
@@ -112,7 +110,7 @@ module Out = struct
 		| n -> 
 			let rest, txout = parse d in
 			match txout with
-			| None -> parse_all' (n-1) rest acc
+			| None -> failwith "Parse failed"; parse_all' (n-1) rest acc
 			| Some (txo) -> parse_all' (n-1) rest (txo::acc)
 		in parse_all' (Uint64.to_int outlen) rest' []
 	;;
@@ -156,17 +154,7 @@ let parse data =
 ;;
 
 
-let parse_all data n =
-	let rec parse_all' n d acc = match n with
-	| 0 -> acc
-	| n ->
-		let rest, tx = parse d in
-		match tx with
-		| None -> parse_all' (n-1) rest acc
-		| Some (mtx) -> parse_all' (n-1) rest (mtx::acc)
-	in
-	parse_all' n data []
-;;
+
 
 let print tx = 
 	Printf.printf ""; ()
@@ -182,4 +170,23 @@ let serialize tx =
 let rec serialize_all txs = match txs with
 | [] -> ""
 | tx::txs' -> (serialize tx) ^ (serialize_all txs')
+;;
+
+let parse_all data n =
+	let rec parse_all' n d acc = match n with
+	| 0 -> acc
+	| n ->
+		let rest, tx = parse d in
+		match tx with
+		| None -> parse_all' (n-1) rest acc
+		| Some (mtx) -> 
+			(if (String.sub d 0 ((String.length d) - (String.length rest))) <> (serialize mtx) then (
+				Printf.printf "Wrong!\n%!"; 
+				Printf.printf "Original: %s\n%!" (Hash.print_bin d); 
+				Printf.printf "New: %s\n%!" (Hash.print_bin (serialize mtx)); 
+				failwith "LOL"
+			)); (*else Printf.printf "Correct!\n%!");*)
+			parse_all' (n-1) rest (mtx::acc)
+	in
+	parse_all' n data []
 ;;

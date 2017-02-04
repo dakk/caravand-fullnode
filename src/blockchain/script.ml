@@ -42,7 +42,6 @@ type opcode =
 | OP_16
 
 (* Flow *)
-| OP_NOP
 | OP_IF
 | OP_NOTIF
 | OP_ELSE
@@ -143,14 +142,7 @@ type opcode =
 | OP_VERNOTIF
 | OP_RESERVED1
 | OP_RESERVED2
-| OP_NOP1
-| OP_NOP4
-| OP_NOP5
-| OP_NOP6
-| OP_NOP7
-| OP_NOP8
-| OP_NOP9
-| OP_NOP10
+| OP_NOP of int
 ;;
 
 type t = opcode list * int;;
@@ -183,7 +175,6 @@ let opcode_to_string oc = match oc with
 | OP_16 -> "OP_16"
 
 (* Flow *)
-| OP_NOP -> "OP_NOP"
 | OP_IF -> "OP_IF"
 | OP_NOTIF -> "OP_NOTIF"
 | OP_ELSE -> "OP_ELSE"
@@ -284,14 +275,7 @@ let opcode_to_string oc = match oc with
 | OP_VERNOTIF -> "OP_VERNOTIF"
 | OP_RESERVED1 -> "OP_RESERVED1"
 | OP_RESERVED2 -> "OP_RESERVED2"
-| OP_NOP1 -> "OP_NOP1"
-| OP_NOP4 -> "OP_NOP4"
-| OP_NOP5 -> "OP_NOP5"
-| OP_NOP6 -> "OP_NOP6"
-| OP_NOP7 -> "OP_NOP7"
-| OP_NOP8 -> "OP_NOP8"
-| OP_NOP9 -> "OP_NOP9"
-| OP_NOP10 -> "OP_NOP10"
+| OP_NOP (x) -> Printf.sprintf "OP_NOP(%x)" x
 ;;
 
 let opcode_to_hex oc = 
@@ -327,7 +311,6 @@ let opcode_to_hex oc =
     | OP_16 -> [ 0x60 ]
 
     (* Flow *)
-    | OP_NOP -> [ 0x61 ]
     | OP_IF -> [ 0x63 ]
     | OP_NOTIF -> [ 0x64 ]
     | OP_ELSE -> [ 0x67 ]
@@ -428,14 +411,7 @@ let opcode_to_hex oc =
     | OP_VERNOTIF -> [ 0x66 ]
     | OP_RESERVED1 -> [ 0x89 ]
     | OP_RESERVED2 -> [ 0x8a ]
-    | OP_NOP1 -> [ 0xb0 ]
-    | OP_NOP4 -> [ 0xb3 ]
-    | OP_NOP5 -> [ 0xb4 ]
-    | OP_NOP6 -> [ 0xb5 ]
-    | OP_NOP7 -> [ 0xb6 ]
-    | OP_NOP8 -> [ 0xb7 ]
-    | OP_NOP9 -> [ 0xb8 ]
-    | OP_NOP10 -> [ 0xb9 ]
+    | OP_NOP (x) -> [ x ]
 ;;
 
 
@@ -451,7 +427,10 @@ let opcode_of_hex s =
         | sa::sizea' -> sizea_to_int sizea' (acc * 0xFF + sa)
         in 
         let sizea = sizea_to_int sizea 0 in
-        (Bytes.sub s 0 sizea, Bytes.sub s sizea ((Bytes.length s) - sizea))
+        if sizea > Bytes.length s then
+           (Bytes.sub s 0 (Bytes.length s), "")
+        else
+           (Bytes.sub s 0 sizea, Bytes.sub s sizea ((Bytes.length s) - sizea))
     in
     let c, s' = consume_next s in
     match c with 
@@ -475,8 +454,8 @@ let opcode_of_hex s =
         let c'', s'' = consume_next s'' in
         let c''', s'' = consume_next s'' in
         let c'''', s'' = consume_next s'' in
-        let d, s'' = consume_bytes s'' [c'; c''; c'''; c'''] in
-        (OP_PUSHDATA4 (c', c'', c''', c''', d), s'')
+        let d, s'' = consume_bytes s'' [c'; c''; c'''; c''''] in
+        (OP_PUSHDATA4 (c', c'', c''', c'''', d), s'')
     | 0x4f -> (OP_1NEGATE, s')
     | 0x51 -> (OP_1, s')
     | 0x51 -> (OP_TRUE, s')
@@ -497,7 +476,6 @@ let opcode_of_hex s =
     | 0x60 -> (OP_16, s')
 
     (* Flow *)
-    | 0x61 -> (OP_NOP, s')
     | 0x63 -> (OP_IF, s')
     | 0x64 -> (OP_NOTIF, s')
     | 0x67 -> (OP_ELSE, s')
@@ -598,16 +576,11 @@ let opcode_of_hex s =
     | 0x66 -> (OP_VERNOTIF, s')
     | 0x89 -> (OP_RESERVED1, s')
     | 0x81 -> (OP_RESERVED2, s')
-    | 0xb0 -> (OP_NOP1, s')
-    | 0xb3 -> (OP_NOP4, s')
-    | 0xb4 -> (OP_NOP5, s')
-    | 0xb5 -> (OP_NOP6, s')
-    | 0xb6 -> (OP_NOP7, s')
-    | 0xb7 -> (OP_NOP8, s')
-    | 0xb8 -> (OP_NOP9, s')
-    | 0xb9 -> (OP_NOP10, s')
 
-    | _ -> (OP_INVALIDOPCODE, s')
+
+    | x when x = 0x61 || (x >= 0xb0 && x <= 0xb9) -> (OP_NOP (x), s')
+    | x -> (OP_NOP (x), s')
+
 ;;
 
 (* 
@@ -658,7 +631,6 @@ let rec _eval st altst scr =
         | OP_16 -> SStack.pushi 16 st; _eval st altst scr'
 
         (* Flow *)
-        | OP_NOP -> _eval st altst scr'
         | OP_IF -> if SStack.popi st <> 0 then _eval st altst scr' else to_endif_or_else st altst scr'
         | OP_NOTIF -> if SStack.popi st = 0 then _eval st altst scr' else to_endif_or_else st altst scr'
         | OP_ELSE -> to_endif st altst scr'
@@ -830,15 +802,8 @@ let rec _eval st altst scr =
         | OP_VERNOTIF -> true
         | OP_RESERVED1 -> true
         | OP_RESERVED2 -> true
-        | OP_NOP1 -> _eval st altst scr'
-        | OP_NOP4 -> _eval st altst scr'
-        | OP_NOP5 -> _eval st altst scr'
-        | OP_NOP6 -> _eval st altst scr'
-        | OP_NOP7 -> _eval st altst scr'
-        | OP_NOP8 -> _eval st altst scr'
-        | OP_NOP9 -> _eval st altst scr'
-        | OP_NOP10 -> _eval st altst scr'
 
+        | OP_NOP (x) -> _eval st altst scr'
         | _ -> false
 ;;
 
@@ -878,8 +843,12 @@ let serialize scr =
 ;;
 
 let parse s = 
+    (*Printf.printf "%s\n%!" @@ Hash.print_bin s;*)
     let rec parse' s = match Bytes.length s with
     | 0 -> []
-    | n -> let op, s' = opcode_of_hex s in op :: (parse' s')
+    | n -> 
+        let op, s' = opcode_of_hex s in 
+        (*(Printf.printf "%s\n%!" @@ opcode_to_string op);*)
+        op :: (parse' s')
     in (parse' s, String.length s)
 ;;
