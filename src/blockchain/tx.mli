@@ -1,6 +1,7 @@
 open Stdint
 open Bitstring
 
+
 module In : sig
 	type t = {
 		out_hash: string;
@@ -10,7 +11,7 @@ module In : sig
 	}
 	
 	val parse 			: bitstring -> bitstring * t option
-	val parse_all		: bitstring -> bitstring * t list
+	val parse_all		: bitstring -> bitstring * t list option
 	val serialize		: t -> bytes
 	val serialize_all	: t list -> bytes
 end
@@ -22,7 +23,7 @@ module Out : sig
 	}
 	
 	val parse			: bitstring -> bitstring * t option
-	val parse_all		: bitstring -> bitstring * t list
+	val parse_all		: bitstring -> bitstring * t list option
 	val serialize		: t -> bytes
 	val serialize_all	: t list -> bytes
 end
@@ -37,7 +38,7 @@ type t = {
 }
 
 val parse 			: bytes -> bytes * t option
-val parse_all		: bytes -> int -> t list
+val parse_all		: bytes -> int -> t list option
 
 val serialize		: t -> bytes
 val serialize_all	: t list -> bytes

@@ -3,6 +3,7 @@ open Bitstring;;
 open Crypto;;
 open Parser;;
 
+
 module Header = struct
 	type t = {
 		hash		: Hash.t;
@@ -71,10 +72,9 @@ module Header = struct
 			time		: 32 : string;
 			bits		: 32 : string;
 			nonce		: 32 : string
-		} ->
-		let hash = Hash.of_bin (hash256 data) in
-		if check_target hash bits then
-			Some {
+		} -> 
+			let hash = Hash.of_bin (hash256 data) in
+			if check_target hash bits then Some ({
 				hash			= hash;
 				version			= version;
 				prev_block		= Hash.of_bin prev_block;
@@ -82,9 +82,9 @@ module Header = struct
 				time			= Uint32.to_float (Uint32.of_bytes_little_endian time 0);
 				bits			= Uint32.of_bytes_little_endian bits 0;
 				nonce			= Uint32.of_bytes_little_endian nonce 0;
-			}
-		else
-			None
+			})
+			else None
+		| { _ } -> None
 	;;
 end
 
@@ -95,14 +95,16 @@ type t = {
 
 
 let parse data =
-	let h = Header.parse (Bytes.sub data 0 80) in
-	match h with 
+	let header = Header.parse (Bytes.sub data 0 80) in
+	match header with
 	| None -> None
-	| Some (header) -> 
+	| Some (header) ->
 		let bdata = bitstring_of_string  (Bytes.sub data 80 ((Bytes.length data) - 80)) in
 		let txn, rest' = parse_varint bdata in
 		let txs = Tx.parse_all (string_of_bitstring rest') (Uint64.to_int txn) in
-		Some { header= header; txs= txs; }
+		match txs with 
+		| Some (txs) -> Some ({ header= header; txs= txs; })
+		| None -> None
 ;;
 
 

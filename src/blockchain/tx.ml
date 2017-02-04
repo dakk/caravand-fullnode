@@ -2,6 +2,7 @@ open Stdint;;
 open Bitstring;;
 open Parser;;
 
+
 module In = struct 
 	type t = {
 		out_hash: string;
@@ -44,23 +45,24 @@ module In = struct
 				rest'		: -1 : bitstring
 			} -> 
 				let sc = Script.parse script in	
-				(rest', Some {
+				(rest', Some ({
 					out_hash= Hash.of_bin out_hash;
 					out_n= Uint32.of_int32 out_n;
 					script= sc;
 					sequence= Uint32.of_int32 sequence;
-				})
+				}))
+		| { _ } -> (bitstring_of_string "", None)
 	;;
 
 	let parse_all data = 
 		let inlen, rest' = parse_varint data in
 		let rec parse_all' n d acc = match n with
-		| 0 -> (d, acc)
+		| 0 -> (d, Some (acc))
 		| n -> 
 			let rest, txin = parse d in
-			match txin with
-			| None -> failwith "Parse failed"; parse_all' (n-1) rest acc
-			| Some (txi) -> parse_all' (n-1) rest (txi::acc)
+			match txin with 
+			| None -> (bitstring_of_string "", None)
+			| Some (txin) -> parse_all' (n-1) rest (txin::acc)
 		in parse_all' (Uint64.to_int inlen) rest' []
 	;;
 end
@@ -99,19 +101,20 @@ module Out = struct
 				rest''		: -1 : bitstring
 			} -> 
 			let sc = Script.parse script in		
-			(rest'', Some { value= value; script= sc; })
+			(rest'', Some ({ value= value; script= sc; }))
+		| { _ } -> (bitstring_of_string "", None)
 	;;
 
 
 	let parse_all data = 
 		let outlen, rest' = parse_varint data in
 		let rec parse_all' n d acc = match n with
-		| 0 -> (d, acc)
+		| 0 -> (d, Some (acc))
 		| n -> 
 			let rest, txout = parse d in
-			match txout with
-			| None -> failwith "Parse failed"; parse_all' (n-1) rest acc
-			| Some (txo) -> parse_all' (n-1) rest (txo::acc)
+			match txout with 
+			| None -> (bitstring_of_string "", None)
+			| Some (txout) -> parse_all' (n-1) rest (txout::acc)
 		in parse_all' (Uint64.to_int outlen) rest' []
 	;;
 end
@@ -135,22 +138,28 @@ let parse data =
 	} -> 
 		let rest', txin = In.parse_all rest in
 		let rest'', txout = Out.parse_all rest' in
-		let bdata = rest'' in
-		bitmatch bdata with 
-		| {
-			locktime	: 32 : littleendian;
-			rest		: -1 : bitstring
-		} -> 
-			let rest''' = string_of_bitstring rest in
-			let txlen = (Bytes.length data) - (Bytes.length rest''') in
-			let txhash = Hash.of_bin (Crypto.hash256 (Bytes.sub data 0 txlen)) in
-			(rest''', Some {
-				hash	= txhash;
-				version	= version;
-				txin	= List.rev txin;
-				txout	= List.rev txout;
-				locktime= Uint32.of_int32 locktime;
-			})
+		match (txin, txout) with
+		| None, Some (txout) -> ("", None)
+		| Some (txout), None -> ("", None)
+		| Some (txin), Some (txout) ->
+			let bdata = rest'' in
+			bitmatch bdata with 
+			| {
+				locktime	: 32 : littleendian;
+				rest		: -1 : bitstring
+			} -> 
+				let rest''' = string_of_bitstring rest in
+				let txlen = (Bytes.length data) - (Bytes.length rest''') in
+				let txhash = Hash.of_bin (Crypto.hash256 (Bytes.sub data 0 txlen)) in
+				(rest''', Some ({
+					hash	= txhash;
+					version	= version;
+					txin	= List.rev txin;
+					txout	= List.rev txout;
+					locktime= Uint32.of_int32 locktime;
+				}))
+			| { _ } -> ("", None)
+	| { _ } -> ("", None)
 ;;
 
 
@@ -174,17 +183,17 @@ let rec serialize_all txs = match txs with
 
 let parse_all data n =
 	let rec parse_all' n d acc = match n with
-	| 0 -> acc
+	| 0 -> Some (acc)
 	| n ->
 		let rest, tx = parse d in
 		match tx with
-		| None -> parse_all' (n-1) rest acc
+		| None -> None
 		| Some (mtx) -> 
 			(if (String.sub d 0 ((String.length d) - (String.length rest))) <> (serialize mtx) then (
 				Printf.printf "Wrong!\n%!"; 
 				Printf.printf "Original: %s\n%!" (Hash.print_bin d); 
 				Printf.printf "New: %s\n%!" (Hash.print_bin (serialize mtx)); 
-				failwith "LOL"
+				failwith "Size of serialized / parsed data does not match"
 			)); (*else Printf.printf "Correct!\n%!");*)
 			parse_all' (n-1) rest (mtx::acc)
 	in
