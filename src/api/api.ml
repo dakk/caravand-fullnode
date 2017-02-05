@@ -1,3 +1,4 @@
+open Log;;
 open Unix;;
 open Yojson.Basic.Util;;
 
@@ -37,23 +38,37 @@ module Request = struct
 	let reply req status jdata =
 		let send_string str = 
 			let len = String.length str in
-			let _ = send req.socket str 0 len [] in ()
+			send req.socket str 0 len [] |> ignore
 		in
-
 		send_string @@ Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status;
 		send_string @@ Yojson.Basic.to_string jdata;
-		close req.socket;
-		()
+		close req.socket
 	;;
 end
 
 
 let send_string sock str =
 	let len = String.length str in
-	let _ = send sock str 0 len [] in
-	()
+	send sock str 0 len [] |> ignore
 ;;
 
+let handle_request bc req = 
+	let rec merge_uri l = match l with
+	| [] -> ""
+	| x :: xl' -> x ^ "/" ^ (merge_uri xl')
+	in
+
+	Log.debug "Api" "Request: %s" @@ merge_uri req.Request.uri;	
+	match req.Request.uri with
+	| "block" :: bid :: _ -> 
+		Printf.printf "Get block\n%!";
+		Request.reply req 200 (`Assoc [("status", `String "ok")])
+	| "" :: xl ->
+		Printf.printf "Unhandled\n%!";
+		Request.reply req 200 (`Assoc [("status", `String "ok")])
+	| _ -> 
+		Request.reply req 200 (`Assoc [("status", `String "err")])
+;;
 
 let loop port bc =
 	let rec do_listen socket =
@@ -63,18 +78,12 @@ let loop port bc =
 			close client_sock; 
 			do_listen socket
 		| Some (req) ->
-			(match req.uri with
-			| "block" :: bid :: _ -> 
-				Printf.printf "Get block\n%!"
-			| a :: xl ->
-				Printf.printf "Unhandled %s\n%!" a
-			);
-			send_string client_sock "HTTP/1.1 200/OK\nContent-type: application/json\n\n";
-			send_string client_sock "{}";
+			handle_request bc req;
 			close client_sock;
 			do_listen socket
 	in
 	let socket = socket PF_INET SOCK_STREAM 0 in
+	Log.info "Api" "Binding to port: %d" port;
 	bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", port));
 	listen socket 8;
 	do_listen socket

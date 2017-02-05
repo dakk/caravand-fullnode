@@ -12,7 +12,8 @@ let parse_command_line conf =
 	let help conf = 
 		Printf.printf "Usage:\n"; 
 		Printf.printf " -h, --help\t\t\tShow this help\n"; 
-		Printf.printf " -c XTN|BTC, --chain XTN|BTC\tSelect the chain\n%!"; 
+		Printf.printf " -c XTN|BTC, --chain XTN|BTC\tSelect the chain\n"; 
+		Printf.printf " -ap 807\t\t\tSelect api port\n%!"; 
 		Thread.exit (); 
 		conf
 	in
@@ -28,6 +29,11 @@ let parse_command_line conf =
 		match x with
 		| "--help"
 		| "-h" -> help conf
+		| "-ap" -> 
+			Log.debug "Config" "Setting api port from command line: %s" x';
+			parse ({ conf with 
+				api_port= int_of_string x'
+			}) xl'
 		| "-c" -> 
 			Log.debug "Config" "Setting chain from command line: %s" x';
 			parse ({ conf with 
