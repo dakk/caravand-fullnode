@@ -9,10 +9,11 @@ module Request : sig
 		uri		: string list;
 		data	: string;
 		rmethod	: m;
+		socket 	: Unix.file_descr;
 	}
 
 	val recv    : Unix.file_descr -> t option
-    val reply   : Unix.file_descr -> int -> Yojson.Basic.json -> unit
+    val reply   : t -> int -> Yojson.Basic.json -> unit
 end
 
 

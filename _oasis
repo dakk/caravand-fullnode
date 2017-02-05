@@ -31,7 +31,7 @@ Library network
 Library api 
   Path:         src/api
   BuildTools:   ocamlbuild
-  BuildDepends: cohttp, async, threads, cohttp.async, blockchain
+  BuildDepends: threads, blockchain
   Modules: Api
 
 Document letchain

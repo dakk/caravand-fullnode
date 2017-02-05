@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: d8c08f6b31c02ac1e81c9c583ff38f9c)
+# DO NOT EDIT (digest: 016c126c42bd383d4c322a0e08b28fb9)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -46,11 +46,8 @@ true: annot, bin_annot
 <src/network/*.ml{,i,y}>: use_utils
 # Library api
 "src/api/api.cmxs": use_api
-<src/api/*.ml{,i,y}>: pkg_async
 <src/api/*.ml{,i,y}>: pkg_bitstring
 <src/api/*.ml{,i,y}>: pkg_bitstring.syntax
-<src/api/*.ml{,i,y}>: pkg_cohttp
-<src/api/*.ml{,i,y}>: pkg_cohttp.async
 <src/api/*.ml{,i,y}>: pkg_cryptokit
 <src/api/*.ml{,i,y}>: pkg_leveldb
 <src/api/*.ml{,i,y}>: pkg_stdint
@@ -59,11 +56,8 @@ true: annot, bin_annot
 <src/api/*.ml{,i,y}>: use_blockchain
 <src/api/*.ml{,i,y}>: use_utils
 # Executable letchain
-"src/letchain.native": pkg_async
 "src/letchain.native": pkg_bitstring
 "src/letchain.native": pkg_bitstring.syntax
-"src/letchain.native": pkg_cohttp
-"src/letchain.native": pkg_cohttp.async
 "src/letchain.native": pkg_cryptokit
 "src/letchain.native": pkg_ctypes
 "src/letchain.native": pkg_leveldb
@@ -74,11 +68,8 @@ true: annot, bin_annot
 "src/letchain.native": use_blockchain
 "src/letchain.native": use_network
 "src/letchain.native": use_utils
-<src/*.ml{,i,y}>: pkg_async
 <src/*.ml{,i,y}>: pkg_bitstring
 <src/*.ml{,i,y}>: pkg_bitstring.syntax
-<src/*.ml{,i,y}>: pkg_cohttp
-<src/*.ml{,i,y}>: pkg_cohttp.async
 <src/*.ml{,i,y}>: pkg_cryptokit
 <src/*.ml{,i,y}>: pkg_ctypes
 <src/*.ml{,i,y}>: pkg_leveldb

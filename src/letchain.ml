@@ -5,7 +5,6 @@ open Thread;;
 open Random;;
 open Config;;
 open Blockchain;;
-open Core.Std;;
 
 let main () =
 	let chain_job bc = 

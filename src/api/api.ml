@@ -9,6 +9,7 @@ module Request = struct
 		uri		: string list;
 		data	: string;
 		rmethod	: m;
+		socket 	: Unix.file_descr;
 	};;
 
 	(* 426 GET /block/tx HTTP/1.1 *)
@@ -27,20 +28,21 @@ module Request = struct
 		| m :: u :: dl -> Some ({ 
 			uri= String.split_on_char '/' u;
 			data= "";
-			rmethod= method_of_string m
+			rmethod= method_of_string m;
+			socket= socket
 		})
 		| _ -> None 
 	;;
 
-	let reply socket status jdata =
-		let send_string sock str =
+	let reply req status jdata =
+		let send_string str = 
 			let len = String.length str in
-			let _ = send sock str 0 len [] in ()
+			let _ = send req.socket str 0 len [] in ()
 		in
 
-		send_string socket (Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status);
-		send_string socket @@ Yojson.Basic.to_string jdata;
-		close socket;
+		send_string @@ Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status;
+		send_string @@ Yojson.Basic.to_string jdata;
+		close req.socket;
 		()
 	;;
 end
@@ -50,6 +52,7 @@ let send_string sock str =
 	let len = String.length str in
 	let _ = send sock str 0 len [] in
 	()
+;;
 
 
 let loop port bc =
