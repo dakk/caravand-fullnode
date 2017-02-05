@@ -7,13 +7,32 @@ type t = {
 };;
 
 
-let parse_command_line conf =		
+let parse_command_line conf =
+	let help conf = 
+		Printf.printf "Usage:\n"; 
+		Printf.printf " -h, --help\t\t\tShow this help\n"; 
+		Printf.printf " -c XTN|BTC, --chain XTN|BTC\tSelect the chain\n%!"; 
+		Thread.exit (); 
+		conf
+	in
 	let rec parse conf argvs = match argvs with
 	| [] -> conf
-	| x :: [] -> conf
+	| x :: [] -> (
+		match x with
+		| "--help" 
+		| "-h" -> help conf
+		| _ -> conf
+	)
 	| x :: x' :: xl' -> 
 		match x with
-		| "-c" -> parse ({ conf with chain=x' }) xl'
+		| "--help"
+		| "-h" -> help conf
+		| "-c" -> 
+			Log.debug "Config" "Setting chain from command line: %s" x';
+			parse ({ conf with 
+				chain=x';
+				path= (Unix.getenv "HOME" ^ "/.letchain/" ^ x')
+			}) xl'
 		| x -> parse conf (x'::xl')
 	in parse conf (Array.to_list Sys.argv)
 ;;
