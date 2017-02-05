@@ -4,6 +4,7 @@ type t = {
 	peers 		: int;
 	chain		: string;
 	path		: string;
+	api_port	: int;
 };;
 
 
@@ -44,6 +45,7 @@ let rec load_or_init () =
 		let conf = {
 			peers= json |> member "peers" |> to_int;
 			chain= json |> member "chain" |> to_string;
+			api_port= json |> member "api_port" |> to_int;
 			path= (Unix.getenv "HOME" ^ "/.letchain/" ^ (json |> member "chain" |> to_string));
 		} in
 		try
@@ -55,7 +57,7 @@ let rec load_or_init () =
 	with
 	| _ -> 
 		try
-			let json = Yojson.Basic.from_string "{ \"peers\": 8, \"chain\": \"XTN\" }" in 
+			let json = Yojson.Basic.from_string "{ \"peers\": 8, \"chain\": \"XTN\", \"api_port\": 8086 }" in 
 			let _ = Yojson.Basic.to_file (Unix.getenv "HOME" ^ "/.letchain/config.json") json in
 			Log.debug "Config" "Created %s" (Unix.getenv "HOME" ^ "/.letchain/config.json");
 			load_or_init ()

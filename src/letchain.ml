@@ -15,8 +15,8 @@ let main () =
 		let n = Network.init bc.params conf.peers in 
 		Network.loop n bc
 	in
-	let http_job (bc, conf) =
-		Http.loop bc
+	let api_job (bc, conf) =
+		Api.loop conf.api_port bc
 	in
 	
 	Random.self_init ();
@@ -31,14 +31,13 @@ let main () =
 		
 		let bc = Blockchain.load conf.path p in
 		let chain_thread = Thread.create chain_job bc in
-		let http_thread = Thread.create http_job (bc, conf) in
+		let api_thread = Thread.create api_job (bc, conf) in
 		let net_thread = Thread.create net_job (bc, conf) in
-		
 		
 		Log.info "letchain" "Waiting for childs";
 		Thread.join net_thread;
 		Thread.join chain_thread;
-		Thread.join http_thread;
+		Thread.join api_thread;
 		Log.info "letchain" "Exit.";
 ;;
 

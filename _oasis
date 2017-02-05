@@ -32,7 +32,7 @@ Library api
   Path:         src/api
   BuildTools:   ocamlbuild
   BuildDepends: cohttp, async, threads, cohttp.async, blockchain
-  Modules: Http
+  Modules: Api
 
 Document letchain
   Title:                API reference for simplelib

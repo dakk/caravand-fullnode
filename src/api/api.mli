@@ -1,7 +1,22 @@
 (* REST api interface *)
 open Blockchain
 
-val loop : Blockchain.t -> unit
+
+module Request : sig
+    type m = GET | POST
+
+	type t = {
+		uri		: string list;
+		data	: string;
+		rmethod	: m;
+	}
+
+	val recv    : Unix.file_descr -> t option
+    val reply   : Unix.file_descr -> int -> Yojson.Basic.json -> unit
+end
+
+
+val loop : int -> Blockchain.t -> unit
 
 (*
     /transaction/:id
