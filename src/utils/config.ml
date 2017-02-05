@@ -1,11 +1,22 @@
 open Yojson.Basic.Util;;
 
 type t = {
-	peers 	: int;
+	peers 		: int;
 	chain		: string;
 	path		: string;
 };;
 
+
+let parse_command_line conf =		
+	let rec parse conf argvs = match argvs with
+	| [] -> conf
+	| x :: [] -> conf
+	| x :: x' :: xl' -> 
+		match x with
+		| "-c" -> parse ({ conf with chain=x' }) xl'
+		| x -> parse conf (x'::xl')
+	in parse conf (Array.to_list Sys.argv)
+;;
 
 let rec load_or_init () = 
 	try

@@ -81,7 +81,8 @@ module Out = struct
 	let serialize txout = 
 		let value = Bitstring.string_of_bitstring (BITSTRING { txout.value : 64 : littleendian }) in 
 		let sclen = string_of_bitstring @@ Parser.bitstring_of_varint (Int64.of_int (Script.length txout.script)) in
-		value ^ sclen ^ Script.serialize (txout.script)
+		let sc = Script.serialize (txout.script) in
+		value ^ sclen ^ sc
 	;;
 
 	let serialize_all txouts = 
@@ -194,14 +195,16 @@ let parse_all data ntx =
 	match n with
 	| 0 -> (*Printf.printf "End! %d\n%!" n;*) Some (acc)
 	| n ->
-		(*Printf.printf "Parsing TX %d\n%!" n;*)
 		let rest, tx = if n = ntx then parse d ~coinbase:true else parse d in
 		match tx with
-		| None -> (*Printf.printf "Failed to parse TX\n%!"*) None
+		| None -> None
 		| Some (mtx) -> 
-			(*Printf.printf "Parsed TX %s %d\n%!" mtx.hash (String.length rest);*)
+			let ser = serialize mtx in
+			let dlen = (String.length d) in
+			let rlen = (String.length rest) in
+			let subs = String.sub d 0 (dlen - rlen) in
 			
-			if (String.sub d 0 ((String.length d) - (String.length rest))) <> (serialize mtx) then (
+			if (subs <> ser) then (
 				Printf.printf "Wrong!\n%!"; 
 				Printf.printf "Original: %s\n%!" (Hash.print_bin d); 
 				Printf.printf "New: %s\n%!" (Hash.print_bin (serialize mtx)); 

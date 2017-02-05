@@ -48,7 +48,7 @@ type opcode =
 | OP_ELSE
 | OP_ENDIF
 | OP_VERIFY
-| OP_RETURN
+| OP_RETURN of bytes
 
 (* Stack *)
 | OP_TOALTSTACK
@@ -155,8 +155,8 @@ let opcode_to_string oc = match oc with
 | OP_FALSE -> "OP_FALSE"
 | OP_DATA (s, data) -> Printf.sprintf "OP_DATA(%x, %s)" s (Hash.of_bin data)
 | OP_PUSHDATA1 (s, data) -> Printf.sprintf "OP_PUSHDATA1(%x, %s)" s (Hash.of_bin data)
-| OP_PUSHDATA2 (s1, s2, data) -> Printf.sprintf "OP_PUSHDATA2(%x%x, %s)" s1 s2 (Hash.of_bin data)
-| OP_PUSHDATA4 (s1, s2, s3, s4, data) -> Printf.sprintf "OP_PUSHDATA4(%x%x%x%x, %s)" s1 s2 s3 s4 (Hash.of_bin data)
+| OP_PUSHDATA2 (s1, s2, data) -> Printf.sprintf "OP_PUSHDATA2(%x %x, %s)" s1 s2 (Hash.of_bin data)
+| OP_PUSHDATA4 (s1, s2, s3, s4, data) -> Printf.sprintf "OP_PUSHDATA4(%x %x %x %x, %s)" s1 s2 s3 s4 (Hash.of_bin data)
 | OP_1NEGATE -> "OP_1NEGATE"
 | OP_1 -> "OP_1"
 | OP_TRUE -> "OP_TRUE"
@@ -182,7 +182,7 @@ let opcode_to_string oc = match oc with
 | OP_ELSE -> "OP_ELSE"
 | OP_ENDIF -> "OP_ENDIF"
 | OP_VERIFY -> "OP_VERIFY"
-| OP_RETURN -> "OP_RETURN"
+| OP_RETURN (data) -> Printf.sprintf "OP_RETURN(%s)" (Hash.of_bin data)
 
 (* Stack *)
 | OP_TOALTSTACK -> "OP_TOALTSTACK"
@@ -320,7 +320,7 @@ let opcode_to_hex oc =
     | OP_ELSE -> [ 0x67 ]
     | OP_ENDIF -> [ 0x68 ]
     | OP_VERIFY -> [ 0x69 ]
-    | OP_RETURN -> [ 0x6a ]
+    | OP_RETURN (data) -> [ 0x6a ] @ (data_to_bytearray data)
 
     (* Stack *)
     | OP_TOALTSTACK -> [ 0x6b ]
@@ -422,7 +422,7 @@ let opcode_to_hex oc =
 let opcode_of_hex s = 
     let consume_next s =
         match Bytes.length s with
-        | 0 -> (0x00, "")
+        | 0 -> failwith "Not enough bytes"
         | 1 -> (Bytes.get s 0 |> Char.code, "")
         | n ->
             let c = Bytes.get s 0 |> Char.code in
@@ -441,153 +441,159 @@ let opcode_of_hex s =
            (Bytes.sub s 0 sizea, Bytes.sub s sizea ((Bytes.length s) - sizea))
     in
     let c, s' = consume_next s in
-    match c with 
+    match (Bytes.length s', c) with 
     (* Constants *)
-    | 0x00 -> (OP_0, s')
-    | 0x00 -> (OP_FALSE, s')
-    | x when x >= 0x01 && x <= 0x4b -> 
+    | l, 0x00 -> (OP_0, s')
+    | l, 0x00 -> (OP_FALSE, s')
+    | l, x when x >= 0x01 && x <= 0x4b -> 
         let d, s'' = consume_bytes s' [x] in
         (OP_DATA (x, d), s'')
-    | 0x4c -> 
+    | l, 0x4c when l >= 1 -> 
         let c', s'' = consume_next s' in
         let d, s'' = consume_bytes s'' [c'] in
         (OP_PUSHDATA1 (c', d), s'')
-    | 0x4d -> 
+    | l, 0x4c when l < 1 ->
+        (OP_NOP (0x4c), s')
+    | l, 0x4d when l >= 2 -> 
         let c', s'' = consume_next s' in
         let c'', s'' = consume_next s'' in
         let d, s'' = consume_bytes s'' [c'; c''] in
         (OP_PUSHDATA2 (c', c'', d), s'')
-    | 0x4e -> 
+    | l, 0x4d when l < 2 ->
+        (OP_NOP (0x4d), s')
+    | l, 0x4e when l >= 4 -> 
         let c', s'' = consume_next s' in
         let c'', s'' = consume_next s'' in
         let c''', s'' = consume_next s'' in
         let c'''', s'' = consume_next s'' in
         let d, s'' = consume_bytes s'' [c'; c''; c'''; c''''] in
         (OP_PUSHDATA4 (c', c'', c''', c'''', d), s'')
-    | 0x4f -> (OP_1NEGATE, s')
-    | 0x51 -> (OP_1, s')
-    | 0x51 -> (OP_TRUE, s')
-    | 0x52 -> (OP_2, s')
-    | 0x53 -> (OP_3, s')
-    | 0x54 -> (OP_4, s')
-    | 0x55 -> (OP_5, s')
-    | 0x56 -> (OP_6, s')
-    | 0x57 -> (OP_7, s')
-    | 0x58 -> (OP_8, s')
-    | 0x59 -> (OP_9, s')
-    | 0x5a -> (OP_10, s')
-    | 0x5b -> (OP_11, s')
-    | 0x5c -> (OP_12, s')
-    | 0x5d -> (OP_13, s')
-    | 0x5e -> (OP_14, s')
-    | 0x5f -> (OP_15, s')
-    | 0x60 -> (OP_16, s')
+    | l, 0x4e when l < 4 ->
+        (OP_NOP (0x4e), s')        
+    | l, 0x4f -> (OP_1NEGATE, s')
+    | l, 0x51 -> (OP_1, s')
+    | l, 0x51 -> (OP_TRUE, s')
+    | l, 0x52 -> (OP_2, s')
+    | l, 0x53 -> (OP_3, s')
+    | l, 0x54 -> (OP_4, s')
+    | l, 0x55 -> (OP_5, s')
+    | l, 0x56 -> (OP_6, s')
+    | l, 0x57 -> (OP_7, s')
+    | l, 0x58 -> (OP_8, s')
+    | l, 0x59 -> (OP_9, s')
+    | l, 0x5a -> (OP_10, s')
+    | l, 0x5b -> (OP_11, s')
+    | l, 0x5c -> (OP_12, s')
+    | l, 0x5d -> (OP_13, s')
+    | l, 0x5e -> (OP_14, s')
+    | l, 0x5f -> (OP_15, s')
+    | l, 0x60 -> (OP_16, s')
 
     (* Flow *)
-    | 0x63 -> (OP_IF, s')
-    | 0x64 -> (OP_NOTIF, s')
-    | 0x67 -> (OP_ELSE, s')
-    | 0x68 -> (OP_ENDIF, s')
-    | 0x69 -> (OP_VERIFY, s')
-    | 0x6a -> (OP_RETURN, s')
+    | l, 0x63 -> (OP_IF, s')
+    | l, 0x64 -> (OP_NOTIF, s')
+    | l, 0x67 -> (OP_ELSE, s')
+    | l, 0x68 -> (OP_ENDIF, s')
+    | l, 0x69 -> (OP_VERIFY, s')
+    | l, 0x6a -> (OP_RETURN (s'), "")
 
     (* Stack *)
-    | 0x6b -> (OP_TOALTSTACK, s')
-    | 0x6c -> (OP_FROMALTSTACK, s')
-    | 0x73 -> (OP_IFDUP, s')
-    | 0x74 -> (OP_DEPTH, s')
-    | 0x75 -> (OP_DROP, s')
-    | 0x76 -> (OP_DUP, s')
-    | 0x77 -> (OP_NIP, s')
-    | 0x78 -> (OP_OVER, s')
-    | 0x79 -> (OP_PICK, s')
-    | 0x7a -> (OP_ROLL, s')
-    | 0x7b -> (OP_ROT, s')
-    | 0x7c -> (OP_SWAP, s')
-    | 0x7d -> (OP_TUCK, s')
-    | 0x6d -> (OP_2DROP, s')
-    | 0x6e -> (OP_2DUP, s')
-    | 0x6f -> (OP_3DUP, s')
-    | 0x70 -> (OP_2OVER, s')
-    | 0x71 -> (OP_2ROT, s')
-    | 0x72 -> (OP_2SWAP, s')
+    | l, 0x6b -> (OP_TOALTSTACK, s')
+    | l, 0x6c -> (OP_FROMALTSTACK, s')
+    | l, 0x73 -> (OP_IFDUP, s')
+    | l, 0x74 -> (OP_DEPTH, s')
+    | l, 0x75 -> (OP_DROP, s')
+    | l, 0x76 -> (OP_DUP, s')
+    | l, 0x77 -> (OP_NIP, s')
+    | l, 0x78 -> (OP_OVER, s')
+    | l, 0x79 -> (OP_PICK, s')
+    | l, 0x7a -> (OP_ROLL, s')
+    | l, 0x7b -> (OP_ROT, s')
+    | l, 0x7c -> (OP_SWAP, s')
+    | l, 0x7d -> (OP_TUCK, s')
+    | l, 0x6d -> (OP_2DROP, s')
+    | l, 0x6e -> (OP_2DUP, s')
+    | l, 0x6f -> (OP_3DUP, s')
+    | l, 0x70 -> (OP_2OVER, s')
+    | l, 0x71 -> (OP_2ROT, s')
+    | l, 0x72 -> (OP_2SWAP, s')
 
     (* Splice *)
-    | 0x7e -> (OP_CAT, s')
-    | 0x7f -> (OP_SUBSTR, s')
-    | 0x80 -> (OP_LEFT, s')
-    | 0x81 -> (OP_RIGHT, s')
-    | 0x82 -> (OP_SIZE, s')
+    | l, 0x7e -> (OP_CAT, s')
+    | l, 0x7f -> (OP_SUBSTR, s')
+    | l, 0x80 -> (OP_LEFT, s')
+    | l, 0x81 -> (OP_RIGHT, s')
+    | l, 0x82 -> (OP_SIZE, s')
 
     (* Bitwise logic *)
-    | 0x83 -> (OP_INVERT, s')
-    | 0x84 -> (OP_AND, s')
-    | 0x85 -> (OP_OR, s')
-    | 0x86 -> (OP_XOR, s')
-    | 0x87 -> (OP_EQUAL, s')
-    | 0x88 -> (OP_EQUALVERIFY, s')
+    | l, 0x83 -> (OP_INVERT, s')
+    | l, 0x84 -> (OP_AND, s')
+    | l, 0x85 -> (OP_OR, s')
+    | l, 0x86 -> (OP_XOR, s')
+    | l, 0x87 -> (OP_EQUAL, s')
+    | l, 0x88 -> (OP_EQUALVERIFY, s')
 
     (* Arithmetic*)
-    | 0x8b -> (OP_1ADD, s')
-    | 0x8c -> (OP_1SUB, s')
-    | 0x8d -> (OP_2MUL, s')
-    | 0x8e -> (OP_2DIV, s')
-    | 0x8f -> (OP_NEGATE, s')
-    | 0x90 -> (OP_ABS, s')
-    | 0x91 -> (OP_NOT, s')
-    | 0x92 -> (OP_0NOTEQUAL, s')
-    | 0x93 -> (OP_ADD, s')
-    | 0x94 -> (OP_SUB, s')
-    | 0x95 -> (OP_MUL, s')
-    | 0x96 -> (OP_DIV, s')
-    | 0x97 -> (OP_MOD, s')
-    | 0x98 -> (OP_LSHIFT, s')
-    | 0x99 -> (OP_RSHIFT, s')
-    | 0x9a -> (OP_BOOLAND, s')
-    | 0x9b -> (OP_BOOLOR, s')
-    | 0x9c -> (OP_NUMEQUAL, s')
-    | 0x9d -> (OP_NUMEQUALVERIFY, s')
-    | 0x9e -> (OP_NUMNOTEQUAL, s')
-    | 0x9f -> (OP_LESSTHAN, s')
-    | 0xa0 -> (OP_GREATERTHAN, s')
-    | 0xa1 -> (OP_LESSTHANOREQUAL, s')
-    | 0xa2 -> (OP_GREATERTHANOREQUAL, s')
-    | 0xa3 -> (OP_MIN, s')
-    | 0xa4 -> (OP_MAX, s')
-    | 0xa5 -> (OP_WITHIN, s')
+    | l, 0x8b -> (OP_1ADD, s')
+    | l, 0x8c -> (OP_1SUB, s')
+    | l, 0x8d -> (OP_2MUL, s')
+    | l, 0x8e -> (OP_2DIV, s')
+    | l, 0x8f -> (OP_NEGATE, s')
+    | l, 0x90 -> (OP_ABS, s')
+    | l, 0x91 -> (OP_NOT, s')
+    | l, 0x92 -> (OP_0NOTEQUAL, s')
+    | l, 0x93 -> (OP_ADD, s')
+    | l, 0x94 -> (OP_SUB, s')
+    | l, 0x95 -> (OP_MUL, s')
+    | l, 0x96 -> (OP_DIV, s')
+    | l, 0x97 -> (OP_MOD, s')
+    | l, 0x98 -> (OP_LSHIFT, s')
+    | l, 0x99 -> (OP_RSHIFT, s')
+    | l, 0x9a -> (OP_BOOLAND, s')
+    | l, 0x9b -> (OP_BOOLOR, s')
+    | l, 0x9c -> (OP_NUMEQUAL, s')
+    | l, 0x9d -> (OP_NUMEQUALVERIFY, s')
+    | l, 0x9e -> (OP_NUMNOTEQUAL, s')
+    | l, 0x9f -> (OP_LESSTHAN, s')
+    | l, 0xa0 -> (OP_GREATERTHAN, s')
+    | l, 0xa1 -> (OP_LESSTHANOREQUAL, s')
+    | l, 0xa2 -> (OP_GREATERTHANOREQUAL, s')
+    | l, 0xa3 -> (OP_MIN, s')
+    | l, 0xa4 -> (OP_MAX, s')
+    | l, 0xa5 -> (OP_WITHIN, s')
 
     (* Crypto *)
-    | 0xa6 -> (OP_RIPEMD160, s')
-    | 0xa7 -> (OP_SHA1, s')
-    | 0xa8 -> (OP_SHA256, s')
-    | 0xa9 -> (OP_HASH160, s')
-    | 0xaa -> (OP_HASH256, s')
-    | 0xab -> (OP_CODESEPARATOR, s')
-    | 0xac -> (OP_CHECKSIG, s')
-    | 0xad -> (OP_CHECKSIGVERIFY, s')
-    | 0xae -> (OP_CHECKMULTISIG, s')
-    | 0xaf -> (OP_CHECKMULTISIGVERIFY, s')
+    | l, 0xa6 -> (OP_RIPEMD160, s')
+    | l, 0xa7 -> (OP_SHA1, s')
+    | l, 0xa8 -> (OP_SHA256, s')
+    | l, 0xa9 -> (OP_HASH160, s')
+    | l, 0xaa -> (OP_HASH256, s')
+    | l, 0xab -> (OP_CODESEPARATOR, s')
+    | l, 0xac -> (OP_CHECKSIG, s')
+    | l, 0xad -> (OP_CHECKSIGVERIFY, s')
+    | l, 0xae -> (OP_CHECKMULTISIG, s')
+    | l, 0xaf -> (OP_CHECKMULTISIGVERIFY, s')
 
     (* Lock time *)
-    | 0xb1 -> (OP_CHECKLOCKTIMEVERIFY, s')
-    | 0xb2 -> (OP_CHECKSEQUENCEVERIFY, s')
+    | l, 0xb1 -> (OP_CHECKLOCKTIMEVERIFY, s')
+    | l, 0xb2 -> (OP_CHECKSEQUENCEVERIFY, s')
 
     (* Pseudo words *)
-    | 0xfd -> (OP_PUBKEYHASH, s')
-    | 0xfe -> (OP_PUBKEY, s')
-    | 0xff -> (OP_INVALIDOPCODE , s')
+    | l, 0xfd -> (OP_PUBKEYHASH, s')
+    | l, 0xfe -> (OP_PUBKEY, s')
+    | l, 0xff -> (OP_INVALIDOPCODE , s')
 
     (* Reserved words*)
-    | 0x50 -> (OP_RESERVED, s')
-    | 0x62 -> (OP_VER, s')
-    | 0x65 -> (OP_VERIF, s')
-    | 0x66 -> (OP_VERNOTIF, s')
-    | 0x89 -> (OP_RESERVED1, s')
-    | 0x81 -> (OP_RESERVED2, s')
+    | l, 0x50 -> (OP_RESERVED, s')
+    | l, 0x62 -> (OP_VER, s')
+    | l, 0x65 -> (OP_VERIF, s')
+    | l, 0x66 -> (OP_VERNOTIF, s')
+    | l, 0x89 -> (OP_RESERVED1, s')
+    | l, 0x81 -> (OP_RESERVED2, s')
 
 
-    | x when x = 0x61 || (x >= 0xb0 && x <= 0xb9) -> (OP_NOP (x), s')
-    | x -> (OP_NOP (x), s')
+    | l, x when x = 0x61 || (x >= 0xb0 && x <= 0xb9) -> (OP_NOP (x), s')
+    | l, x -> (OP_NOP (x), s')
 
 ;;
 
@@ -644,7 +650,7 @@ let rec _eval st altst scr =
         | OP_ELSE -> to_endif st altst scr'
         | OP_ENDIF -> _eval st altst scr'
         | OP_VERIFY -> if SStack.popi st <> 0 then true else false
-        | OP_RETURN -> false
+        | OP_RETURN (data) -> false
 
         (* Stack *)
         | OP_TOALTSTACK -> 
@@ -847,17 +853,14 @@ let serialize scr =
     let s = serialize' (fst scr) in
     match (snd scr, Bytes.length s) with
     | (n, n') when n = n' -> s 
-    | (n, n') -> failwith "Wrong serialize size"
+    | (n, n') -> Printf.printf "Wrong size %d %d\n%!" n n'; failwith "Wrong serialize size"
 ;;
 
 let parse s = 
-    (*Printf.printf "%s\n%!" @@ Hash.print_bin s;*)
     let rec parse' s = match Bytes.length s with
     | 0 -> []
     | n -> 
-        (*(Printf.printf "%x\n%!" @@ Char.code (String.get s 0));*)
         let op, s' = opcode_of_hex s in 
-        (*(Printf.printf "%s\n%!" @@ opcode_to_string op);*)
         op :: (parse' s')
     in (parse' s, String.length s)
 ;;

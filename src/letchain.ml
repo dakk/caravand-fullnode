@@ -5,7 +5,7 @@ open Thread;;
 open Random;;
 open Config;;
 open Blockchain;;
-
+open Core.Std;;
 
 let main () =
 	let chain_job bc = 
@@ -21,7 +21,7 @@ let main () =
 	
 	Random.self_init ();
 	Log.info "letchain" "Starting 0.1";
-	let conf = Config.load_or_init () in
+	let conf = Config.load_or_init () |> Config.parse_command_line in
  	let cn = Params.abbr_to_network conf.chain in
 	if cn = NOTFOUND then
 		Log.info "letchain" "Invalid chain"

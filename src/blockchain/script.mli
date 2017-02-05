@@ -48,7 +48,7 @@ type opcode =
     | OP_ELSE
     | OP_ENDIF
     | OP_VERIFY
-    | OP_RETURN
+    | OP_RETURN of bytes
 
     (* Stack *)
     | OP_TOALTSTACK

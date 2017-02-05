@@ -4,4 +4,5 @@ type t = {
 	path		: string;
 }
 
-val load_or_init	:	unit -> t
+val load_or_init		:	unit -> t
+val parse_command_line	: t -> t
