@@ -13,6 +13,7 @@ let parse_command_line conf =
 		Printf.printf "Usage:\n"; 
 		Printf.printf " -h, --help\t\t\tShow this help\n"; 
 		Printf.printf " -c XTN|BTC, --chain XTN|BTC\tSelect the chain\n"; 
+		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
 		Printf.printf " -ap 807\t\t\tSelect api port\n%!"; 
 		Thread.exit (); 
 		conf

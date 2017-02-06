@@ -4,7 +4,7 @@ open Yojson.Basic.Util;;
 
 
 module Request = struct
-    type m = GET | POST;;
+    type m = GET | POST | PUT | DELETE;;
 
 	type t = {
 		uri		: string list;
@@ -13,12 +13,12 @@ module Request = struct
 		socket 	: Unix.file_descr;
 	};;
 
-	(* 426 GET /block/tx HTTP/1.1 *)
-
 	let recv socket = 
 		let method_of_string s = match s with
 		| "GET" -> GET
 		| "POST" -> POST
+		| "DELETE" -> DELETE
+		| "PUT" -> PUT
 		| _ -> GET
 		in
 		let data = Bytes.create 1024 in
@@ -27,7 +27,7 @@ module Request = struct
 		let data = String.split_on_char ' ' data in
 		match data with
 		| m :: u :: dl -> Some ({ 
-			uri= String.split_on_char '/' u;
+			uri= List.tl @@ String.split_on_char '/' u; 
 			data= "";
 			rmethod= method_of_string m;
 			socket= socket
@@ -53,21 +53,91 @@ let send_string sock str =
 ;;
 
 let handle_request bc req = 
-	let rec merge_uri l = match l with
-	| [] -> ""
-	| x :: xl' -> x ^ "/" ^ (merge_uri xl')
+	let not_found () =
+		Request.reply req 404 (`Assoc [("status", `String "err")])
 	in
 
-	Log.debug "Api" "Request: %s" @@ merge_uri req.Request.uri;	
-	match req.Request.uri with
-	| "block" :: bid :: _ -> 
-		Printf.printf "Get block\n%!";
-		Request.reply req 200 (`Assoc [("status", `String "ok")])
-	| "" :: xl ->
-		Printf.printf "Unhandled\n%!";
-		Request.reply req 200 (`Assoc [("status", `String "ok")])
-	| _ -> 
-		Request.reply req 200 (`Assoc [("status", `String "err")])
+	Log.debug "Api" "Request: %s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
+	match req.Request.rmethod, req.Request.uri with
+
+	(* Push a tx *)
+	| (Request.POST, "tx" :: []) ->
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("txid", `String "asdasd")
+		])
+
+	(* Get address info *)
+	| (Request.GET, "address" :: addr :: []) -> 
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("address", `Assoc [
+				("address", `String addr);
+				("balance", `Int 32);
+				("unconfirmed_balance", `Int 32);
+				("sent", `Int 32);
+				("received", `Int 32);
+				("txs", `Int 32)				
+			])
+		])
+
+	(* Get address txs *)
+	| (Request.GET, "address" :: addr :: "txs" :: []) -> 
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("txs", `Assoc [
+				
+			])
+		])
+
+	(* Get address utxo *)
+	| (Request.GET, "address" :: addr :: "utxo" :: []) -> 
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("utxo", `Assoc [
+				
+			])
+		])
+
+	(* Get tx info *)
+	| (Request.GET, "tx" :: txid :: []) -> 
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("tx", `Assoc [
+				("txid", `String txid)
+			])
+		])
+
+	(* Get block info by index *)
+	| (Request.GET, "block" :: "i" :: bid :: []) -> 
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("block", `Assoc [
+				("hash", `String bid)
+			])
+		])
+
+	(* Get block info by hash *)
+	| (Request.GET, "block" :: bid :: []) -> 
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("block", `Assoc [
+				("hash", `String bid)
+			])
+		])
+
+	(* Get chain stats *)
+	| (Request.GET, "" :: []) ->
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("status", `Assoc [
+				("height", `Int 32)
+			])
+		])
+
+	(* Not found *)
+	| (_, _) -> 
+		not_found ()
 ;;
 
 let loop port bc =
@@ -75,11 +145,11 @@ let loop port bc =
 		let (client_sock, _) = accept socket in
 		match Request.recv client_sock with
 		| None -> 
-			close client_sock; 
+			(*close client_sock;*)
 			do_listen socket
 		| Some (req) ->
 			handle_request bc req;
-			close client_sock;
+			(*close client_sock;*)
 			do_listen socket
 	in
 	let socket = socket PF_INET SOCK_STREAM 0 in
