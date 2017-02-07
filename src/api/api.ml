@@ -1,6 +1,12 @@
 open Log;;
 open Unix;;
+open Blockchain;;
+open Block;;
+open Block.Header;;
+open Params;;
+open Stdint;;
 open Yojson.Basic.Util;;
+open Yojson.Basic;;
 
 
 module Request = struct
@@ -23,8 +29,7 @@ module Request = struct
 		in
 		let data = Bytes.create 1024 in
 		let reqlen = Unix.recv socket data 0 1024 [] in
-		let data = String.sub data 0 reqlen in
-		let data = String.split_on_char ' ' data in
+		let data = String.split_on_char ' ' @@ String.sub data 0 reqlen in
 		match data with
 		| m :: u :: dl -> Some ({ 
 			uri= List.tl @@ String.split_on_char '/' u; 
@@ -41,7 +46,7 @@ module Request = struct
 			send req.socket str 0 len [] |> ignore
 		in
 		send_string @@ Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status;
-		send_string @@ Yojson.Basic.to_string jdata;
+		send_string @@ Yojson.Basic.pretty_to_string jdata;
 		close req.socket
 	;;
 end
@@ -53,11 +58,9 @@ let send_string sock str =
 ;;
 
 let handle_request bc req = 
-	let not_found () =
-		Request.reply req 404 (`Assoc [("status", `String "err")])
-	in
+	let not_found () = Request.reply req 404 (`Assoc [("status", `String "err")]) in
 
-	Log.debug "Api" "Request: %s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
+	Log.debug "Api ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
 	match req.Request.rmethod, req.Request.uri with
 
 	(* Push a tx *)
@@ -126,12 +129,29 @@ let handle_request bc req =
 			])
 		])
 
-	(* Get chain stats *)
+	(* Get chain state *)
 	| (Request.GET, "" :: []) ->
 		Request.reply req 200 (`Assoc [
 			("status", `String "ok");
-			("status", `Assoc [
-				("height", `Int 32)
+			("state", `Assoc [
+				("chain", `String (Params.name_of_network bc.params.network));
+				("sync", `Bool bc.sync);
+				("height", `Int (Int64.to_int bc.block_height));
+				("last", `String bc.block_last.header.hash);
+				("time", `String (Timediff.diffstring (Unix.time ()) bc.block_last.header.time));
+				("header", `Assoc [
+					("sync", `Bool bc.sync_headers);
+					("height", `Int (Int64.to_int bc.header_height));
+					("last", `String (bc.header_last.hash));
+					("time", `String (Timediff.diffstring (Unix.time ()) bc.header_last.time));
+				]);
+				("mempool", `Assoc [
+					("size", `Int 0);
+					("n", `Int 0);
+					("fees", `Int 0)
+				]);
+				("txs", `Int (Uint64.to_int bc.storage.chainstate.txs));
+				("utxos", `Int (Uint64.to_int bc.storage.chainstate.utxos))
 			])
 		])
 

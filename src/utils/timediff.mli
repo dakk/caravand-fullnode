@@ -6,4 +6,5 @@ type t = {
 	minutes	: int;
 }
 
-val diff : float -> float -> t
+val diff 		: float -> float -> t
+val diffstring 	: float -> float -> string

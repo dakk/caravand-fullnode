@@ -15,3 +15,10 @@ let diff a b =
 	let minutes = (minutes) mod 60 in
 	{ years= years; months= months; days= days; hours= hours; minutes= minutes }
 ;;
+
+
+let diffstring a b =
+	let df = diff a b in
+	Printf.sprintf "%d y, %d m, %d d, %d h, %d m" df.years df.months df.days df.hours df.minutes
+;;
+				

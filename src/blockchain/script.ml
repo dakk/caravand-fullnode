@@ -430,11 +430,7 @@ let opcode_of_hex s =
             (c, s')
     in
     let consume_bytes s sizea =
-        let rec sizea_to_int sizea acc = match sizea with
-        | [] -> acc
-        | sa::sizea' -> sizea_to_int sizea' (acc * 0xFF + sa)
-        in 
-        let sizea = sizea_to_int sizea 0 in
+        let sizea = List.fold_left (fun acc x -> acc * 0xFF + x) 0 sizea in
         if sizea > Bytes.length s then
            (Bytes.sub s 0 (Bytes.length s), "")
         else
@@ -843,12 +839,10 @@ let serialize scr =
     let rec serialize' scr = match scr with
     | [] -> ""
     | op::scr' ->
-        let rec hlist_to_bytes il = match il with
-        | [] -> ""
-        | i::il' -> (Bytes.make 1 (Char.chr i)) ^ (hlist_to_bytes il')
-        in
-        let r = hlist_to_bytes @@ opcode_to_hex op in
-        r ^ (serialize' scr')
+        let r = List.fold_right 
+            (fun x acc -> (Bytes.make 1 (Char.chr x)) ^ acc) 
+            (opcode_to_hex op) "" 
+        in r ^ (serialize' scr')
     in 
     let s = serialize' (fst scr) in
     match (snd scr, Bytes.length s) with

@@ -45,7 +45,7 @@ type t = {
 
 	(* Last block status *)
 	mutable block_height 	:	int64;
-	mutable block_last 		:	Block.t option;
+	mutable block_last 		:	Block.t;
 	mutable block_last_received : float;
 	
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
@@ -79,7 +79,18 @@ let genesis path p =
 		header_last		= genesis_header;
 
 		block_height 	= 0L;
-		block_last 		= None;
+		block_last 		= {
+			txs= [];
+			header= {
+				hash= "0000000000000000000000000000000000000000000000000000000000000000";
+				time= 0.0;
+				version= Int32.zero;
+				prev_block= "0000000000000000000000000000000000000000000000000000000000000000";
+				merkle_root= "0000000000000000000000000000000000000000000000000000000000000000";
+				bits= Uint32.zero;
+				nonce= Uint32.zero
+			}
+		};
 		block_last_received = Unix.time ();
 		
 		mempool			= Hashtbl.create 4096;
@@ -101,66 +112,48 @@ let load path p =
 		if bcg.storage.chainstate.Chainstate.block <> "0000000000000000000000000000000000000000000000000000000000000000" 
 		&& bcg.storage.chainstate.Chainstate.height <> Uint32.zero then (
 			match Storage.get_block bcg.storage bcg.storage.chainstate.Chainstate.block with
-			| Some (bdata) -> (
-				match Block.parse bdata with
-				| None -> 				
-					bcg.block_last <- None;
-					bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
-				| Some (block) ->
-					bcg.block_last <- Some (block);
-					bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
-			)
-			| None ->
-				bcg.block_last <- None;
+			| None -> failwith "This should not happen"
+			| Some (block) -> (
+				bcg.block_last <- block;
 				bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
+			)
 		) else (
-			bcg.block_last <- None;
 			bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
 		);
 
 		match Storage.get_header bcg.storage bcg.storage.chainstate.Chainstate.header with
-		| Some (bdata) -> (
-			match Block.Header.parse bdata with
-			| Some (header) ->
-				bcg.header_last <- header;
-				bcg.header_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.header_height;
-				res bcg
-			| None -> res bcg
+		| Some (header) -> (
+			bcg.header_last <- header;
+			bcg.header_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.header_height;
+			res bcg
 		)
 		| None -> res bcg
 	) else res bcg
 ;;
 
 (* Remove the last header / block (if detected a fork) *)
+(*
 let revert_last bc =
 	(match Storage.get_header bc.storage bc.header_last.prev_block with
 	| None -> ()
 	| Some (h) ->
-		match Block.Header.parse h with
-		| None -> ()
-		| Some (h) ->
-			Storage.remove_last_header bc.storage bc.header_last.hash;
-			bc.header_last <- h;
-			bc.header_height <- Int64.pred bc.header_height;
-			Log.debug "Blockchain" "Reverting last header"
+		Storage.remove_last_header bc.storage bc.header_last.hash;
+		bc.header_last <- h;
+		bc.header_height <- Int64.pred bc.header_height;
+		Log.debug "Blockchain" "Reverting last header"
 	);
 
-	(match bc.block_last with
+	(match Storage.get_block bc.storage bc.block_last.header.prev_block with
 	| None -> ()
-	| Some (b) -> 
-		match Storage.get_block bc.storage b.header.prev_block with
-		| None -> ()
-		| Some (b) ->
-			match Block.parse b with
-			| None -> ()
-			| Some (b) ->
-				Storage.remove_last_block bc.storage bc.header_last.hash;
-				bc.block_last <- Some (b);
-				bc.block_height <- Int64.pred bc.block_height;
-				Log.debug "Blockchain" "Reverting last block"
+	| Some (b) ->
+		Storage.remove_last_block bc.storage bc.header_last.hash;
+		bc.block_last <- b;
+		bc.block_height <- Int64.pred bc.block_height;
+		Log.debug "Blockchain" "Reverting last block"
 	);
 	Storage.sync bc.storage
 ;;
+*)
 	
 
 
@@ -169,38 +162,37 @@ let loop bc =
 		let consume_block b = 
 			match (b, bc.block_last, bc.header_last) with
 			(* Genesis block *)
-			| (b, None, hl) when b.header.hash = bc.params.genesis.hash ->
+			| (b, block, hl) when block.header.time = 0.0 && b.header.hash = bc.params.genesis.hash ->
 				bc.block_height <- Int64.zero;
-				bc.block_last <- Some (b);
-				Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
+				bc.block_last <- b;
+				Storage.insert_block bc.storage bc.block_height b;
 				consume ()
 				
 			(* Next block *)
-			| (b, Some (block), hl) when b.header.prev_block = block.header.hash ->
+			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = block.header.hash ->
 				bc.block_height <- Int64.succ bc.block_height;
-				bc.block_last <- Some (b);
-				Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
+				bc.block_last <- b;
+				Storage.insert_block bc.storage bc.block_height b;
 				bc.block_last_received <- Unix.time ();
 
-				let df = Timediff.diff (Unix.time ()) block.header.time in
-				Log.debug "Blockchain ←" "Block %s - %d, time: %d y, %d m, %d d, %d h and %d m ago" block.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
+				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
 				consume ()
 			
 			(* New block *)
-			| (b, Some (block), hl) when b.header.prev_block = hl.hash ->
+			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = hl.hash ->
 				bc.header_last <- b.header;
 				bc.header_height <- Int64.succ bc.header_height;
 
 				let df = Timediff.diff (Unix.time ()) block.header.time in
 				if b.header.prev_block = block.header.hash then (
 					bc.block_height <- Int64.succ bc.block_height;
-					bc.block_last <- Some (b);
-					Storage.insert_block bc.storage bc.block_height b.header.hash (Block.serialize b);
+					bc.block_last <- b;
+					Storage.insert_block bc.storage bc.block_height b;
 					bc.block_last_received <- Unix.time ();
-					Log.debug "Blockchain ←" "Block %s - %d, time: %d y, %d m, %d d, %d h and %d m ago" block.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes;
+					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
 				) else (
-					Storage.insert_header bc.storage bc.header_height bc.header_last.hash (Block.Header.serialize bc.header_last);
-					Log.debug "Blockchain ←" "Block header %s - %d, time: %d y, %d m, %d d, %d h and %d m ago" b.header.hash (Int64.to_int bc.block_height) df.years df.months df.days df.hours df.minutes
+					Storage.insert_header bc.storage bc.header_height bc.header_last;
+					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
 				);
 				consume ()
 			| _ ->
@@ -222,7 +214,7 @@ let loop bc =
 					(* Insert in the chain *)
 					bc.header_last <- h;
 					bc.header_height <- Int64.succ bc.header_height;
-					Storage.insert_header bc.storage bc.header_height bc.header_last.hash (Block.Header.serialize bc.header_last);
+					Storage.insert_header bc.storage bc.header_height bc.header_last;
 					consume_headers hl'
 				) else (
 					consume_headers hl'
@@ -268,26 +260,23 @@ let loop bc =
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
-			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.info "Blockchain" "Headers not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
+			Log.info "Blockchain" "Headers not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- false;
 			Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([bc.header_last.hash], None);
 		) else (
-			let df = Timediff.diff (Unix.time ()) bc.header_last.time in
-			Log.info "Blockchain" "Headers in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
+			Log.info "Blockchain" "Headers in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- true
 		);
 
-		(match bc.block_last with
-		| None -> (
+		(match bc.block_last.header.time with
+		| 0.0 -> (
 			Log.info "Blockchain" "Blocks not in sync, waiting for genesis";
 			bc.sync <- false;
 			Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bc.params.genesis.hash], None)
 		)
-		| Some (block) -> (
-			if block.header.time < (Unix.time () -. 60. *. 10.) then (
-				let df = Timediff.diff (Unix.time ()) block.header.time in
-				Log.info "Blockchain" "Blocks not in sync: %d years, %d months, %d days, %d hours and %d minutes behind" df.years df.months df.days df.hours df.minutes;
+		| _ -> (
+			if bc.block_last.header.time < (Unix.time () -. 60. *. 10.) then (
+				Log.info "Blockchain" "Blocks not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- false;
 
 				(* Ask the storage for next n blocks hashes *)
@@ -298,27 +287,20 @@ let loop bc =
 					let nh = Storage.get_headeri bc.storage succ in
 					match nh with
 					| None -> acc
-					| Some (b) -> 
-						let bh = Block.Header.parse b in
-						match bh with 
-						| Some (bh') -> getblockhashes succ (n-1) (bh'.hash::acc)
-						| None -> acc
+					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
 				if bc.block_last_received < (Unix.time () -. 3.) then (
 					let hashes = getblockhashes (bc.block_height) 512 [] in
 					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None)
 				) else ()
 			) else (
-				let df = Timediff.diff (Unix.time ()) block.header.time in
-				Log.info "Blockchain" "Blocks in sync: last block is %d years, %d months, %d days, %d hours and %d minutes" df.years df.months df.days df.hours df.minutes;
+				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- true
 			)
 		));
 
 
 		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
-		(match bc.block_last with 
-		| None -> ()
-		| Some (b) -> Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) b.header.hash);
+		Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash
 	) done
 ;;

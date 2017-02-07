@@ -1,13 +1,29 @@
 open Stdint;;
 open LevelDB;;
+open Block;;
+open Block.Header;;
+open Tx;;
+
+module Address = struct
+	type t = {
+		balance					: uint64;
+		sent					: uint64;
+		received				: uint64;
+		txs						: Hash.t list;
+		utxo					: (Hash.t * int * uint64) list
+	}
+end
 
 module Chainstate = struct
 	type t = {
-		mutable block               : Hash.t;
-		mutable height        : uint32;
+		mutable block           : Hash.t;
+		mutable height        	: uint32;
 
-		mutable header        : Hash.t;
-		mutable header_height : uint32;
+		mutable header        	: Hash.t;
+		mutable header_height 	: uint32;
+
+		mutable txs				: uint64;
+		mutable utxos			: uint64;
 	};;
 
 	let serialize cs = 
@@ -15,7 +31,9 @@ module Chainstate = struct
 			Hash.to_bin cs.block				: 32*8 : string;
 			Uint32.to_int32 cs.height			: 32 : littleendian;
 			Hash.to_bin cs.header             	: 32*8 : string;
-			Uint32.to_int32 cs.header_height  	: 32 : littleendian
+			Uint32.to_int32 cs.header_height  	: 32 : littleendian;
+			Uint64.to_int64 cs.txs			  	: 64 : littleendian;
+			Uint64.to_int64 cs.utxos		  	: 64 : littleendian
 		} in Bitstring.string_of_bitstring bs
 	;;
 
@@ -26,13 +44,17 @@ module Chainstate = struct
 			block 		    : 32*8 	: string;
 			height          : 32 	: string;
 			header 	        : 32*8 	: string;
-			header_height	: 32 	: string
+			header_height	: 32 	: string;
+			txs				: 64 	: string;
+			utxos			: 64 	: string
 		} ->
 		{
 			block 		    = Hash.of_bin block;
 			height 	    	= Uint32.of_bytes_little_endian height 0;
 			header	    	= Hash.of_bin header;
 			header_height	= Uint32.of_bytes_little_endian header_height 0;
+			txs				= Uint64.of_bytes_little_endian txs 0;
+			utxos			= Uint64.of_bytes_little_endian utxos 0;
 		}
 	;;
 end
@@ -65,6 +87,9 @@ let load path =
 			height= Uint32.of_int 0;
 			header= "0000000000000000000000000000000000000000000000000000000000000000";
 			header_height= Uint32.of_int 0;
+
+			txs= Uint64.of_int 0;
+			utxos= Uint64.of_int 0;
 		}
 	in
 	let db = LevelDB.open_db path in 
@@ -78,46 +103,57 @@ let close storage =
 	LevelDB.close storage.db
 ;;
 
-let insert_header storage height hash header = 
-	LevelDB.put storage.db ("blk_" ^ hash) header;
-	LevelDB.put storage.db ("bli_" ^ Printf.sprintf "%d" (Int64.to_int height)) hash;
-	storage.chainstate.header <- hash;
+let insert_header storage height (header : Block.Header.t) = 
 	storage.chainstate.header_height <- Uint32.of_int64 height;
+
+	LevelDB.put storage.db ("blk_" ^ header.hash) @@ Block.Header.serialize header;
+	LevelDB.put storage.db ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height)) header.hash;
+	storage.chainstate.header <- header.hash;
+
 	save_cs storage    
 ;;
 
-let insert_block storage height hash block = 
-	LevelDB.put storage.db ("blk_" ^ hash) block;
-	storage.chainstate.block <- hash;
+let insert_block storage height (block : Block.t) = 
+	LevelDB.put storage.db ("blk_" ^ block.header.hash) @@ Block.serialize block;
+	storage.chainstate.block <- block.header.hash;
+
+	List.iteri (fun i tx -> 
+		(* Insert tx *)
+		let data = Bitstring.string_of_bitstring (BITSTRING {
+			Hash.to_bin (block.header.hash)		: 32*8 : string;
+			Int32.of_int i					: 32 : littleendian
+		}) in
+		LevelDB.put storage.db ("txi_" ^ tx.Tx.hash) data;
+		storage.chainstate.txs <- Uint64.add storage.chainstate.txs Uint64.one;
+
+		(* Insert utxo and user utxo, set balances *)
+		List.iteri (fun i out -> 
+			(* TODO Check if spendable *)
+			LevelDB.put storage.db ("utx_" ^ tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
+			storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
+		) tx.txout;
+
+
+		(* Remove utxo and user utxo, set balances *)
+		List.iter (fun ins -> 
+			let key = "utx_" ^ ins.In.out_hash ^ string_of_int (Uint32.to_int ins.In.out_n) in
+			if LevelDB.mem storage.db key then (
+				LevelDB.delete storage.db key;
+				storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
+			);
+		) tx.txin;
+	) block.txs;
+	
 	storage.chainstate.height <- Uint32.of_int64 height;
 	save_cs storage 
 ;;
 
-let remove_last_block storage hash = 
-	LevelDB.delete storage.db ("blk_" ^ hash);
-	storage.chainstate.height <- Uint32.sub (storage.chainstate.height) Uint32.one;
-	match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.height)) with
-	| None -> ()
-	| Some (h) -> 
-		storage.chainstate.block <- h;
-		save_cs storage 
-;;
-
-let remove_last_header storage hash = 
-	LevelDB.delete storage.db ("blk_" ^ hash);
-	storage.chainstate.header_height <- Uint32.sub (storage.chainstate.header_height) Uint32.one;
-	match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height)) with
-	| None -> ()
-	| Some (h) -> 
-		storage.chainstate.header <- h;
-		save_cs storage 
-;;
-
-
 
 
 let get_block storage hash = 
-	LevelDB.get storage.db ("blk_" ^ hash)
+	match LevelDB.get storage.db ("blk_" ^ hash) with
+	| Some (bdata) -> Block.parse bdata
+	| None -> None
 ;;
 
 let get_blocki storage height = 
@@ -128,13 +164,13 @@ let get_blocki storage height =
 	
 
 
-let insert_txi storage txhash blockhash offset len =
-	let data = Bitstring.string_of_bitstring (BITSTRING {
-		Hash.to_bin blockhash		: 32*8 : string;
-		Int32.of_int offset			: 32 : littleendian;
-		Int32.of_int len			: 32 : littleendian
-	}) in
-	LevelDB.put storage.db ("txi_" ^ txhash) data;
+let get_utx	storage tx index =
+	match LevelDB.get storage.db ("utx_" ^ tx ^ string_of_int index) with
+	| None -> None
+	| Some (data) -> 
+		match Tx.Out.parse (Bitstring.bitstring_of_string data) with
+		| (rest, txo) -> txo
+		| _ -> None
 ;;
 
 let get_tx storage txhash =
@@ -144,21 +180,20 @@ let get_tx storage txhash =
 		let bdata = Bitstring.bitstring_of_string data in
 		bitmatch bdata with
 		| { 
-			blockhash	    : 32*8 	: string;
-			offset          : 32 	: littleendian;
-			len 	        : 32 	: littleendian
+			blockhash  : 32*8 	: string;
+			index      : 32 	: littleendian
 		} ->
 		let block = Hash.of_bin blockhash in
 		match get_block storage block with
 		| None -> None
-		| Some (bdata) -> Some (Bytes.sub data (Int32.to_int offset) (Int32.to_int len))
+		| Some (b) -> Some (List.nth b.txs @@ Int32.to_int index)
 ;;
 
 
 let get_header storage hash = 
 	match LevelDB.get storage.db ("blk_" ^ hash) with
 	| None -> None
-	| Some (data) -> Some (Bytes.sub data 0 80)
+	| Some (data) -> Block.Header.parse @@ Bytes.sub data 0 80
 ;;
 
 let get_headeri storage height = 
