@@ -875,9 +875,15 @@ let is_spendable scr =
 
 (* Check for common pattern: http://bitcoin.stackexchange.com/questions/35456/which-bitcoin-script-forms-should-be-detected-when-tracking-wallet-balance*)
 (* https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses *)
+let addr_of_pkh pkh = 
+    let epkh = (Bytes.make 1 (Char.chr 0)) ^ pkh in
+    let shrip = Bytes.sub (Crypto.dsha256 epkh) 0 4 in 
+    let vpkh =  epkh ^ shrip in vpkh |> Base58.encode_check
+;;
 
-
-let addr_of_pkh pkh = (Bytes.make 1 @@ Char.chr 0) ^ pkh |> Base58.encode_check;;
+let addr_of_pk pk = 
+    pk |> Crypto.sha256 |> Crypto.ripemd160 |> addr_of_pkh
+;;
 
 let spendable_by scr = 
     match fst scr with
@@ -886,6 +892,6 @@ let spendable_by scr =
     | OP_HASH160 :: OP_DATA (20, pkh) :: OP_EQUAL :: [] ->
         Some (addr_of_pkh pkh)
     | OP_DATA (n, pkh) :: OP_CHECKSIG :: [] when n = 33 || n = 65 ->
-        None (* TODO handle! *)
+       Some (addr_of_pk pkh)
     | _ -> None
 ;;

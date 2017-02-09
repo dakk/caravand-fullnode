@@ -72,15 +72,16 @@ let handle_request bc req =
 
 	(* Get address info *)
 	| (Request.GET, "address" :: addr :: []) -> 
+		let ad = Storage.get_address bc.storage addr in
 		Request.reply req 200 (`Assoc [
 			("status", `String "ok");
 			("address", `Assoc [
 				("address", `String addr);
-				("balance", `Int 32);
-				("unconfirmed_balance", `Int 32);
-				("sent", `Int 32);
-				("received", `Int 32);
-				("txs", `Int 32)				
+				("balance", `String (Uint64.to_string ad.balance));
+				("unconfirmed_balance", `String (Uint64.to_string @@ Uint64.zero));
+				("sent", `String (Uint64.to_string ad.sent));
+				("received", `String (Uint64.to_string ad.received));
+				("txs", `String (Uint64.to_string ad.txs))				
 			])
 		])
 

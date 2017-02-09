@@ -6,13 +6,62 @@ open Tx;;
 
 module Address = struct
 	type t = {
-		balance					: uint64;
-		sent					: uint64;
-		received				: uint64;
-		txs						: Hash.t list;
-		utxo					: (Hash.t * int * uint64) list
+		mutable balance			: uint64;
+		mutable sent			: uint64;
+		mutable received		: uint64;
+		mutable txs				: uint64;
+		(*txs						: Hash.t list;
+		utxo					: (Hash.t * int32 * uint64) list*)
 	}
+
+	let parse data = 
+		let bdata = Bitstring.bitstring_of_string data in
+		bitmatch bdata with
+		| { 
+			balance			: 64 	: string;
+			sent			: 64 	: string;
+			received		: 64	: string;
+			txs				: 64	: string
+		} ->
+		{
+			balance		= Uint64.of_bytes_little_endian balance 0;
+			sent		= Uint64.of_bytes_little_endian sent 0;
+			received	= Uint64.of_bytes_little_endian received 0;
+			txs			= Uint64.of_bytes_little_endian txs 0;
+		}
+	;;
+
+	let serialize addr = 
+		let bs = BITSTRING {
+			Uint64.to_int64 addr.balance	: 64 : littleendian;
+			Uint64.to_int64 addr.sent	  	: 64 : littleendian;
+			Uint64.to_int64 addr.received	: 64 : littleendian;
+			Uint64.to_int64 addr.txs	  	: 64 : littleendian
+		} in Bitstring.string_of_bitstring bs
+	;;
+
+	let load_or_create db addr =
+		let empty = {
+			balance		= Uint64.zero;
+			sent		= Uint64.zero;
+			received	= Uint64.zero;
+			txs			= Uint64.zero;
+		} in
+		let key = "adr_" ^ addr in
+		if LevelDB.mem db key then 
+			match LevelDB.get db key with
+			| Some (d) -> parse d
+			| None -> empty
+		else 
+			empty
+	;;
+
+	let save db addr data = 
+		let key = "adr_" ^ addr in
+		LevelDB.put db key @@ serialize data
+	;;
 end
+
 
 module Chainstate = struct
 	type t = {
@@ -120,7 +169,7 @@ let insert_block storage height (block : Block.t) =
 	List.iteri (fun i tx -> 
 		(* Insert tx *)
 		let data = Bitstring.string_of_bitstring (BITSTRING {
-			Hash.to_bin (block.header.hash)		: 32*8 : string;
+			Hash.to_bin (block.header.hash)	: 32*8 : string;
 			Int32.of_int i					: 32 : littleendian
 		}) in
 		LevelDB.put storage.db ("txi_" ^ tx.Tx.hash) data;
@@ -133,8 +182,12 @@ let insert_block storage height (block : Block.t) =
 				storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
 
 				(match Tx.Out.spendable_by out with
-				| Some (addr) -> Printf.printf "Spendable by: %s\n%!" addr; ()
-				| None -> Printf.printf "Not spendable\n%!")
+				| Some (addr) -> 
+					let addrd = Address.load_or_create storage.db addr in
+					addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
+					addrd.received <- Uint64.add addrd.received @@ Uint64.of_int64 out.value;
+					addrd.balance <- Uint64.add addrd.balance @@ Uint64.of_int64 out.value;
+					Address.save storage.db addr addrd)
 			)
 		) tx.txout;
 
@@ -143,9 +196,25 @@ let insert_block storage height (block : Block.t) =
 		List.iter (fun ins -> 
 			let key = "utx_" ^ ins.In.out_hash ^ string_of_int (Uint32.to_int ins.In.out_n) in
 			if LevelDB.mem storage.db key then (
-				LevelDB.delete storage.db key;
-				storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
-			);
+				match LevelDB.get storage.db key with
+				| Some (utx) -> 
+					let rest, utx = Tx.Out.parse @@ Bitstring.bitstring_of_string utx in
+					match utx with
+					| Some (utx) ->
+						if Tx.Out.is_spendable utx then (
+							(match Tx.Out.spendable_by utx with
+							| Some (addr) -> 
+								let addrd = Address.load_or_create storage.db addr in
+								addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
+								addrd.sent <- Uint64.add addrd.sent @@ Uint64.of_int64 utx.value;
+								addrd.balance <- Uint64.sub addrd.balance @@ Uint64.of_int64 utx.value;
+								Address.save storage.db addr addrd
+							);
+
+							LevelDB.delete storage.db key;
+							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
+						);
+			)
 		) tx.txin;
 	) block.txs;
 	
@@ -224,3 +293,6 @@ let get_headers storage hashes =
 		| Some (h') -> get_headers' hs' (h'::acc)
 	in get_headers' hashes []
 ;;
+
+
+let get_address storage addr = Address.load_or_create storage.db addr;;
