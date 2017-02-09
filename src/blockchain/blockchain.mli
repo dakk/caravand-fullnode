@@ -52,21 +52,3 @@ val load			: string -> Params.t -> t
 
 (* Start the event loop for blockchain *)
 val loop			: t -> unit
-
-(* Queries *)
-(*
-
-val get_height			: unit -> int64
-val get_header_height	: unit -> int64
-
-val get_block			: Hash.t -> Block.t
-val get_blocki			: int64 -> Block.t
-val get_last_block		: unit -> Block.t
-
-val push_tx				: Tx.t -> Hash.t
-val get_tx				: Hash.t -> Tx.t
-
-val get_address_balance	: Hash.t -> int64
-val get_address_utxs	: Hash.t -> Tx.Out.t list
-val get_utx				: Hash.t -> int64 -> Tx.Out.t
-*)

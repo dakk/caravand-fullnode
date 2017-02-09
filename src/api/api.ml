@@ -45,9 +45,11 @@ module Request = struct
 			let len = String.length str in
 			send req.socket str 0 len [] |> ignore
 		in
-		send_string @@ Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status;
-		send_string @@ Yojson.Basic.pretty_to_string jdata;
-		close req.socket
+		try (
+			send_string @@ Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status;
+			send_string @@ Yojson.Basic.pretty_to_string jdata;
+			close req.socket
+		) with _ -> ()
 	;;
 end
 
@@ -58,7 +60,7 @@ let send_string sock str =
 ;;
 
 let handle_request bc req = 
-	let not_found () = Request.reply req 404 (`Assoc [("status", `String "err")]) in
+	let not_found () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 
 	Log.debug "Api ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
 	match req.Request.rmethod, req.Request.uri with
@@ -105,6 +107,7 @@ let handle_request bc req =
 
 	(* Get tx info *)
 	| (Request.GET, "tx" :: txid :: []) -> 
+		let tx = Storage.get_tx bc.storage txid in
 		Request.reply req 200 (`Assoc [
 			("status", `String "ok");
 			("tx", `Assoc [
@@ -113,22 +116,33 @@ let handle_request bc req =
 		])
 
 	(* Get block info by index *)
-	| (Request.GET, "block" :: "i" :: bid :: []) -> 
-		Request.reply req 200 (`Assoc [
-			("status", `String "ok");
-			("block", `Assoc [
-				("hash", `String bid)
+	| (Request.GET, "block" :: "i" :: bli :: []) -> 
+		let bl = Storage.get_blocki bc.storage @@ Int64.of_string bli in
+		(match bl with
+		| None -> not_found ()
+		| Some (bl) ->
+			Request.reply req 200 (`Assoc [
+				("status", `String "ok");
+				("block", `Assoc [
+					("hash", `String (bl.header.hash));
+					("height", `String bli)
+				])
 			])
-		])
+		)
 
 	(* Get block info by hash *)
 	| (Request.GET, "block" :: bid :: []) -> 
-		Request.reply req 200 (`Assoc [
-			("status", `String "ok");
-			("block", `Assoc [
-				("hash", `String bid)
+		let bl = Storage.get_block bc.storage bid in
+		(match bl with
+		| None -> not_found ()
+		| Some (bl) ->
+			Request.reply req 200 (`Assoc [
+				("status", `String "ok");
+				("block", `Assoc [
+					("hash", `String (bl.header.hash))
+				])
 			])
-		])
+		)
 
 	(* Get chain state *)
 	| (Request.GET, "" :: []) ->
