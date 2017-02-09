@@ -26,7 +26,9 @@ module Out : sig
 	val parse_all		: bitstring -> bitstring * t list option
 	val serialize		: t -> bytes
 	val serialize_all	: t list -> bytes
-	(*val is_spendable	: t -> bool*)
+
+	val is_spendable	: t -> bool
+	val spendable_by	: t -> string option
 end
 
 

@@ -128,9 +128,14 @@ let insert_block storage height (block : Block.t) =
 
 		(* Insert utxo and user utxo, set balances *)
 		List.iteri (fun i out -> 
-			(* TODO Check if spendable *)
-			LevelDB.put storage.db ("utx_" ^ tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
-			storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
+			if Tx.Out.is_spendable out then (
+				LevelDB.put storage.db ("utx_" ^ tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
+				storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
+
+				(match Tx.Out.spendable_by out with
+				| Some (addr) -> Printf.printf "Spendable by: %s\n%!" addr; ()
+				| None -> Printf.printf "Not spendable\n%!")
+			)
 		) tx.txout;
 
 

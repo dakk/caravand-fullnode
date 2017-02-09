@@ -158,5 +158,7 @@ val parse               : bytes -> t
 val parse_coinbase      : bytes -> t
 val verify              : t -> t -> bool
 val to_string           : t -> string
-(*val is_spendable        : t -> bool*)
+
+val is_spendable        : t -> bool
+val spendable_by        : t -> string option
 

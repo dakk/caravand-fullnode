@@ -13,8 +13,8 @@ BuildTools:  ocamlbuild
 Library utils
   Path:         src/utils
   BuildTools:   ocamlbuild
-  BuildDepends: threads, cryptokit, stdint, yojson, bitstring, bitstring.syntax
-  Modules: Log, Crypto, Config, Timediff, Parser, Cqueue
+  BuildDepends: threads, cryptokit, stdint, yojson, bitstring, bitstring.syntax, bignum
+  Modules: Log, Crypto, Config, Timediff, Parser, Cqueue, Base58
 
 Library blockchain
   Path:         src/blockchain

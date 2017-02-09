@@ -864,3 +864,28 @@ let parse_coinbase s = ([ OP_COINBASE (s) ], String.length s);;
 
 
 let verify s1 s2 = join s1 s2 |> eval;;
+
+let is_spendable scr =
+    let rec iss ops = match ops with
+    | [] -> true
+    | OP_RETURN (data) :: xl' -> false
+    | _ :: xl' -> iss xl' 
+    in iss (fst scr)
+;;
+
+(* Check for common pattern: http://bitcoin.stackexchange.com/questions/35456/which-bitcoin-script-forms-should-be-detected-when-tracking-wallet-balance*)
+(* https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses *)
+
+
+let addr_of_pkh pkh = (Bytes.make 1 @@ Char.chr 0) ^ pkh |> Base58.encode_check;;
+
+let spendable_by scr = 
+    match fst scr with
+    | OP_DUP :: OP_HASH160 :: OP_DATA (20, pkh) :: OP_EQUALVERIFY :: OP_CHECKSIG :: [] ->
+        Some (addr_of_pkh pkh)
+    | OP_HASH160 :: OP_DATA (20, pkh) :: OP_EQUAL :: [] ->
+        Some (addr_of_pkh pkh)
+    | OP_DATA (n, pkh) :: OP_CHECKSIG :: [] when n = 33 || n = 65 ->
+        None (* TODO handle! *)
+    | _ -> None
+;;

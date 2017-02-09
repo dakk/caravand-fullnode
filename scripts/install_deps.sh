@@ -24,3 +24,7 @@ opam install async
 
 # 0.21.0
 opam install cohttp
+
+# 113.33.00
+opam install bignum
+

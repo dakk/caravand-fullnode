@@ -78,6 +78,10 @@ module Out = struct
 		script	: Script.t;	
 	};;
 
+	let is_spendable txout = Script.is_spendable txout.script;;
+
+	let spendable_by txout = Script.spendable_by txout.script;;
+
 	let serialize txout = 
 		let value = Bitstring.string_of_bitstring (BITSTRING { txout.value : 64 : littleendian }) in 
 		let sclen = string_of_bitstring @@ Parser.bitstring_of_varint (Int64.of_int (Script.length txout.script)) in

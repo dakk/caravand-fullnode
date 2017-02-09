@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 016c126c42bd383d4c322a0e08b28fb9)
+# DO NOT EDIT (digest: 0b9dc3f1a87686a2daad68d17abf99c5)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -16,6 +16,7 @@ true: annot, bin_annot
 "_darcs": not_hygienic
 # Library utils
 "src/utils/utils.cmxs": use_utils
+<src/utils/*.ml{,i,y}>: pkg_bignum
 <src/utils/*.ml{,i,y}>: pkg_bitstring
 <src/utils/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/utils/*.ml{,i,y}>: pkg_cryptokit
@@ -24,6 +25,7 @@ true: annot, bin_annot
 <src/utils/*.ml{,i,y}>: pkg_yojson
 # Library blockchain
 "src/blockchain/blockchain.cmxs": use_blockchain
+<src/blockchain/*.ml{,i,y}>: pkg_bignum
 <src/blockchain/*.ml{,i,y}>: pkg_bitstring
 <src/blockchain/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/blockchain/*.ml{,i,y}>: pkg_cryptokit
@@ -34,6 +36,7 @@ true: annot, bin_annot
 <src/blockchain/*.ml{,i,y}>: use_utils
 # Library network
 "src/network/network.cmxs": use_network
+<src/network/*.ml{,i,y}>: pkg_bignum
 <src/network/*.ml{,i,y}>: pkg_bitstring
 <src/network/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/network/*.ml{,i,y}>: pkg_cryptokit
@@ -46,6 +49,7 @@ true: annot, bin_annot
 <src/network/*.ml{,i,y}>: use_utils
 # Library api
 "src/api/api.cmxs": use_api
+<src/api/*.ml{,i,y}>: pkg_bignum
 <src/api/*.ml{,i,y}>: pkg_bitstring
 <src/api/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/api/*.ml{,i,y}>: pkg_cryptokit
@@ -56,6 +60,7 @@ true: annot, bin_annot
 <src/api/*.ml{,i,y}>: use_blockchain
 <src/api/*.ml{,i,y}>: use_utils
 # Executable letchain
+"src/letchain.native": pkg_bignum
 "src/letchain.native": pkg_bitstring
 "src/letchain.native": pkg_bitstring.syntax
 "src/letchain.native": pkg_cryptokit
@@ -68,6 +73,7 @@ true: annot, bin_annot
 "src/letchain.native": use_blockchain
 "src/letchain.native": use_network
 "src/letchain.native": use_utils
+<src/*.ml{,i,y}>: pkg_bignum
 <src/*.ml{,i,y}>: pkg_bitstring
 <src/*.ml{,i,y}>: pkg_bitstring.syntax
 <src/*.ml{,i,y}>: pkg_cryptokit
