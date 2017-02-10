@@ -197,7 +197,8 @@ let handle peer bc = match recv peer with
 				| _ -> ()
 			) in vis xl  
 		| [] -> ()
-		in vis i;
+		in 
+		if bc.sync then vis i else ();
 	| _ -> ()
 );;
 
