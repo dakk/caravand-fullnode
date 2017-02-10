@@ -1,38 +1,3 @@
-# letchain
-
-Bitcoin fullnode OCaml implementation. 
-Letchain will be usable as a standalone bitcoin node with a REST api interface 
-or through a library that expose all the features.
-
-## Features
-
-- Chain syncronization for Bitcoin and Bitcoin testnet
-- Header-first syncronization
-- Block storage
-- UTXO storage
-- Account storage (balance, sent, txs, utxo)
-- JSON REST api interface
-
-## Installation
-
-1. Switch to Ocaml 4.04:
-``` opam switch 4.04 ```
-
-2. Install oasis:
-``` opam install oasis ```
-
-3. Install letchain dependencies:
-``` ./scripts/install_deps.sh ```
-
-4. Build:
-``` oasis setup && ./configure && make ```
-
-5. Start:
-``` ./letchain.byte ```
-
-## License
-
-```
 Copyright (c) 2016-2017 Davide Gessa
 
 Permission is hereby granted, free of charge, to any person
@@ -55,9 +20,3 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
-```
-
-
-## Donations
-
-Feel free to donate bitcoin to the developer: 13TRVwiqLMveg9aPAmZgcAix5ogKVgpe4T
