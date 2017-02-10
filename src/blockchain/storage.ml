@@ -182,6 +182,7 @@ let insert_block storage height (block : Block.t) =
 				storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
 
 				(match Tx.Out.spendable_by out with
+				| None -> ()
 				| Some (addr) -> 
 					let addrd = Address.load_or_create storage.db addr in
 					addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
@@ -197,9 +198,11 @@ let insert_block storage height (block : Block.t) =
 			let key = "utx_" ^ ins.In.out_hash ^ string_of_int (Uint32.to_int ins.In.out_n) in
 			if LevelDB.mem storage.db key then (
 				match LevelDB.get storage.db key with
+				| None -> ()
 				| Some (utx) -> 
 					let rest, utx = Tx.Out.parse @@ Bitstring.bitstring_of_string utx in
 					match utx with
+					| None -> ()
 					| Some (utx) ->
 						if Tx.Out.is_spendable utx then (
 							(match Tx.Out.spendable_by utx with
