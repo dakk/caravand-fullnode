@@ -4,6 +4,7 @@ Bitcoin fullnode OCaml implementation.
 Letchain will be usable as a standalone bitcoin node with a REST api interface 
 or through a library that expose all the features.
 
+
 ## Features
 
 - Chain syncronization for Bitcoin and Bitcoin testnet
@@ -12,6 +13,7 @@ or through a library that expose all the features.
 - UTXO storage
 - Account storage (balance, sent, txs, utxo)
 - JSON REST api interface
+
 
 ## Installation
 
@@ -29,6 +31,7 @@ or through a library that expose all the features.
 
 5. Start:
 ``` ./letchain.byte ```
+
 
 ## License
 
