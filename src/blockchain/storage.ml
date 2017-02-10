@@ -206,6 +206,7 @@ let insert_block storage height (block : Block.t) =
 					| Some (utx) ->
 						if Tx.Out.is_spendable utx then (
 							(match Tx.Out.spendable_by utx with
+							| None -> ()
 							| Some (addr) -> 
 								let addrd = Address.load_or_create storage.db addr in
 								addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
