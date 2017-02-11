@@ -10,7 +10,7 @@ module Address = struct
 		mutable sent			: uint64;
 		mutable received		: uint64;
 		mutable txs				: uint64;
-		(*txs						: Hash.t list;
+		(*txs					: Hash.t list;
 		utxo					: (Hash.t * int32 * uint64) list*)
 	}
 

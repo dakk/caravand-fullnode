@@ -36,6 +36,7 @@ type t = {
 	mutable block_height 	:	int64;
 	mutable block_last 		:	Block.t;
 	mutable block_last_received : float;
+	mutable blocks_requested	:	int;
 	
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
 	

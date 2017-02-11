@@ -47,6 +47,7 @@ type t = {
 	mutable block_height 	:	int64;
 	mutable block_last 		:	Block.t;
 	mutable block_last_received : float;
+	mutable blocks_requested	:	int;
 	
 	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
 	
@@ -92,6 +93,7 @@ let genesis path p =
 			}
 		};
 		block_last_received = Unix.time ();
+		blocks_requested = 0;
 		
 		mempool			= Hashtbl.create 4096;
 		
@@ -170,6 +172,7 @@ let loop bc =
 				
 			(* Next block *)
 			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = block.header.hash ->
+				bc.blocks_requested <- bc.blocks_requested - 1;
 				bc.block_height <- Int64.succ bc.block_height;
 				bc.block_last <- b;
 				Storage.insert_block bc.storage bc.block_height b;
@@ -289,8 +292,9 @@ let loop bc =
 					| None -> acc
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
-				if bc.block_last_received < (Unix.time () -. 3.) then (
-					let hashes = getblockhashes (bc.block_height) 512 [] in
+				if bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
+					let hashes = getblockhashes (bc.block_height) 128 [] in
+					bc.blocks_requested <- 128;
 					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None)
 				) else ()
 			) else (
