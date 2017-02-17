@@ -139,7 +139,8 @@ let handle_request bc req =
 			Request.reply req 200 (`Assoc [
 				("status", `String "ok");
 				("block", `Assoc [
-					("hash", `String (bl.header.hash))
+					("hash", `String (bl.header.hash));
+					("height", `Int (Storage.get_block_height bc.storage @@ bl.header.hash))
 				])
 			])
 		)

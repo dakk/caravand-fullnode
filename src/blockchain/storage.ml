@@ -156,6 +156,7 @@ let insert_header storage height (header : Block.Header.t) =
 	storage.chainstate.header_height <- Uint32.of_int64 height;
 
 	LevelDB.put storage.db ("blk_" ^ header.hash) @@ Block.Header.serialize header;
+	LevelDB.put storage.db ("bih_" ^ header.hash) @@ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height);
 	LevelDB.put storage.db ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height)) header.hash;
 	storage.chainstate.header <- header.hash;
 
@@ -227,17 +228,29 @@ let insert_block storage height (block : Block.t) =
 ;;
 
 
+let get_block_height storage hash =
+	match LevelDB.get storage.db ("bih_" ^ hash) with
+	| Some (hdata) -> int_of_string hdata
+	| None -> 0
+;;
+
 
 let get_block storage hash = 
-	match LevelDB.get storage.db ("blk_" ^ hash) with
-	| Some (bdata) -> Block.parse bdata
-	| None -> None
+	if (get_block_height storage hash) > (Uint32.to_int storage.chainstate.height) then 
+		None
+	else
+		match LevelDB.get storage.db ("blk_" ^ hash) with
+		| Some (bdata) -> Block.parse bdata
+		| None -> None
 ;;
 
 let get_blocki storage height = 
-	match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Int64.to_int height)) with
-	| Some (h) -> get_block storage h 
-	| None -> None
+	if (Int64.to_int height) > (Uint32.to_int storage.chainstate.height) then 
+		None
+	else
+		match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Int64.to_int height)) with
+		| Some (h) -> get_block storage h 
+		| None -> None
 ;;
 	
 
