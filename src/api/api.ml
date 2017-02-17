@@ -89,20 +89,24 @@ let handle_request bc req =
 
 	(* Get address txs *)
 	| (Request.GET, "address" :: addr :: "txs" :: []) -> 
+		let txl = Storage.get_address_txs bc.storage addr in
+		let assoc = List.map (fun hash -> `String hash) txl in
 		Request.reply req 200 (`Assoc [
 			("status", `String "ok");
-			("txs", `Assoc [
-				
-			])
+			("txs", `List assoc)
 		])
 
 	(* Get address utxo *)
 	| (Request.GET, "address" :: addr :: "utxo" :: []) -> 
+		let utxl = Storage.get_address_utxs bc.storage addr in
+		let assoc = List.map (fun ut -> 
+			match ut with
+			| (txhash, i, value) ->
+				`Assoc [ ("tx", `String txhash); ("n", `Int i); ("value", `String (Int64.to_string value)) ]
+		) utxl in
 		Request.reply req 200 (`Assoc [
 			("status", `String "ok");
-			("utxo", `Assoc [
-				
-			])
+			("utxo", `List assoc)
 		])
 
 	(* Get tx info *)
@@ -126,7 +130,8 @@ let handle_request bc req =
 				("status", `String "ok");
 				("block", `Assoc [
 					("hash", `String (bl.header.hash));
-					("height", `String bli)
+					("height", `String bli);
+					("txs", `Int (List.length bl.txs))
 				])
 			])
 		)
@@ -141,7 +146,8 @@ let handle_request bc req =
 				("status", `String "ok");
 				("block", `Assoc [
 					("hash", `String (bl.header.hash));
-					("height", `Int (Storage.get_block_height bc.storage @@ bl.header.hash))
+					("height", `Int (Storage.get_block_height bc.storage @@ bl.header.hash));
+					("txs", `Int (List.length bl.txs))
 				])
 			])
 		)

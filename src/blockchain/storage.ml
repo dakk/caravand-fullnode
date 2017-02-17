@@ -10,9 +10,10 @@ module Address = struct
 		mutable sent			: uint64;
 		mutable received		: uint64;
 		mutable txs				: uint64;
-		(*txs					: Hash.t list;
-		utxo					: (Hash.t * int32 * uint64) list*)
-	}
+		mutable utxs			: uint64;
+	};;
+
+	type utx = string * int * int64;;
 
 	let parse data = 
 		let bdata = Bitstring.bitstring_of_string data in
@@ -21,13 +22,15 @@ module Address = struct
 			balance			: 64 	: string;
 			sent			: 64 	: string;
 			received		: 64	: string;
-			txs				: 64	: string
+			txs				: 64	: string;
+			utxs			: 64	: string
 		} ->
 		{
 			balance		= Uint64.of_bytes_little_endian balance 0;
 			sent		= Uint64.of_bytes_little_endian sent 0;
 			received	= Uint64.of_bytes_little_endian received 0;
 			txs			= Uint64.of_bytes_little_endian txs 0;
+			utxs		= Uint64.of_bytes_little_endian utxs 0;
 		}
 	;;
 
@@ -36,8 +39,63 @@ module Address = struct
 			Uint64.to_int64 addr.balance	: 64 : littleendian;
 			Uint64.to_int64 addr.sent	  	: 64 : littleendian;
 			Uint64.to_int64 addr.received	: 64 : littleendian;
-			Uint64.to_int64 addr.txs	  	: 64 : littleendian
+			Uint64.to_int64 addr.txs	  	: 64 : littleendian;
+			Uint64.to_int64 addr.utxs	  	: 64 : littleendian
 		} in Bitstring.string_of_bitstring bs
+	;;
+
+
+	let add_tx db addr txhash time =
+		LevelDB.put db ("adt_" ^ addr ^ string_of_float time ^ txhash) @@ 
+			Bitstring.string_of_bitstring (BITSTRING {
+			Hash.to_bin (txhash)	: 32*8 : string
+		})
+	;;
+
+	let get_txs db addr txs =
+		let rec get_tx it n = match n with
+		| 0 -> []
+		| n' -> bitmatch Bitstring.bitstring_of_string @@ LevelDB.Iterator.get_value it with
+			|  { 
+				txhash		: 32*8 	: string
+			} -> 
+				let _ = LevelDB.Iterator.next it in
+				(Hash.of_bin txhash) :: (get_tx it (n' - 1))
+		in
+		let it = LevelDB.Iterator.make db in
+		let _ = LevelDB.Iterator.seek it ("adt_" ^ addr) 0 (String.length @@ "adt_" ^ addr) in
+		get_tx it txs
+	;;
+	
+	let add_utxo db addr txhash i value =
+		LevelDB.put db ("adu_" ^ addr ^ txhash ^ string_of_int i) @@ 
+			Bitstring.string_of_bitstring (BITSTRING {
+			Hash.to_bin (txhash)	: 32*8 : string;
+			Int32.of_int i			: 32 : littleendian;
+			value					: 64 : littleendian
+		})
+	;;
+
+	let remove_utxo db addr txhash i =
+		LevelDB.delete db ("adu_" ^ addr ^ txhash ^ string_of_int i)
+	;;
+
+	let get_utxos db addr utxs =
+		let rec get_utx it n = match n with
+		| 0 -> []
+		| n' -> bitmatch Bitstring.bitstring_of_string @@ LevelDB.Iterator.get_value it with
+			|  { 
+				txhash		: 32*8 	: string;
+				i			: 32 	: littleendian;
+				value		: 64	: littleendian
+			} -> 
+				let ut = (Hash.of_bin txhash, Int32.to_int i, value) in
+				let _ = LevelDB.Iterator.next it in
+				ut :: (get_utx it (n' - 1))
+		in
+		let it = LevelDB.Iterator.make db in
+		let _ = LevelDB.Iterator.seek it ("adu_" ^ addr) 0 (String.length @@ "adu_" ^ addr) in
+		get_utx it utxs
 	;;
 
 	let load_or_create db addr =
@@ -46,6 +104,7 @@ module Address = struct
 			sent		= Uint64.zero;
 			received	= Uint64.zero;
 			txs			= Uint64.zero;
+			utxs		= Uint64.zero;
 		} in
 		let key = "adr_" ^ addr in
 		if LevelDB.mem db key then 
@@ -185,8 +244,11 @@ let insert_block storage height (block : Block.t) =
 				(match Tx.Out.spendable_by out with
 				| None -> ()
 				| Some (addr) -> 
+					Address.add_utxo storage.db addr tx.Tx.hash i out.value;
+						
 					let addrd = Address.load_or_create storage.db addr in
 					addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
+					addrd.utxs <- Uint64.add addrd.utxs @@ Uint64.one;
 					addrd.received <- Uint64.add addrd.received @@ Uint64.of_int64 out.value;
 					addrd.balance <- Uint64.add addrd.balance @@ Uint64.of_int64 out.value;
 					Address.save storage.db addr addrd)
@@ -209,10 +271,13 @@ let insert_block storage height (block : Block.t) =
 							(match Tx.Out.spendable_by utx with
 							| None -> ()
 							| Some (addr) -> 
+								Address.remove_utxo storage.db addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
+
 								let addrd = Address.load_or_create storage.db addr in
 								addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
 								addrd.sent <- Uint64.add addrd.sent @@ Uint64.of_int64 utx.value;
 								addrd.balance <- Uint64.sub addrd.balance @@ Uint64.of_int64 utx.value;
+								addrd.utxs <- Uint64.sub addrd.utxs @@ Uint64.one;
 								Address.save storage.db addr addrd
 							);
 
@@ -325,3 +390,14 @@ let get_headers storage hashes =
 
 
 let get_address storage addr = Address.load_or_create storage.db addr;;
+
+let get_address_utxs storage addr = 
+	let a = get_address storage addr in
+	Address.get_utxos storage.db addr (Uint64.to_int a.utxs)
+;;
+
+
+let get_address_txs storage addr = 
+	let a = get_address storage addr in
+	Address.get_txs storage.db addr (Uint64.to_int a.txs)
+;;
