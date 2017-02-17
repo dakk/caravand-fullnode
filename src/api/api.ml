@@ -111,7 +111,8 @@ let handle_request bc req =
 		Request.reply req 200 (`Assoc [
 			("status", `String "ok");
 			("tx", `Assoc [
-				("txid", `String txid)
+				("txid", `String txid);
+				("confirmations", `Int ((Int64.to_int bc.block_height) - (Storage.get_tx_height bc.storage txid)))
 			])
 		])
 

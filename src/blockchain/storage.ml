@@ -280,6 +280,18 @@ let get_tx storage txhash =
 		| Some (b) -> Some (List.nth b.txs @@ Int32.to_int index)
 ;;
 
+let get_tx_height storage txhash =
+	match LevelDB.get storage.db ("txi_" ^ txhash) with
+	| None -> 0
+	| Some (data) -> 
+		let bdata = Bitstring.bitstring_of_string data in
+		bitmatch bdata with
+		| { 
+			blockhash  : 32*8 	: string;
+			index      : 32 	: littleendian
+		} -> get_block_height storage (Hash.of_bin blockhash)
+;;
+
 
 let get_header storage hash = 
 	match LevelDB.get storage.db ("blk_" ^ hash) with
