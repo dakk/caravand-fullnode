@@ -226,7 +226,7 @@ let insert_block storage height (block : Block.t) =
 	LevelDB.put storage.db ("blk_" ^ block.header.hash) @@ Block.serialize block;
 	storage.chainstate.block <- block.header.hash;
 
-	List.iteri (fun i tx -> 
+	List.iteri (fun i tx -> 		
 		(* Insert tx *)
 		let data = Bitstring.string_of_bitstring (BITSTRING {
 			Hash.to_bin (block.header.hash)	: 32*8 : string;
@@ -245,6 +245,7 @@ let insert_block storage height (block : Block.t) =
 				| None -> ()
 				| Some (addr) -> 
 					Address.add_utxo storage.db addr tx.Tx.hash i out.value;
+					Address.add_tx storage.db addr tx.Tx.hash block.header.time;
 						
 					let addrd = Address.load_or_create storage.db addr in
 					addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
@@ -272,6 +273,7 @@ let insert_block storage height (block : Block.t) =
 							| None -> ()
 							| Some (addr) -> 
 								Address.remove_utxo storage.db addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
+								Address.add_tx storage.db addr tx.Tx.hash block.header.time;
 
 								let addrd = Address.load_or_create storage.db addr in
 								addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
