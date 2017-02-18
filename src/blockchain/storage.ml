@@ -319,7 +319,6 @@ let get_blocki storage height =
 ;;
 	
 
-
 let get_utx	storage tx index =
 	match LevelDB.get storage.db ("utx_" ^ tx ^ string_of_int index) with
 	| None -> None
@@ -345,16 +344,27 @@ let get_tx storage txhash =
 		| Some (b) -> Some (List.nth b.txs @@ Int32.to_int index)
 ;;
 
+
+let get_tx_output storage tx index =
+	match get_tx storage tx with
+	| None -> None
+	| Some (tx) -> 
+		if List.length tx.txout >= index then
+			Some (List.nth tx.txout index)
+		else 
+			None
+;;
+
 let get_tx_height storage txhash =
 	match LevelDB.get storage.db ("txi_" ^ txhash) with
-	| None -> 0
+	| None -> None
 	| Some (data) -> 
 		let bdata = Bitstring.bitstring_of_string data in
 		bitmatch bdata with
 		| { 
 			blockhash  : 32*8 	: string;
 			index      : 32 	: littleendian
-		} -> get_block_height storage (Hash.of_bin blockhash)
+		} -> Some (get_block_height storage (Hash.of_bin blockhash))
 ;;
 
 

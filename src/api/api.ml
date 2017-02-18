@@ -3,6 +3,9 @@ open Unix;;
 open Blockchain;;
 open Block;;
 open Block.Header;;
+open Tx;;
+open Tx.In;;
+open Tx.Out;;
 open Params;;
 open Stdint;;
 open Yojson.Basic.Util;;
@@ -61,7 +64,7 @@ let send_string sock str =
 
 let handle_request bc req = 
 	let not_found () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
-
+	
 	Log.debug "Api ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
 	match req.Request.rmethod, req.Request.uri with
 
@@ -111,14 +114,51 @@ let handle_request bc req =
 
 	(* Get tx info *)
 	| (Request.GET, "tx" :: txid :: []) -> 
-		let tx = Storage.get_tx bc.storage txid in
-		Request.reply req 200 (`Assoc [
-			("status", `String "ok");
-			("tx", `Assoc [
-				("txid", `String txid);
-				("confirmations", `Int ((Int64.to_int bc.block_height) - (Storage.get_tx_height bc.storage txid)))
+		let rec inputs_to_jsonlist inputs = match inputs with
+		| [] -> []
+		| i :: inp' ->
+			let utx = Storage.get_tx_output bc.storage i.out_hash (Uint32.to_int i.out_n) in
+			let inj = (match utx with 
+			| None -> `Assoc [ 
+				("out_tx", `String (i.out_hash));
+				("out_n", `Int (Uint32.to_int i.out_n))
+			]
+			| Some (utx) ->
+				let addr = match spendable_by utx with None -> "" | Some (a) -> a in
+				`Assoc [
+					("out_tx", `String (i.out_hash));
+					("out_n", `Int (Uint32.to_int i.out_n));
+					("address", `String addr);
+					("value", `String (Int64.to_string utx.value))
+				] 
+			) in inj :: (inputs_to_jsonlist inp')
+		in
+		let rec outputs_to_jsonlist outputs = match outputs with
+		| [] -> []
+		| o :: out' ->
+			let addr = match spendable_by o with None -> "" | Some (a) -> a in
+			let outj = `Assoc [
+				("address", `String addr);
+				("value", `String (Int64.to_string o.value))
+			] in outj :: (outputs_to_jsonlist out')
+		in
+		(match Storage.get_tx bc.storage txid with 
+		| None -> not_found ()
+		| Some (tx) -> (
+			Request.reply req 200 (`Assoc [
+				("status", `String "ok");
+				("tx", `Assoc [
+					("txid", `String txid);
+					("confirmations", `Int (
+						match Storage.get_tx_height bc.storage txid with
+						| None -> 0
+						| Some (n) -> (Int64.to_int bc.block_height) - n
+					));
+					("inputs", `List (inputs_to_jsonlist tx.txin));
+					("outputs", `List (outputs_to_jsonlist tx.txout))
+				])
 			])
-		])
+		))
 
 	(* Get block info by index *)
 	| (Request.GET, "block" :: "i" :: bli :: []) -> 

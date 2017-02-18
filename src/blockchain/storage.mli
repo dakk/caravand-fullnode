@@ -58,7 +58,8 @@ val get_block_height		:	t -> Hash.t -> int
 val get_header				:	t -> Hash.t -> Block.Header.t option
 val get_headeri				:	t -> Int64.t -> Block.Header.t option
 val get_tx					:	t -> Hash.t -> Tx.t option
-val get_tx_height			:	t -> Hash.t -> int
+val get_tx_output			:	t -> Hash.t -> int -> Tx.Out.t option
+val get_tx_height			:	t -> Hash.t -> int option
 val get_blocks 				:	t -> Hash.t list -> Block.t list
 val get_headers				:	t -> Hash.t list -> Block.Header.t list
 val get_address				:	t -> string -> Address.t
