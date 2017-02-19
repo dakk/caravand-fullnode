@@ -32,6 +32,9 @@ module Chainstate : sig
 
 		mutable txs				: uint64;
 		mutable utxos			: uint64;
+
+		mutable difficulty		: uint64;
+		mutable reward 			: uint64;
 	}
 
 	val serialize	: 	t -> bytes
@@ -47,6 +50,9 @@ type t = {
 val load					:	string -> t
 val close 					:	t -> unit
 val sync					:	t -> unit 
+
+val update_difficulty		: 	t -> uint64 -> unit
+val update_reward			: 	t -> uint64 -> unit 
 
 val insert_header      		:   t -> int64 -> Block.Header.t -> unit
 val insert_block            :   t -> int64 -> Block.t -> unit

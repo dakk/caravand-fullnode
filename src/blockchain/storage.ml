@@ -136,6 +136,9 @@ module Chainstate = struct
 
 		mutable txs				: uint64;
 		mutable utxos			: uint64;
+
+		mutable difficulty		: uint64;
+		mutable reward			: uint64;
 	};;
 
 	let serialize cs = 
@@ -145,7 +148,8 @@ module Chainstate = struct
 			Hash.to_bin cs.header             	: 32*8 : string;
 			Uint32.to_int32 cs.header_height  	: 32 : littleendian;
 			Uint64.to_int64 cs.txs			  	: 64 : littleendian;
-			Uint64.to_int64 cs.utxos		  	: 64 : littleendian
+			Uint64.to_int64 cs.utxos		  	: 64 : littleendian;
+			Uint64.to_int64 cs.difficulty	  	: 64 : littleendian
 		} in Bitstring.string_of_bitstring bs
 	;;
 
@@ -158,7 +162,9 @@ module Chainstate = struct
 			header 	        : 32*8 	: string;
 			header_height	: 32 	: string;
 			txs				: 64 	: string;
-			utxos			: 64 	: string
+			utxos			: 64 	: string;
+			difficulty		: 64 	: string;
+			reward			: 64	: string
 		} ->
 		{
 			block 		    = Hash.of_bin block;
@@ -167,6 +173,8 @@ module Chainstate = struct
 			header_height	= Uint32.of_bytes_little_endian header_height 0;
 			txs				= Uint64.of_bytes_little_endian txs 0;
 			utxos			= Uint64.of_bytes_little_endian utxos 0;
+			difficulty		= Uint64.of_bytes_little_endian difficulty 0;
+			reward			= Uint64.of_bytes_little_endian reward 0;
 		}
 	;;
 end
@@ -202,6 +210,8 @@ let load path =
 
 			txs= Uint64.of_int 0;
 			utxos= Uint64.of_int 0;
+			difficulty= Uint64.of_int 0;
+			reward= Uint64.of_int 0;
 		}
 	in
 	let db = LevelDB.open_db path in 
@@ -213,6 +223,16 @@ let load path =
 
 let close storage = 
 	LevelDB.close storage.db
+;;
+
+let update_difficulty storage diff =
+	storage.chainstate.difficulty <- diff;
+	save_cs storage
+;;
+
+let update_reward storage reward =
+	storage.chainstate.reward <- reward;
+	save_cs storage
 ;;
 
 let insert_header storage height (header : Block.Header.t) = 
