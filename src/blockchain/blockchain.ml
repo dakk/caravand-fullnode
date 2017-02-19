@@ -114,7 +114,7 @@ let load path p =
 		if bcg.storage.chainstate.Chainstate.block <> "0000000000000000000000000000000000000000000000000000000000000000" 
 		&& bcg.storage.chainstate.Chainstate.height <> Uint32.zero then (
 			match Storage.get_block bcg.storage bcg.storage.chainstate.Chainstate.block with
-			| None -> failwith "This should not happen"
+			| None -> failwith "impossible situation"
 			| Some (block) -> (
 				bcg.block_last <- block;
 				bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
@@ -160,7 +160,7 @@ let revert_last_block bc =
 
 
 let loop bc = 
-	revert_last_block bc;
+	(*revert_last_block bc;*)
 
 	let rec consume () =
 		let consume_block b = 
@@ -235,8 +235,6 @@ let loop bc =
 					consume ()
 				| RES_INV_TX (txs, addr) -> consume ()
 				| RES_BLOCK (bs) -> 
-					(*let df = Timediff.diff (Unix.time ()) bs.header.time in
-					Log.debug "Blockchain" "Got new block %s : %d y, %d m, %d d, %d h and %d m ago" bs.header.hash df.years df.months df.days df.hours df.minutes;*)
 					consume_block (bs)
 				| RES_TXS (txs) -> consume ()
 				| RES_HBLOCKS (hbs) -> 
@@ -257,8 +255,6 @@ let loop bc =
 	while true do (
 		Unix.sleep 4;
 		Cqueue.clear bc.requests;
-		
-		(*revert_last bc;*)
 		
 		(* Handle new resources *)
 		consume ();

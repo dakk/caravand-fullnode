@@ -34,34 +34,14 @@ module Header = struct
 	
 	let parse data = 
 		let check_target h b =
-		(*	let bigint_of_hash h = 
-				let res7 = Big_int.big_int_of_int64 (Int64.of_string ("0x" ^ (String.sub h 0 8))) in
-				let result = Big_int.shift_left_big_int res7 (7 * 32) in
-				let res6 = Big_int.big_int_of_int64 (Int64.of_string ("0x" ^ (String.sub h 8 8))) in
-				let result = Big_int.or_big_int result (Big_int.shift_left_big_int res6 (6 * 32)) in
-				let res5 = Big_int.big_int_of_int64 (Int64.of_string ("0x" ^ (String.sub h 16 8))) in
-				let result = Big_int.or_big_int result (Big_int.shift_left_big_int res5 (5 * 32)) in
-				let res4 = Big_int.big_int_of_int64 (Int64.of_string ("0x" ^ (String.sub h 24 8))) in
-				let result = Big_int.or_big_int result (Big_int.shift_left_big_int res4 (4 * 32)) in
-				let res3 = Big_int.big_int_of_int64 (Int64.of_string ("0x" ^ (String.sub h 32 8))) in
-				let result = Big_int.or_big_int result (Big_int.shift_left_big_int res3 (3 * 32)) in
-				let res2 = Big_int.big_int_of_int64 (Int64.of_string ("0x" ^ (String.sub h 40 8))) in
-				let result = Big_int.or_big_int result (Big_int.shift_left_big_int res2 (2 * 32)) in
-				let res1 = Big_int.big_int_of_int64 (Int64.of_string ("0x" ^ (String.sub h 48 8))) in
-				let result = Big_int.or_big_int result (Big_int.shift_left_big_int res1 (1 * 32)) in
-				let res0 = Big_int.big_int_of_int64 (Int64.of_string ("0x" ^ (String.sub h 56 8))) in
-				Big_int.or_big_int result (Big_int.shift_left_big_int res0 (0 * 32))
-			in*)
-		(*	let calc_target b = 
-				let exp = Bytes.sub b 0 2 in
-				let body = Bytes.sub b 2 6 in
-				Big_int.zero
+			let calc_target b = 
+				let exp = Int64.of_bytes_little_endian ((Bytes.sub b 0 1) ^ (Bytes.make 7 (Char.chr 0))) 0 in
+				let body = Int64.of_bytes_little_endian ((Bytes.sub b 1 3) ^ (Bytes.make 5 (Char.chr 0))) 0 in
+				Big_int.power_big_int_positive_big_int (Big_int.big_int_of_int64 body) (Big_int.big_int_of_int64 exp)
 			in
-			let t' = calc_target b
-			let h' = Big_int.of_string h
-			Big_int.lt_big_int h' t'			
-		*)
-			true
+			let t' = calc_target b in
+			let h' = Hash.to_bigint h in
+			Big_int.lt_big_int h' t'
 		in
 		let bdata = bitstring_of_string data in
 		bitmatch bdata with 

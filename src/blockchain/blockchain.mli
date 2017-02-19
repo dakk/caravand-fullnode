@@ -1,5 +1,9 @@
 open Block;;
 
+(*
+type peerdest = None | Some of Unix.inet_addr | Broadcast
+*)
+
 module Resource : sig
 	type t = 
 	| RES_TXS of Tx.t list
