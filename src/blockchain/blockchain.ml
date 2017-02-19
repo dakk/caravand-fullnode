@@ -134,32 +134,34 @@ let load path p =
 ;;
 
 (* Remove the last header / block (if detected a fork) *)
-(*
-let revert_last bc =
-	(match Storage.get_header bc.storage bc.header_last.prev_block with
-	| None -> ()
-	| Some (h) ->
-		Storage.remove_last_header bc.storage bc.header_last.hash;
-		bc.header_last <- h;
-		bc.header_height <- Int64.pred bc.header_height;
-		Log.debug "Blockchain" "Reverting last header"
-	);
+let revert_last_block bc =
+	Log.debug "Blockchain" "Removing last block: %s" bc.header_last.hash;
+				
+	let revert_block () = 
+		Storage.remove_last_block bc.storage bc.block_last.header.prev_block;
+		bc.block_height <- Int64.sub (bc.block_height) (Int64.one);
+		match Storage.get_block bc.storage @@ bc.block_last.header.prev_block with
+		| Some (h) -> bc.block_last <- h 
+		| None -> failwith "impossible situation"
 
-	(match Storage.get_block bc.storage bc.block_last.header.prev_block with
-	| None -> ()
-	| Some (b) ->
-		Storage.remove_last_block bc.storage bc.header_last.hash;
-		bc.block_last <- b;
-		bc.block_height <- Int64.pred bc.block_height;
-		Log.debug "Blockchain" "Reverting last block"
-	);
+	in
+	let revert_header () =
+		Storage.remove_last_header bc.storage bc.header_last.prev_block;
+		bc.header_height <- Int64.sub (bc.header_height) (Int64.one);
+		match Storage.get_header bc.storage @@ bc.header_last.prev_block with
+		| Some (h) -> bc.header_last <- h 
+		| None -> failwith "impossible situation"
+	in
+
+	if bc.header_height > bc.block_height then revert_header () else revert_block ();
 	Storage.sync bc.storage
 ;;
-*)
 	
 
 
 let loop bc = 
+	revert_last_block bc;
+
 	let rec consume () =
 		let consume_block b = 
 			match (b, bc.block_last, bc.header_last) with
