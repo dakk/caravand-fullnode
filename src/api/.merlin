@@ -1,0 +1,5 @@
+B ../../_build/default/src/api
+FLG -w -40
+PKG cryptokit
+PKG unix
+PKG zarith

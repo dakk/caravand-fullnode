@@ -1,0 +1,8 @@
+lib: [
+  "_build/install/default/lib/letchain/META" {"META"}
+  "_build/install/default/lib/letchain/opam" {"opam"}
+]
+doc: [
+  "_build/install/default/doc/letchain/README.md"
+  "_build/install/default/doc/letchain/LICENSE"
+]

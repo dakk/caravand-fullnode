@@ -160,7 +160,13 @@ let revert_last_block bc =
 
 
 let loop bc = 
-	(*revert_last_block bc;*)
+	let rec revert n =
+		match n with 
+		| 0 -> ()
+		| n ->
+			revert_last_block bc;
+			revert (n - 1)
+	in revert 128;
 
 	let rec consume () =
 		let consume_block b = 

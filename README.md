@@ -17,20 +17,7 @@ or through a library that expose all the features.
 
 ## Installation
 
-1. Switch to Ocaml 4.04:
-``` opam switch 4.04 ```
-
-2. Install oasis:
-``` opam install oasis ```
-
-3. Install letchain dependencies:
-``` ./scripts/install_deps.sh ```
-
-4. Build:
-``` oasis setup && ./configure && make ```
-
-5. Start:
-``` ./letchain.byte ```
+```make```
 
 
 ## License

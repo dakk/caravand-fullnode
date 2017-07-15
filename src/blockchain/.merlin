@@ -1,0 +1,5 @@
+B ../../_build/default/src/blockchain
+FLG -open Blockchain__ -w -40
+PKG cryptokit
+PKG unix
+PKG zarith

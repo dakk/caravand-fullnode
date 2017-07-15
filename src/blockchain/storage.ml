@@ -149,7 +149,8 @@ module Chainstate = struct
 			Uint32.to_int32 cs.header_height  	: 32 : littleendian;
 			Uint64.to_int64 cs.txs			  	: 64 : littleendian;
 			Uint64.to_int64 cs.utxos		  	: 64 : littleendian;
-			Uint64.to_int64 cs.difficulty	  	: 64 : littleendian
+			Uint64.to_int64 cs.difficulty	  	: 64 : littleendian;
+			Uint64.to_int64 cs.reward	  		: 64 : littleendian
 		} in Bitstring.string_of_bitstring bs
 	;;
 
