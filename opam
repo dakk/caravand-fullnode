@@ -24,6 +24,9 @@ depends: [
   "bignum" {build & >= "v0.9.0"}
   "bitcoinml" {build & >= "0.2.0"}
   "cryptokit" {build & >= "1.11"}
+  "ctypes" {build & >= "0.11.2"}
+  "yojson" {build & >= "1.3.3"}
+  "leveldb" {build & >= "1.1.2"}
   "stdint" {build & >= "0.3.0-0"}
   "ounit" {test & >= "2.2.2"}
   "odoc" {test & >= "1.1.1"}
