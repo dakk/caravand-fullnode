@@ -1,4 +1,5 @@
 open Stdint
+open Bitcoinml
 
 type e = BTC | XTN | SIDECHAIN | NOTFOUND
 

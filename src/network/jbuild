@@ -2,5 +2,5 @@
 
 (library
  ((name        network)
-  (libraries (cryptokit))))
+  (libraries (stdint blockchain))))
 

@@ -1,5 +1,6 @@
 open Stdint
 open LevelDB
+open Bitcoinml
 open Tx
 open Block
 open Block.Header

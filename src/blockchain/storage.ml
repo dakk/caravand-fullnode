@@ -1,5 +1,6 @@
 open Stdint;;
 open LevelDB;;
+open Bitcoinml;;
 open Block;;
 open Block.Header;;
 open Tx;;
@@ -17,14 +18,14 @@ module Address = struct
 
 	let parse data = 
 		let bdata = Bitstring.bitstring_of_string data in
-		bitmatch bdata with
-		| { 
+		match%bitstring bdata with
+		| {|
 			balance			: 64 	: string;
 			sent			: 64 	: string;
 			received		: 64	: string;
 			txs				: 64	: string;
 			utxs			: 64	: string
-		} ->
+		|} ->
 		{
 			balance		= Uint64.of_bytes_little_endian balance 0;
 			sent		= Uint64.of_bytes_little_endian sent 0;
@@ -35,21 +36,21 @@ module Address = struct
 	;;
 
 	let serialize addr = 
-		let bs = BITSTRING {
+		let bs = [%bitstring {|
 			Uint64.to_int64 addr.balance	: 64 : littleendian;
 			Uint64.to_int64 addr.sent	  	: 64 : littleendian;
 			Uint64.to_int64 addr.received	: 64 : littleendian;
 			Uint64.to_int64 addr.txs	  	: 64 : littleendian;
 			Uint64.to_int64 addr.utxs	  	: 64 : littleendian
-		} in Bitstring.string_of_bitstring bs
+		|}] in Bitstring.string_of_bitstring bs
 	;;
 
 
 	let add_tx db addr txhash time =
 		LevelDB.put db ("adt_" ^ addr ^ string_of_float time ^ txhash) @@ 
-			Bitstring.string_of_bitstring (BITSTRING {
+			Bitstring.string_of_bitstring ([%bitstring {|
 			Hash.to_bin (txhash)	: 32*8 : string
-		})
+		|}])
 	;;
 
 	let remove_tx db addr txhash time =
@@ -59,10 +60,10 @@ module Address = struct
 	let get_txs db addr txs =
 		let rec get_tx it n = match n with
 		| 0 -> []
-		| n' -> bitmatch Bitstring.bitstring_of_string @@ LevelDB.Iterator.get_value it with
-			|  { 
+		| n' -> match%bitstring Bitstring.bitstring_of_string @@ LevelDB.Iterator.get_value it with
+			|  {| 
 				txhash		: 32*8 	: string
-			} -> 
+			|} -> 
 				let _ = LevelDB.Iterator.next it in
 				(Hash.of_bin txhash) :: (get_tx it (n' - 1))
 		in
@@ -73,11 +74,11 @@ module Address = struct
 	
 	let add_utxo db addr txhash i value =
 		LevelDB.put db ("adu_" ^ addr ^ txhash ^ string_of_int i) @@ 
-			Bitstring.string_of_bitstring (BITSTRING {
+			Bitstring.string_of_bitstring ([%bitstring {|
 			Hash.to_bin (txhash)	: 32*8 : string;
 			Int32.of_int i			: 32 : littleendian;
 			value					: 64 : littleendian
-		})
+		|}])
 	;;
 
 	let remove_utxo db addr txhash i =
@@ -87,12 +88,12 @@ module Address = struct
 	let get_utxos db addr utxs =
 		let rec get_utx it n = match n with
 		| 0 -> []
-		| n' -> bitmatch Bitstring.bitstring_of_string @@ LevelDB.Iterator.get_value it with
-			|  { 
+		| n' -> match%bitstring Bitstring.bitstring_of_string @@ LevelDB.Iterator.get_value it with
+			|  {|
 				txhash		: 32*8 	: string;
 				i			: 32 	: littleendian;
 				value		: 64	: littleendian
-			} -> 
+			|} -> 
 				let ut = (Hash.of_bin txhash, Int32.to_int i, value) in
 				let _ = LevelDB.Iterator.next it in
 				ut :: (get_utx it (n' - 1))
@@ -142,7 +143,7 @@ module Chainstate = struct
 	};;
 
 	let serialize cs = 
-		let bs = BITSTRING {
+		let bs = [%bitstring {|
 			Hash.to_bin cs.block				: 32*8 : string;
 			Uint32.to_int32 cs.height			: 32 : littleendian;
 			Hash.to_bin cs.header             	: 32*8 : string;
@@ -151,13 +152,13 @@ module Chainstate = struct
 			Uint64.to_int64 cs.utxos		  	: 64 : littleendian;
 			Uint64.to_int64 cs.difficulty	  	: 64 : littleendian;
 			Uint64.to_int64 cs.reward	  		: 64 : littleendian
-		} in Bitstring.string_of_bitstring bs
+		|}] in Bitstring.string_of_bitstring bs
 	;;
 
 	let parse csb = 
 		let bdata = Bitstring.bitstring_of_string csb in
-		bitmatch bdata with
-		| { 
+		match%bitstring bdata with
+		| {|
 			block 		    : 32*8 	: string;
 			height          : 32 	: string;
 			header 	        : 32*8 	: string;
@@ -166,7 +167,7 @@ module Chainstate = struct
 			utxos			: 64 	: string;
 			difficulty		: 64 	: string;
 			reward			: 64	: string
-		} ->
+		|} ->
 		{
 			block 		    = Hash.of_bin block;
 			height 	    	= Uint32.of_bytes_little_endian height 0;
@@ -254,10 +255,10 @@ let insert_block storage height (block : Block.t) =
 
 	List.iteri (fun i tx -> 		
 		(* Insert tx *)
-		let data = Bitstring.string_of_bitstring (BITSTRING {
+		let data = Bitstring.string_of_bitstring ([%bitstring {|
 			Hash.to_bin (block.header.hash)	: 32*8 : string;
 			Int32.of_int i					: 32 : littleendian
-		}) in
+		|}]) in
 		LevelDB.put storage.db ("txi_" ^ tx.Tx.hash) data;
 		storage.chainstate.txs <- Uint64.add storage.chainstate.txs Uint64.one;
 
@@ -361,11 +362,11 @@ let get_tx storage txhash =
 	| None -> None
 	| Some (data) -> 
 		let bdata = Bitstring.bitstring_of_string data in
-		bitmatch bdata with
-		| { 
+		match%bitstring bdata with
+		| {| 
 			blockhash  : 32*8 	: string;
 			index      : 32 	: littleendian
-		} ->
+		|} ->
 		let block = Hash.of_bin blockhash in
 		match get_block storage block with
 		| None -> None
@@ -388,11 +389,11 @@ let get_tx_height storage txhash =
 	| None -> None
 	| Some (data) -> 
 		let bdata = Bitstring.bitstring_of_string data in
-		bitmatch bdata with
-		| { 
+		match%bitstring bdata with
+		| {| 
 			blockhash  : 32*8 	: string;
 			index      : 32 	: littleendian
-		} -> Some (get_block_height storage (Hash.of_bin blockhash))
+		|} -> Some (get_block_height storage (Hash.of_bin blockhash))
 ;;
 
 

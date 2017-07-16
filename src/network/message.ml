@@ -135,11 +135,11 @@ let parse_varstring bits =
   let length, bits = parse_varint bits in
   if length = Uint64.zero then ("", bits)
   else
-    bitmatch bits with
-    | { value : (Uint64.to_int length) * 8 : string;
+    match%bitstring bits with
+    | {| value : (Uint64.to_int length) * 8 : string;
         rest : -1 : bitstring
-      } -> (value, rest)
-    | { _ } -> ("", bits)
+      |} -> (value, rest)
+    | {| _ |} -> ("", bits)
 ;;
 
 
@@ -147,8 +147,8 @@ let parse_varstring bits =
 let parse_headers data = 
 	let rec ph' data n acc =
 		if n = Uint64.zero then acc else
-			bitmatch data with
-			| { raw : 80 * 8 : string; txc : 1 * 8: littleendian; rest : -1 : bitstring } ->
+			match%bitstring data with
+			| {| raw : 80 * 8 : string; txc : 1 * 8: littleendian; rest : -1 : bitstring |} ->
 				let blockh = Block.Header.parse raw in
 				match blockh with
 				| None -> ph' rest (Uint64.sub n Uint64.one) acc
@@ -163,12 +163,12 @@ let parse_headers data =
 let parse_inv data =
 	let rec parse_invvects bdata count acc = 
 		if count = 0 then acc else (
-		bitmatch bdata with 
-		| { 
+		match%bitstring bdata with 
+		| {| 
 			itype		: 4*8 : littleendian;
 			hash		: 32*8: string;
 			rest		: -1  : bitstring
-		} ->
+		|} ->
 			let iv = match (Int32.to_int itype) with
 				  1 -> INV_TX  (Hash.of_bin hash)
 				| 2 -> INV_BLOCK (Hash.of_bin hash)
@@ -187,13 +187,13 @@ let parse_getdata data = parse_inv data;;
 
 let parse_netaddr data =
 	let bdata = bitstring_of_string data in
-	bitmatch bdata with
-	| {
+	match%bitstring bdata with
+	| {|
 		time		: 4*8 : string;
 		services	: 8*8 : littleendian;
 		address		: 16*8 : string;
 		port		: 16 : littleendian
-	} -> 
+	|} -> 
 		{ 
 			address="0000000000000000" ; 
 			services= Uint64.of_int64 services; 
@@ -203,8 +203,8 @@ let parse_netaddr data =
 
 let parse_version data =
 	let bdata = bitstring_of_string data in
-	bitmatch bdata with 
-	| {
+	match%bitstring bdata with 
+	| {|
 		version 			: 4*8 : littleendian;
 		services 			: 8*8 : littleendian;
 		time 				: 8*8 : littleendian;
@@ -212,14 +212,14 @@ let parse_version data =
 		addr_from	 		: 26*8 : string;
 		nonce				: 8*8 : littleendian;
 		rest				: -1 : bitstring
-	} -> 
+	|} -> 
 		match parse_varstring rest with
 		| (user_agent, rest) ->
-			(bitmatch rest with 
-			| {
+			(match%bitstring rest with 
+			| {|
 				start_height		: 4*8 : littleendian;
 				relay				: 1*8 : littleendian						
-			} -> {
+			|} -> {
 				addr_recv= parse_netaddr addr_recv;
 				addr_from= parse_netaddr addr_from;
 				version= version;
@@ -235,26 +235,26 @@ let parse_version data =
 
 let parse_ping data =
 	let bdata = bitstring_of_string data in
-	bitmatch bdata with
-	| { nonce		: 8*8	: littleendian } -> nonce
-	| { _ } -> raise (Invalid_argument "Invalid ping message")
+	match%bitstring bdata with
+	| {| nonce		: 8*8	: littleendian |} -> nonce
+	| {| _ |} -> raise (Invalid_argument "Invalid ping message")
 ;;
 
 let parse_pong data =
 	let bdata = bitstring_of_string data in
-	bitmatch bdata with
-	| { nonce		: 8*8	: littleendian } -> nonce
-	| { _ } -> raise (Invalid_argument "Invalid pong message")
+	match%bitstring bdata with
+	| {| nonce		: 8*8	: littleendian |} -> nonce
+	| {| _ |} -> raise (Invalid_argument "Invalid pong message")
 ;;
 
 
 let parse_getheaders data =
 	let bdata = bitstring_of_string data in
-	bitmatch bdata with 
-	| {
+	match%bitstring bdata with 
+	| {|
 		version : 4*8 : littleendian;
 		rest : -1 : bitstring
-	} ->
+	|} ->
 		let count, rest = parse_varint bdata in
 		{
 			version= version;
@@ -267,20 +267,20 @@ let parse_getblocks data = parse_getheaders data;;
 
 let parse_header data =
 	let bdata = bitstring_of_string data in
-	bitmatch bdata with
-	| { 
+	match%bitstring bdata with
+	| {| 
 		magic 		: 4*8 	: littleendian;
 		command 	: 12*8 	: string;
 		length 		: 4*8 	: littleendian;
 		checksum	: 4*8 	: string
-	} ->
+	|} ->
 	{
 		magic 		= magic;
 		command 	= string_from_zeroterminated_string command;
 		length 		= Uint32.of_int32 length;
 		checksum	= checksum;
 	}
-	| { _ } -> raise (Invalid_argument "Invalid protocol header")
+	| {| _ |} -> raise (Invalid_argument "Invalid protocol header")
 ;;
 
 
@@ -323,11 +323,11 @@ let parse header payload =
 (* Serialization **************************************************)
 (******************************************************************)
 let bitstring_of_addr (addr: addr) : Bitstring.t =
-  BITSTRING {
+  [%bitstring {|
     Uint64.to_int64 addr.services	: 8*8 	: littleendian;
     addr.address	: 16*8 	: string;
     Uint16.to_int addr.port		: 2*8 	: littleendian
-  }
+  |}]
 ;;
 
 
@@ -336,10 +336,10 @@ let bitstring_of_varstring s =
 	| 0 -> bitstring_of_string "\x00"
 	| n -> 
 		let length_varint_bitstring = bitstring_of_varint (Int64.of_int (String.length s)) in
-		BITSTRING {
+		[%bitstring {|
 			length_varint_bitstring : -1 : bitstring;
 			s 						: (String.length s) * 8 : string
-		}
+		|}]
 ;;
 
 let int_of_bool b = 
@@ -349,18 +349,18 @@ let int_of_bool b =
 ;;
 
 let serialize_getheaders v = 
-	BITSTRING {
+	[%bitstring {|
 		v.version 												: 4*8 : littleendian;
 		bitstring_of_varint (Int64.of_int (List.length v.hashes))	: -1 : bitstring;
 		Hash.to_bin (List.nth v.hashes 0)						: 32*8 : string; (*TODO: this should be an array *)
 		Hash.to_bin (v.stop)									: 32*8 : string
-	} 
+	|}] 
 ;;
 
 let serialize_getblocks v = serialize_getheaders v;;
 
 let serialize_version (v:version) =
-	BITSTRING {
+	[%bitstring {|
 		v.version 										: 4*8 : littleendian;
 		v.services 										: 8*8 : littleendian;
 		Int64.of_float (v.time) 						: 8*8 : littleendian;
@@ -370,11 +370,11 @@ let serialize_version (v:version) =
 		bitstring_of_varstring v.user_agent 			: -1 : bitstring;
 		v.start_height 									: 4*8 : littleendian;
 		int_of_bool true								: 1*8 : littleendian
-	}
+	|}]
 ;;
 
-let serialize_ping p = BITSTRING { p 	: 8*8 : littleendian };;
-let serialize_pong p = BITSTRING { p 	: 8*8 : littleendian };;
+let serialize_ping p = [%bitstring {| p 	: 8*8 : littleendian |}];;
+let serialize_pong p = [%bitstring {| p 	: 8*8 : littleendian |}];;
 
 
 let serialize_getdata gd = 
@@ -384,10 +384,10 @@ let serialize_getdata gd =
 		| INV_TX (h) -> (h, 1)
 		| INV_FILTERED_BLOCK (h) -> (h, 3)
 		| INV_ERROR -> ("", 0)		
-		in BITSTRING {
+		in [%bitstring {|
 			Int32.of_int (snd (it)) : 4*8 : littleendian;
 			Hash.to_bin (fst (it)) : 32*8 : string
-		}
+		|}]
 	in
 	let rec ser_ivs vl =
 		match vl with
@@ -395,10 +395,10 @@ let serialize_getdata gd =
 		| v::vl' -> (ser_iv v)::(ser_ivs vl')
 	in
 	let invvects = ser_ivs gd in
-	BITSTRING {
+	[%bitstring {|
 		bitstring_of_varint (Int64.of_int (List.length gd)): -1 : bitstring;
 		Bitstring.concat invvects 						: -1 : bitstring
-	}
+	|}]
 ;;
 
 let serialize_inv gd = serialize_getdata gd;;
@@ -407,13 +407,12 @@ let serialize_notfound nf = serialize_getdata nf;;
 let serialize_header header =
 	let blength = Bytes.create 4 in
 	let _ = Uint32.to_bytes_little_endian header.length blength 0 in
-	let bdata = BITSTRING {
+	let bdata = [%bitstring {|
 		header.magic 	: 4*8 	: littleendian;
 		header.command	: 12*8 	: string;
 		blength			: 4*8 	: string;
 		header.checksum : 4*8 	: string
-	} 
-	in string_of_bitstring bdata
+	|}] in string_of_bitstring bdata
 ;;
 
 

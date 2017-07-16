@@ -1,5 +1,10 @@
 B ../../_build/default/src/utils
 FLG -open Utils -w -40
+PKG biniou
 PKG cryptokit
+PKG easy-format
+PKG threads
+PKG threads.posix
 PKG unix
+PKG yojson
 PKG zarith

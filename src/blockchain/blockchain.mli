@@ -1,4 +1,6 @@
-open Block;;
+open Bitcoinml
+open Block
+open Cqueue
 
 (*
 type peerdest = None | Some of Unix.inet_addr | Broadcast
