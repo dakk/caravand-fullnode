@@ -1,8 +1,6 @@
 open Blockchain
-open Params
 open Stdint
-open Stdint
-
+open Bitcoinml
 
 
 type header  = {

@@ -3,5 +3,5 @@
 (library
  ((name        blockchain)
   (preprocess (pps (ppx_bitstring)))
-  (libraries (utils stdint leveldb bitcoinml))))
+  (libraries (bitstring utils stdint leveldb bitcoinml))))
 

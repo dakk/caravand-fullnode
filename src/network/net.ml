@@ -1,10 +1,10 @@
-open Block;;
-open Log;;
+open Bitcoinml;;
+open Utils;;
 open Dns;;
-open Params;;
 open Peer;;
 open Message;;
 open Blockchain;;
+open Params;;
 
 type t = {
 	addrs: 		Unix.inet_addr list;
@@ -130,13 +130,13 @@ let loop n bc =
 			| None -> ()
 			| Some (req) ->
 				(match req with
-				| Blockchain.Request.REQ_HBLOCKS (h, addr)	->
+				| Chain.Request.REQ_HBLOCKS (h, addr)	->
 					let msg = {
 						version= Int32.of_int 1;
 						hashes= h;
 						stop= Hash.zero ();
 					} in send n (Message.GETHEADERS msg)
-				| Blockchain.Request.REQ_BLOCKS (hs, addr)	->
+				| Chain.Request.REQ_BLOCKS (hs, addr)	->
 					let rec create_invs hs acc = match hs with
 					| [] -> acc
 					| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)

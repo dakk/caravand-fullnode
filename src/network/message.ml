@@ -1,10 +1,10 @@
+open Bitcoinml;;
 open Blockchain;;
 open Bitstring;;
 open Params;;
-open Crypto;;
 open Stdint;;
+open Bitstring;;
 open Hash;;
-open Parser;;
 
 
 type header = {
@@ -132,7 +132,7 @@ let string_from_zeroterminated_string zts =
 
 
 let parse_varstring bits =
-  let length, bits = parse_varint bits in
+  let length, bits = Varint.parse_varint bits in
   if length = Uint64.zero then ("", bits)
   else
     match%bitstring bits with
@@ -155,7 +155,7 @@ let parse_headers data =
 				| Some (header) -> ph' rest (Uint64.sub n Uint64.one) (header::acc)
 	in  
 	let bdata = bitstring_of_string data in
-	let count, rest = parse_varint bdata in
+	let count, rest = Varint.parse_varint bdata in
 	(ph' rest count [])
 ;;
 
@@ -178,7 +178,7 @@ let parse_inv data =
 		)
 	in
 	let bdata = bitstring_of_string data in
-	let count, rest = parse_varint bdata in
+	let count, rest = Varint.parse_varint bdata in
 	parse_invvects rest (Uint64.to_int count) []
 ;;
 
@@ -255,7 +255,7 @@ let parse_getheaders data =
 		version : 4*8 : littleendian;
 		rest : -1 : bitstring
 	|} ->
-		let count, rest = parse_varint bdata in
+		let count, rest = Varint.parse_varint bdata in
 		{
 			version= version;
 			hashes= [];
@@ -335,7 +335,7 @@ let bitstring_of_varstring s =
 	match String.length s with
 	| 0 -> bitstring_of_string "\x00"
 	| n -> 
-		let length_varint_bitstring = bitstring_of_varint (Int64.of_int (String.length s)) in
+		let length_varint_bitstring = Varint.bitstring_of_varint (Int64.of_int (String.length s)) in
 		[%bitstring {|
 			length_varint_bitstring : -1 : bitstring;
 			s 						: (String.length s) * 8 : string
@@ -351,8 +351,8 @@ let int_of_bool b =
 let serialize_getheaders v = 
 	[%bitstring {|
 		v.version 												: 4*8 : littleendian;
-		bitstring_of_varint (Int64.of_int (List.length v.hashes))	: -1 : bitstring;
-		Hash.to_bin (List.nth v.hashes 0)						: 32*8 : string; (*TODO: this should be an array *)
+		Varint.bitstring_of_varint (Int64.of_int (List.length v.hashes))	: -1 : bitstring;
+		Hash.to_bin (List.nth v.hashes 0)						: 32*8 : string;
 		Hash.to_bin (v.stop)									: 32*8 : string
 	|}] 
 ;;
@@ -396,7 +396,7 @@ let serialize_getdata gd =
 	in
 	let invvects = ser_ivs gd in
 	[%bitstring {|
-		bitstring_of_varint (Int64.of_int (List.length gd)): -1 : bitstring;
+		Varint.bitstring_of_varint (Int64.of_int (List.length gd)): -1 : bitstring;
 		Bitstring.concat invvects 						: -1 : bitstring
 	|}]
 ;;
@@ -443,7 +443,7 @@ let serialize params message =
 		magic	= Int32.of_int params.Params.magic;
 		command	= command';
 		length	= Uint32.of_int (Bytes.length mdata);
-		checksum= Crypto.checksum4 mdata;
+		checksum= Hash.checksum4 mdata;
 	} in 
 	let hdata = serialize_header header in
 	Bytes.cat hdata mdata

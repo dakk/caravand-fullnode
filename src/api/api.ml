@@ -1,6 +1,9 @@
+open Utils;;
+open Bitcoinml;;
 open Log;;
 open Unix;;
 open Blockchain;;
+open Chain;;
 open Block;;
 open Block.Header;;
 open Tx;;

@@ -1,6 +1,6 @@
 B ../../_build/default/src/blockchain
 B ../../_build/default/src/utils
-FLG -open Blockchain__ -w -40
+FLG -open Blockchain -w -40
 FLG -ppx "../../_build/default/.ppx/ppx_bitstring/ppx.exe --as-ppx --cookie 'library-name="blockchain"'"
 PKG base
 PKG base.caml

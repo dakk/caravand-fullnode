@@ -1,5 +1,5 @@
 open Message
-open Params
+open Blockchain
 
 type status = 
 	| CONNECTED
@@ -28,5 +28,5 @@ val send		: t -> Message.t -> unit
 val recv		: t -> Message.t option
 val handshake	: t -> unit
 val disconnect	: t -> unit
-val start		: t -> Blockchain.t -> unit
-val handle		: t -> Blockchain.t -> unit
+val start		: t -> Chain.t -> unit
+val handle		: t -> Chain.t -> unit

@@ -1,18 +1,17 @@
 open Network;;
-open Log;;
-open Params;;
+open Utils;;
+open Blockchain;;
 open Thread;;
 open Random;;
 open Config;;
-open Blockchain;;
 
 let main () =
 	let chain_job bc = 
-		Blockchain.loop bc 
+		Chain.loop bc 
 	in
 	let net_job (bc, conf) = 
-		let n = Network.init bc.params conf.peers in 
-		Network.loop n bc
+		let n = Net.init bc.Chain.params conf.peers in 
+		Net.loop n bc
 	in
 	let api_job (bc, conf) =
 		Api.loop conf.api_port bc
@@ -25,10 +24,10 @@ let main () =
 	if cn = NOTFOUND then
 		Log.info "letchain" "Invalid chain"
 	else 	
-		Log.info "letchain" "Selected network: %s" (name_of_network cn);
+		Log.info "letchain" "Selected network: %s" (Params.name_of_network cn);
 		let p = Params.of_network cn in	
 		
-		let bc = Blockchain.load conf.path p in
+		let bc = Chain.load conf.path p in
 		let chain_thread = Thread.create chain_job bc in
 		let api_thread = Thread.create api_job (bc, conf) in
 		let net_thread = Thread.create net_job (bc, conf) in

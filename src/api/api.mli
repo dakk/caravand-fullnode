@@ -17,4 +17,4 @@ module Request : sig
 end
 
 
-val loop : int -> Blockchain.t -> unit
+val loop : int -> Chain.t -> unit

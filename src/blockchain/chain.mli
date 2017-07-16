@@ -1,6 +1,6 @@
 open Bitcoinml
 open Block
-open Cqueue
+open Utils
 
 (*
 type peerdest = None | Some of Unix.inet_addr | Broadcast
@@ -25,7 +25,7 @@ end
 
 
 type t = {
-	params	: 	Params.t;
+	params	: Params.t;
 	basedir	:	string;
 
 	storage :	Storage.t;
