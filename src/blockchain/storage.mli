@@ -44,7 +44,7 @@ end
 
 type t = {
 	chainstate		:	Chainstate.t;
-    db       		:   LevelDB.db;
+		db       		:   LevelDB.db;
 }
 
 

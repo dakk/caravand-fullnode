@@ -16,7 +16,7 @@ open Yojson.Basic;;
 
 
 module Request = struct
-    type m = GET | POST | PUT | DELETE;;
+	type m = GET | POST | PUT | DELETE;;
 
 	type t = {
 		uri		: string list;

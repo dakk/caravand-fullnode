@@ -11,7 +11,7 @@ type header  = {
 }
 
 type invvect = 
-	  INV_ERROR
+	INV_ERROR
 	| INV_TX of Hash.t
 	| INV_BLOCK of Hash.t
 	| INV_FILTERED_BLOCK of Hash.t

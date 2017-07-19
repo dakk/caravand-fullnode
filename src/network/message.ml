@@ -16,7 +16,7 @@ type header = {
 
 
 type invvect = 
-	  INV_ERROR
+		INV_ERROR
 	| INV_TX of Hash.t
 	| INV_BLOCK of Hash.t
 	| INV_FILTERED_BLOCK of Hash.t
@@ -132,14 +132,14 @@ let string_from_zeroterminated_string zts =
 
 
 let parse_varstring bits =
-  let length, bits = Varint.parse_varint bits in
-  if length = Uint64.zero then ("", bits)
-  else
-    match%bitstring bits with
-    | {| value : (Uint64.to_int length) * 8 : string;
-        rest : -1 : bitstring
-      |} -> (value, rest)
-    | {| _ |} -> ("", bits)
+	let length, bits = Varint.parse_varint bits in
+	if length = Uint64.zero then ("", bits)
+	else
+		match%bitstring bits with
+		| {| value : (Uint64.to_int length) * 8 : string;
+				rest : -1 : bitstring
+			|} -> (value, rest)
+		| {| _ |} -> ("", bits)
 ;;
 
 
@@ -170,7 +170,7 @@ let parse_inv data =
 			rest		: -1  : bitstring
 		|} ->
 			let iv = match (Int32.to_int itype) with
-				  1 -> INV_TX  (Hash.of_bin hash)
+					1 -> INV_TX  (Hash.of_bin hash)
 				| 2 -> INV_BLOCK (Hash.of_bin hash)
 				| 3 -> INV_FILTERED_BLOCK (Hash.of_bin hash)
 				| _ -> INV_ERROR
@@ -323,11 +323,11 @@ let parse header payload =
 (* Serialization **************************************************)
 (******************************************************************)
 let bitstring_of_addr (addr: addr) : Bitstring.t =
-  [%bitstring {|
-    Uint64.to_int64 addr.services	: 8*8 	: littleendian;
-    addr.address	: 16*8 	: string;
-    Uint16.to_int addr.port		: 2*8 	: littleendian
-  |}]
+	[%bitstring {|
+		Uint64.to_int64 addr.services	: 8*8 	: littleendian;
+		addr.address	: 16*8 	: string;
+		Uint16.to_int addr.port		: 2*8 	: littleendian
+	|}]
 ;;
 
 
