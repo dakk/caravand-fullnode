@@ -1,7 +1,7 @@
 open Stdint;;
 open Bitcoinml;;
 
-type e = BTC | XTN | SIDECHAIN | NOTFOUND;;
+type e = BTC | XTN | BCH | SIDECHAIN | NOTFOUND;;
 
 type genesis = {
 	hash		: Hash.t;
@@ -163,6 +163,7 @@ let name_of_network n =
 	match n with 
 	| BTC -> "Bitcoin mainnet"
 	| XTN -> "Bitcoin testnet"
+	| BCH -> "Bitcoincash mainnet"
 	| _ -> ""
 ;;
 
@@ -170,5 +171,6 @@ let abbr_to_network n =
 	match n with 
 	| "BTC" -> BTC
 	| "XTN" -> XTN
+	| "BCH" -> BCH
 	| _ -> NOTFOUND
 ;;
