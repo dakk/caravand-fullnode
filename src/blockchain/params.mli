@@ -1,7 +1,7 @@
 open Stdint
 open Bitcoinml
 
-type e = BTC | XTN | SIDECHAIN | NOTFOUND
+type e = BTC | XTN | BCH | SIDECHAIN | NOTFOUND
 
 
 type genesis = {
@@ -15,14 +15,15 @@ type genesis = {
 }
 
 type t = { 
+	blocksize		: int;
 	services		: Int64.t;
 	version			: int;
 	genesis			: genesis;
-	magic			: int;
-	port			: int;
-	seeds			: string list;
+	magic				: int;
+	port				: int;
+	seeds				: string list;
 	network			: e;
-	checkpoints		: (int * Hash.t) list;
+	checkpoints	: (int * Hash.t) list;
 }
 
 val of_network 			: e -> t
