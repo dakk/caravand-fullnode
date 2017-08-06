@@ -53,6 +53,11 @@ type t = {
 	requests		:	(Request.t) Cqueue.t;
 }
 
+(* Data verification *)
+val verify_tx           : t -> Tx.t -> bool
+val verify_txs          : t -> Tx.t list -> bool
+val verify_block        : t -> Block.t -> bool
+val verify_block_header : t -> Block.Header.t -> bool
 
 (* Load blockchain state *)
 val load			: string -> Params.t -> t

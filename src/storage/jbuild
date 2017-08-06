@@ -1,0 +1,7 @@
+(jbuild_version 1)
+
+(library
+ ((name        storage)
+  (preprocess (pps (ppx_bitstring)))
+  (libraries (bitstring utils stdint leveldb bitcoinml))))
+
