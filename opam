@@ -22,7 +22,7 @@ depends: [
   "bitstring" {build & >= "2.1.0"}
   "ppx_bitstring" {build & >= "2.0.0"}
   "bignum" {build & >= "v0.9.0"}
-  "bitcoinml" {build & >= "0.2.2"}
+  "bitcoinml" {build & >= "0.2.3"}
   "cryptokit" {build & >= "1.11"}
   "ctypes" {build & >= "0.11.2"}
   "yojson" {build & >= "1.3.3"}
