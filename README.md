@@ -1,5 +1,8 @@
 # letchain
 
+[![Build Status](https://travis-ci.org/dakk/letchain.svg)](https://travis-ci.org/dakk/letchain)
+
+
 Bitcoin fullnode OCaml implementation. 
 Letchain will be usable as a standalone bitcoin node with a REST api interface 
 or through a library that expose all the features.
