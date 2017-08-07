@@ -327,7 +327,7 @@ let verify_tx bc tx =
 	if List.length tx.txin == 0 || List.length tx.txout == 0 then false else
 
 	(* Size in bytes <= MAX_BLOCK_SIZE *)
-	if tx.size > bc.params.blocksize then false else
+	(*if tx.size > bc.params.blocksize then false else*)
 
   (* Check that nLockTime <= INT_MAX[1], size in bytes >= 100[2], and sig opcount <= 2[3] *)
 
@@ -350,12 +350,12 @@ let verify_tx bc tx =
 	(* Using the referenced output transactions to get input values, check that each input value, as well as the sum, are in legal money range *)
 	
 	(* Reject if the sum of input values < sum of output values *)
-	let in_sum = List.fold_left (fun in sum -> (* get out *) 0 + sum) 0 tx.txin in
+	(*let in_sum = List.fold_left (fun in sum -> (* get out *) 0 + sum) 0 tx.txin in
 	let out_sum = List.fold_left (fun out sum -> out.value + sum) 0 tx.txout in
-	if in_sum < out_sum then false else 
+	if in_sum < out_sum then false else *)
 
 	(* Reject if transaction fee (defined as sum of input values minus sum of output values) would be too low to get into an empty block *)
-	let fee = out_sum - in_sum in
+	(*let fee = out_sum - in_sum in*)
 	
 	(* Verify the scriptPubKey accepts for each input; reject if any are bad *)
 
@@ -367,7 +367,7 @@ let rec verify_txs bc txs = match txs with
 | tx :: txs' -> 
 	match verify_tx bc tx with
 	| false -> false
-	| true -> verify_all txs'
+	| true -> verify_txs bc txs'
 ;;
 
 
