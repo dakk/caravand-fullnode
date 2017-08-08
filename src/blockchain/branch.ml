@@ -1,5 +1,7 @@
 open Stdint;;
 open Bitcoinml;;
+open Block;;
+open Header;;
 
 type t = {
   (* Fork status *)
@@ -78,4 +80,11 @@ let serialize b =
     Int32.of_int @@ List.length b.header_list : 32 : littleendian;
     headers                   : 80*(List.length b.header_list) : string
   |}] |> Bitstring.string_of_bitstring
+;;
+
+
+
+let rec find_parent branches header = match branches with
+| [] -> None
+| b :: bl -> if (header.prev_block) = last b then Some (b) else find_parent bl header
 ;;

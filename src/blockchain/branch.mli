@@ -16,6 +16,7 @@ val create      : Hash.t -> int64 -> Block.Header.t -> t
 val last        : t -> Hash.t
 val push        : t -> Block.Header.t -> bool
 
-(* Or deriving sexp? *)
 val serialize   : t -> bytes
 val parse       : bytes -> t option
+
+val find_parent : t list -> Block.Header.t -> t option
