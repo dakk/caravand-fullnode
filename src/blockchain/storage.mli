@@ -55,6 +55,8 @@ val sync					:	t -> unit
 val update_difficulty	: t -> uint64 -> unit
 val update_reward			: t -> uint64 -> unit 
 
+val update_branches		: t -> Branch.t list -> unit
+
 val insert_header     : t -> int64 -> Block.Header.t -> unit
 val insert_block      : t -> int64 -> Block.t -> unit
 val remove_last_header: t -> Hash.t -> unit

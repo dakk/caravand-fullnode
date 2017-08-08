@@ -227,6 +227,11 @@ let close storage =
 	LevelDB.close storage.db
 ;;
 
+
+let update_branches storage blist = 
+	()
+;;
+
 let update_difficulty storage diff =
 	storage.chainstate.difficulty <- diff;
 	save_cs storage
