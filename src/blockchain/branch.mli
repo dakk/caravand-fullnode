@@ -1,8 +1,6 @@
 open Bitcoinml
 
 type t = {
-  storage_prefix        : string;
-
   (* Fork status *)
 	fork_hash	    :	Hash.t;
   fork_height	  :	int64;
@@ -20,4 +18,4 @@ val push        : t -> Block.Header.t -> bool
 
 (* Or deriving sexp? *)
 val serialize   : t -> bytes
-val parse       : bytes -> t
+val parse       : bytes -> t option
