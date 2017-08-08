@@ -32,7 +32,10 @@ type t = {
 	
 	(* Sync status *)
 	mutable sync_headers	:	bool;
-	mutable sync			:	bool;
+	mutable sync					:	bool;
+
+	(* Branches *)
+	mutable branches			: Branch.t list;
 	
 	(* Last header status *)
 	mutable header_height	:	int64;

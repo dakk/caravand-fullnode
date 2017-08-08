@@ -40,7 +40,10 @@ type t = {
 	(* Sync status *)
 	mutable sync_headers	:	bool;
 	mutable sync			:	bool;
-	
+
+	(* Branches *)
+	mutable branches			: Branch.t list;
+		
 	(* Last header status *)
 	mutable header_height	:	int64;
 	mutable header_last		: 	Header.t;
@@ -77,6 +80,8 @@ let genesis path p =
 		storage			= Storage.load path;
 		sync_headers	= false;
 		sync			= false;
+
+		branches = [];
 		
 		header_height	= 0L;
 		header_last		= genesis_header;
