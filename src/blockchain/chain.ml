@@ -209,6 +209,27 @@ let loop bc =
 					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
 				);
 				consume ()
+
+			(* New block maybe on side-branch *)
+			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash ->
+				(* Find if there is a branch predecessor of the new block *)
+				match Branch.find_parent bc.branches b.header with
+				| Some (br) -> 
+					Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash b.header.hash;
+					Branch.push br b.header |> ignore
+				| None ->
+						(* Find if this block is connected with an already connected block *)
+						match Storage.get_block bc.storage b.header.prev_block with
+						| None -> (* unknow parent *) ()
+						| Some (banc) ->
+							let height = Storage.get_block_height bc.storage b.header.prev_block in
+							if height < ((Int64.to_int bc.header_height) - 1) then (
+								(* Found a valid new branch *)
+								let branch = Branch.create banc.header.hash (Int64.of_int height) b.header in
+								bc.branches <- bc.branches @ [ branch ];
+								Log.debug "Blockchain ←" "New branch created from %s to %s" banc.header.hash b.header.hash;
+								()
+							) else ()
 			| _ ->
 				consume ()
 		in
@@ -233,6 +254,14 @@ let loop bc =
 					Storage.insert_header bc.storage bc.header_height bc.header_last;
 					1 + (consume_headers hl')
 				) else (
+					(* Insert into a branch (if present) *)
+					(match Branch.find_parent bc.branches h with
+					| Some (br) -> 
+						Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
+						Branch.push br h |> ignore
+					| None -> ()
+					);
+
 					consume_headers hl'
 				)
 		in
@@ -302,7 +331,7 @@ let loop bc =
 					| None -> acc
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
-				if bc.sync_headers && bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
+				if bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
 					let hashes = getblockhashes (bc.block_height) 128 [] in
 					bc.blocks_requested <- 128;
 					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
@@ -312,9 +341,20 @@ let loop bc =
 			)
 		));
 
+		(* Check branch status *)
+		(* TODO *)
+		(* 1. Check if a branch is too old *)
+		(* 2. Check if a branch need updates (HBLOCKS) *)
+		(* 3. Check if a branch is longer than the best chain; 
+		 * 3.1 Revert block from the last to the fork block, put them in a branch
+		 * 3.2 Push branch headers to the main branch
+		 * 3.3 Delete the old branch
+		 *)
 
 		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
-		Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash
+		Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash;
+		Log.info "Blockchain" "There are %d active side-branches" @@ List.length bc.branches;
+		()
 	) done
 ;;
 
