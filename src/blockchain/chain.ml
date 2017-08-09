@@ -171,6 +171,28 @@ let revert_last_block bc =
 
 
 let loop bc = 
+	let check_branch_updates h =
+		(* Insert into a branch (if present) *)
+		match Branch.find_parent bc.branches h with
+		| Some (br) -> 
+			Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
+			Branch.push br h |> ignore;
+			Storage.update_branches bc.storage bc.branches
+		| None ->
+			(* Find if this block is connected with an already connected block *)
+			match Storage.get_block bc.storage h.prev_block with
+			| None -> (* unknow parent *) ()
+			| Some (banc) ->
+				let height = Storage.get_block_height bc.storage h.prev_block in
+				if height < ((Int64.to_int bc.header_height) - 1) then (
+				(* Found a valid new branch *)
+					let branch = Branch.create banc.header.hash (Int64.of_int height) h in
+					bc.branches <- bc.branches @ [ branch ];
+					Storage.update_branches bc.storage bc.branches;
+					Log.debug "Blockchain ←" "New branch created from %s to %s" banc.header.hash h.hash;
+					()
+				) else ()
+	in
 	let rec consume () =
 		let consume_block b = 
 			match (b, bc.block_last, bc.header_last) with
@@ -211,28 +233,9 @@ let loop bc =
 				consume ()
 
 			(* New block maybe on side-branch *)
-			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> (
-				(* Find if there is a branch predecessor of the new block *)
-				match Branch.find_parent bc.branches b.header with
-				| Some (br) -> 
-					Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash b.header.hash;
-					Branch.push br b.header |> ignore;
-					Storage.update_branches bc.storage bc.branches
-				| None ->
-						(* Find if this block is connected with an already connected block *)
-						match Storage.get_block bc.storage b.header.prev_block with
-						| None -> (* unknow parent *) ()
-						| Some (banc) ->
-							let height = Storage.get_block_height bc.storage b.header.prev_block in
-							if height < ((Int64.to_int bc.header_height) - 1) then (
-								(* Found a valid new branch *)
-								let branch = Branch.create banc.header.hash (Int64.of_int height) b.header in
-								bc.branches <- bc.branches @ [ branch ];
-								Storage.update_branches bc.storage bc.branches;
-								Log.debug "Blockchain ←" "New branch created from %s to %s" banc.header.hash b.header.hash;
-								()
-							) else ()
-			)
+			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> 
+				check_branch_updates b.header;
+				consume ()
 			| _ -> consume ()
 		in
 		let rec consume_headers hl =
@@ -256,28 +259,7 @@ let loop bc =
 					Storage.insert_header bc.storage bc.header_height bc.header_last;
 					1 + (consume_headers hl')
 				) else (
-					(* Insert into a branch (if present) *)
-					(match Branch.find_parent bc.branches h with
-					| Some (br) -> 
-						Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
-						Branch.push br h |> ignore;
-						Storage.update_branches bc.storage bc.branches
-					| None ->
-							(* Find if this block is connected with an already connected block *)
-							match Storage.get_block bc.storage h.prev_block with
-							| None -> (* unknow parent *) ()
-							| Some (banc) ->
-								let height = Storage.get_block_height bc.storage h.prev_block in
-								if height < ((Int64.to_int bc.header_height) - 1) then (
-									(* Found a valid new branch *)
-									let branch = Branch.create banc.header.hash (Int64.of_int height) h in
-									bc.branches <- bc.branches @ [ branch ];
-									Storage.update_branches bc.storage bc.branches;
-									Log.debug "Blockchain ←" "New branch created from %s to %s" banc.header.hash h.hash;
-									()
-								) else ()
-					);
-
+					check_branch_updates h;
 					consume_headers hl'
 				)
 		in
