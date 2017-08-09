@@ -164,21 +164,13 @@ let revert_last_block bc =
 		| None -> failwith "impossible situation"
 	in
 
-	if bc.header_height > bc.block_height then revert_header () else revert_block ();
+	if bc.header_height > bc.block_height then revert_header () else (revert_header (); revert_block ());
 	Storage.sync bc.storage
 ;;
 	
 
 
 let loop bc = 
-	(*let rec revert n =
-		match n with 
-		| 0 -> ()
-		| n ->
-			revert_last_block bc;
-			revert (n - 1)
-	in revert 128;*)
-
 	let rec consume () =
 		let consume_block b = 
 			match (b, bc.block_last, bc.header_last) with
@@ -222,22 +214,24 @@ let loop bc =
 		in
 		let rec consume_headers hl =
 			match hl with
-			| [] -> consume ()
+			| [] -> 0
 			| h::hl' ->
 				let check_checkpoint index hash =
 					try
 						let hash' = List.assoc index bc.params.checkpoints in
-						Log.debug "Blockchain" "Checkpoint: %s" hash';
-						hash' = hash
-					with
-					| _ -> true
+						
+						match hash' = hash with
+						| true -> Log.debug "Blockchain" "Checkpoint: %s" hash'; true
+						| false -> Log.error "Blockchain" "Checkpoint failed: %s <> %s" hash' hash; false
+					with | _ -> true
 				in
+				(*Printf.printf "%s - %s\n" h.Header.prev_block bc.header_last.Header.hash;*)
 				if h.Header.prev_block = bc.header_last.Header.hash && check_checkpoint ((Int64.to_int bc.header_height) + 1) h.Header.hash then (
 					(* Insert in the chain *)
 					bc.header_last <- h;
 					bc.header_height <- Int64.succ bc.header_height;
 					Storage.insert_header bc.storage bc.header_height bc.header_last;
-					consume_headers hl'
+					1 + (consume_headers hl')
 				) else (
 					consume_headers hl'
 				)
@@ -260,7 +254,8 @@ let loop bc =
 
 						(* Check if the list of headers is less than 1999; if yes, then verify to all nodes *)
 
-						consume_headers (List.rev hbs)
+						let pheads = consume_headers (List.rev hbs) in ()
+						(*if pheads = 0 then revert_last_block bc else ();*)
 					);
 					consume ()
 			)
@@ -307,11 +302,10 @@ let loop bc =
 					| None -> acc
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
-				if bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
+				if bc.sync_headers && bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
 					let hashes = getblockhashes (bc.block_height) 128 [] in
 					bc.blocks_requested <- 128;
-					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None)
-				) else ()
+					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- true

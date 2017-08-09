@@ -132,7 +132,7 @@ let loop n bc =
 				(match req with
 				| Chain.Request.REQ_HBLOCKS (h, addr)	->
 					let msg = {
-						version= Int32.of_int 1;
+						version= Int32.of_int 70012;
 						hashes= h;
 						stop= Hash.zero ();
 					} in send n (Message.GETHEADERS msg)
