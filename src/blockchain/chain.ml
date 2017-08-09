@@ -216,7 +216,8 @@ let loop bc =
 				match Branch.find_parent bc.branches b.header with
 				| Some (br) -> 
 					Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash b.header.hash;
-					Branch.push br b.header |> ignore
+					Branch.push br b.header |> ignore;
+					Storage.update_branches bc.storage bc.branches
 				| None ->
 						(* Find if this block is connected with an already connected block *)
 						match Storage.get_block bc.storage b.header.prev_block with
@@ -227,6 +228,7 @@ let loop bc =
 								(* Found a valid new branch *)
 								let branch = Branch.create banc.header.hash (Int64.of_int height) b.header in
 								bc.branches <- bc.branches @ [ branch ];
+								Storage.update_branches bc.storage bc.branches;
 								Log.debug "Blockchain ←" "New branch created from %s to %s" banc.header.hash b.header.hash;
 								()
 							) else ()
@@ -258,7 +260,8 @@ let loop bc =
 					(match Branch.find_parent bc.branches h with
 					| Some (br) -> 
 						Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
-						Branch.push br h |> ignore
+						Branch.push br h |> ignore;
+						Storage.update_branches bc.storage bc.branches
 					| None -> ()
 					);
 
@@ -350,6 +353,7 @@ let loop bc =
 		 * 3.2 Push branch headers to the main branch
 		 * 3.3 Delete the old branch
 		 *)
+		(*Storage.update_branches bc.storage bc.branches;*)
 
 		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 		Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash;
