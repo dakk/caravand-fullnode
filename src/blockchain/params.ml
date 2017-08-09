@@ -76,7 +76,7 @@ let of_network n =
 		| BCH -> 
 		{ 
 			blocksize = 8000000;
-			version	= 70001;
+			version	= 70015;
 			services= 0x0000000000000001L;
 			network	= BCH;
 
