@@ -36,6 +36,8 @@ module Chainstate : sig
 
 		mutable difficulty	: uint64;
 		mutable reward 			: uint64;
+
+		mutable branches		: Branch.t list;
 	}
 
 	val serialize	: 	t -> bytes

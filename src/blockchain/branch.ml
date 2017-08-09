@@ -35,12 +35,12 @@ let push b head =
 
 let parse data = 
   let rec parse_headers rest n hlist = match n with
-  | 0 -> Some (hlist)
+  | 0 -> (rest, Some (hlist))
   | _ -> 
     let chead = String.sub rest 0 80 in
     let rest' = String.sub rest 80 @@ (String.length rest) - 80 in
     match Block.Header.parse chead with
-    | None -> None
+    | None -> (rest', None)
     | Some (h) ->
       parse_headers rest' (n-1) @@ hlist @ [h]
   in
@@ -55,17 +55,17 @@ let parse data =
     rest : -1 : bitstring
   |} -> 
     match parse_headers (Bitstring.string_of_bitstring rest) (Int32.to_int header_n) [] with
-    | None -> None
-    | Some (hlist) ->
+    | (rest', None) -> (rest', None)
+    | (rest', Some (hlist)) ->
       match Block.Header.parse header_last with
-      | Some (h) -> Some {
+      | Some (h) -> (rest', Some {
         fork_hash= Hash.of_bin fork_hash;
         fork_height= fork_height;
         header_height= header_height;
         header_last= h;
         header_list= hlist;
-      }
-      | None ->  None
+      })
+      | None -> (rest', None)
 ;;
 
 let serialize b =

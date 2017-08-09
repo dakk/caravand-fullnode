@@ -140,9 +140,14 @@ module Chainstate = struct
 
 		mutable difficulty		: uint64;
 		mutable reward			: uint64;
+
+		mutable branches		: Branch.t list;
 	};;
 
 	let serialize cs = 
+		let branches = 
+			List.fold_left (^) "" @@ List.map (fun b -> Branch.serialize b) cs.branches
+		in
 		let bs = [%bitstring {|
 			Hash.to_bin cs.block				: 32*8 : string;
 			Uint32.to_int32 cs.height			: 32 : littleendian;
@@ -151,11 +156,18 @@ module Chainstate = struct
 			Uint64.to_int64 cs.txs			  	: 64 : littleendian;
 			Uint64.to_int64 cs.utxos		  	: 64 : littleendian;
 			Uint64.to_int64 cs.difficulty	  	: 64 : littleendian;
-			Uint64.to_int64 cs.reward	  		: 64 : littleendian
+			Uint64.to_int64 cs.reward	  		: 64 : littleendian;
+			Int32.of_int @@ List.length cs.branches : 32 : littleendian;
+			branches : Bytes.length branches : string
 		|}] in Bitstring.string_of_bitstring bs
 	;;
 
 	let parse csb = 
+		let rec parse_branches data n blist = if n = 0 then [] else
+			match Branch.parse data with
+			| (data', Some (b)) -> parse_branches data' (n-1) @@ blist @ [b]
+			| (_, _) -> []
+		in
 		let bdata = Bitstring.bitstring_of_string csb in
 		match%bitstring bdata with
 		| {|
@@ -166,7 +178,9 @@ module Chainstate = struct
 			txs				: 64 	: string;
 			utxos			: 64 	: string;
 			difficulty		: 64 	: string;
-			reward			: 64	: string
+			reward			: 64	: string;
+			branches_n	: 32	: littleendian;
+			rest : -1 : string
 		|} ->
 		{
 			block 		    = Hash.of_bin block;
@@ -177,6 +191,7 @@ module Chainstate = struct
 			utxos			= Uint64.of_bytes_little_endian utxos 0;
 			difficulty		= Uint64.of_bytes_little_endian difficulty 0;
 			reward			= Uint64.of_bytes_little_endian reward 0;
+			branches	= parse_branches rest (Int32.to_int branches_n) [];
 		}
 	;;
 end
@@ -185,7 +200,7 @@ open Chainstate;;
 
 type t = {
 	chainstate		:	Chainstate.t;
-	db              :   LevelDB.db;
+	db            :   LevelDB.db;
 };;
 
 
@@ -214,6 +229,7 @@ let load path =
 			utxos= Uint64.of_int 0;
 			difficulty= Uint64.of_int 0;
 			reward= Uint64.of_int 0;
+			branches= [];
 		}
 	in
 	let db = LevelDB.open_db path in 
@@ -229,7 +245,8 @@ let close storage =
 
 
 let update_branches storage blist = 
-	()
+	storage.chainstate.branches <- blist;
+	save_cs storage
 ;;
 
 let update_difficulty storage diff =

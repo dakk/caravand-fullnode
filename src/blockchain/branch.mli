@@ -17,6 +17,6 @@ val last        : t -> Hash.t
 val push        : t -> Block.Header.t -> bool
 
 val serialize   : t -> bytes
-val parse       : bytes -> t option
+val parse       : bytes -> bytes * t option
 
 val find_parent : t list -> Block.Header.t -> t option
