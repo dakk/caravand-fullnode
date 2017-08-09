@@ -262,7 +262,20 @@ let loop bc =
 						Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
 						Branch.push br h |> ignore;
 						Storage.update_branches bc.storage bc.branches
-					| None -> ()
+					| None ->
+							(* Find if this block is connected with an already connected block *)
+							match Storage.get_block bc.storage h.prev_block with
+							| None -> (* unknow parent *) ()
+							| Some (banc) ->
+								let height = Storage.get_block_height bc.storage h.prev_block in
+								if height < ((Int64.to_int bc.header_height) - 1) then (
+									(* Found a valid new branch *)
+									let branch = Branch.create banc.header.hash (Int64.of_int height) h in
+									bc.branches <- bc.branches @ [ branch ];
+									Storage.update_branches bc.storage bc.branches;
+									Log.debug "Blockchain ←" "New branch created from %s to %s" banc.header.hash h.hash;
+									()
+								) else ()
 					);
 
 					consume_headers hl'
@@ -295,6 +308,16 @@ let loop bc =
 				consume ()
 	in 
 
+	(* Request old headers *)
+	(match Storage.get_headeri bc.storage (Int64.sub bc.header_height @@ Int64.of_int 64) with
+	| None -> ()
+	| Some (h) ->
+		Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+		Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+		Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+		Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+		Unix.sleep 4
+	);
 	
 	while true do (
 		Unix.sleep 4;
