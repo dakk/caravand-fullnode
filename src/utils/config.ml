@@ -13,6 +13,7 @@ let parse_command_line conf =
 		Printf.printf "Usage:\n"; 
 		Printf.printf " -h, --help\t\t\tShow this help\n"; 
 		Printf.printf " -c XTN|BTC, --chain XTN|BTC\tSelect the chain\n"; 
+		Printf.printf " -p 12, --peer 12\tSet the number of peers\n"; 
 		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
 		Printf.printf " -ap 807\t\t\tSelect api port\n%!"; 
 		Thread.exit (); 
@@ -35,6 +36,13 @@ let parse_command_line conf =
 			parse ({ conf with 
 				api_port= int_of_string x'
 			}) xl'
+		| "--peer"
+		| "-p" -> 
+			Log.debug "Config" "Setting peer number to: %s" x';
+			parse ({ conf with 
+				peers= int_of_string x'
+			}) xl'
+		| "--chain"
 		| "-c" -> 
 			Log.debug "Config" "Setting chain from command line: %s" x';
 			parse ({ conf with 
@@ -64,7 +72,7 @@ let rec load_or_init () =
 	with
 	| _ -> 
 		try
-			let json = Yojson.Basic.from_string "{ \"peers\": 8, \"chain\": \"XTN\", \"api_port\": 8086 }" in 
+			let json = Yojson.Basic.from_string "{ \"peers\": 16, \"chain\": \"XTN\", \"api_port\": 8086 }" in 
 			let _ = Yojson.Basic.to_file (Unix.getenv "HOME" ^ "/.letchain/config.json") json in
 			Log.debug "Config" "Created %s" (Unix.getenv "HOME" ^ "/.letchain/config.json");
 			load_or_init ()
