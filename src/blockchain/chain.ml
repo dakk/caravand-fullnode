@@ -304,6 +304,7 @@ let loop bc =
 			| None -> ()
 			| Some (h) ->
 				let req = Request.REQ_HBLOCKS ([h.hash], None) in
+				Log.debug "Blockchain" "Requesting periodic ancestor headers for fork detection";
 				Cqueue.add bc.requests req;
 				Cqueue.add bc.requests req;
 				Cqueue.add bc.requests req;
