@@ -376,7 +376,6 @@ let get_utx	storage tx index =
 	| Some (data) -> 
 		match Tx.Out.parse (Bitstring.bitstring_of_string data) with
 		| (rest, txo) -> txo
-		| _ -> None
 ;;
 
 let get_tx storage txhash =

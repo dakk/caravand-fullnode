@@ -106,7 +106,7 @@ let recv peer =
 		| rl, zerol when rl < 0 -> disconnect peer; None
 		| rl, zerol when rl = 0 && zerol = 5 -> None
 		| rl, zerol when rl = 0 && zerol < 5 -> 
-			Thread.wait_timed_read peer.socket 0.1;
+			Thread.wait_timed_read peer.socket 0.1 |> ignore;
 			recv_chunks bsize acc (zerol+1)
 		| rl, zerol when rl > 0 -> (
 			Buffer.add_bytes acc (Bytes.sub_string rdata 0 rl);

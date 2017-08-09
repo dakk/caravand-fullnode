@@ -118,7 +118,7 @@ let load path p =
 		bcg
 	in
 	let bcg = genesis path p in
-	bcg.branches = bcg.storage.chainstate.Chainstate.branches;
+	bcg.branches <- bcg.storage.chainstate.Chainstate.branches;
 		
 	if bcg.storage.chainstate.Chainstate.header <> "0000000000000000000000000000000000000000000000000000000000000000" 
 	&& bcg.storage.chainstate.Chainstate.header_height <> Uint32.zero then (
@@ -197,7 +197,7 @@ let loop bc =
 				bc.header_last <- b.header;
 				bc.header_height <- Int64.succ bc.header_height;
 
-				let df = Timediff.diff (Unix.time ()) block.header.time in
+				(*let df = Timediff.diff (Unix.time ()) block.header.time in*)
 				if b.header.prev_block = block.header.hash then (
 					bc.block_height <- Int64.succ bc.block_height;
 					bc.block_last <- b;
@@ -211,7 +211,7 @@ let loop bc =
 				consume ()
 
 			(* New block maybe on side-branch *)
-			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash ->
+			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> (
 				(* Find if there is a branch predecessor of the new block *)
 				match Branch.find_parent bc.branches b.header with
 				| Some (br) -> 
@@ -230,8 +230,8 @@ let loop bc =
 								Log.debug "Blockchain ←" "New branch created from %s to %s" banc.header.hash b.header.hash;
 								()
 							) else ()
-			| _ ->
-				consume ()
+			)
+			| _ -> consume ()
 		in
 		let rec consume_headers hl =
 			match hl with
@@ -283,7 +283,7 @@ let loop bc =
 
 						(* Check if the list of headers is less than 1999; if yes, then verify to all nodes *)
 
-						let pheads = consume_headers (List.rev hbs) in ()
+						let _ = consume_headers (List.rev hbs) in ()
 						(*if pheads = 0 then revert_last_block bc else ();*)
 					);
 					consume ()

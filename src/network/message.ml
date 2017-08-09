@@ -252,10 +252,10 @@ let parse_getheaders data =
 	let bdata = bitstring_of_string data in
 	match%bitstring bdata with 
 	| {|
-		version : 4*8 : littleendian;
-		rest : -1 : bitstring
+		version : 4*8 : littleendian
 	|} ->
-		let count, rest = Varint.parse_varint bdata in
+		(*rest : -1 : bitstring*)
+		let _ = Varint.parse_varint bdata in
 		{
 			version= version;
 			hashes= [];
