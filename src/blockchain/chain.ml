@@ -114,9 +114,12 @@ let genesis path p =
 let load path p = 
 	let res bcg =
 		Log.info "Blockchain" "Starting from block header %s at height %d" bcg.header_last.hash (Int64.to_int bcg.header_height);
+		Log.info "Blockchain" "Got %d active side branches" @@ List.length bcg.branches;
 		bcg
 	in
 	let bcg = genesis path p in
+	bcg.branches = bcg.storage.chainstate.Chainstate.branches;
+		
 	if bcg.storage.chainstate.Chainstate.header <> "0000000000000000000000000000000000000000000000000000000000000000" 
 	&& bcg.storage.chainstate.Chainstate.header_height <> Uint32.zero then (
 		if bcg.storage.chainstate.Chainstate.block <> "0000000000000000000000000000000000000000000000000000000000000000" 
