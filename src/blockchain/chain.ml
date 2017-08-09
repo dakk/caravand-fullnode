@@ -290,16 +290,6 @@ let loop bc =
 				consume ()
 	in 
 
-	(* Request old headers *)
-	(match Storage.get_headeri bc.storage (Int64.sub bc.header_height @@ Int64.of_int 64) with
-	| None -> ()
-	| Some (h) ->
-		Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
-		Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
-		Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
-		Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
-		Unix.sleep 4
-	);
 	
 	while true do (
 		Unix.sleep 4;
@@ -307,6 +297,18 @@ let loop bc =
 		
 		(* Handle new resources *)
 		consume ();
+
+		(* Request old headers for branch verification *)
+		if bc.header_last.time < (Unix.time () -. 60. *. 120.) then (
+			match Storage.get_headeri bc.storage (Int64.sub bc.header_height @@ Int64.of_int 64) with
+			| None -> ()
+			| Some (h) ->
+				let req = Request.REQ_HBLOCKS ([h.hash], None) in
+				Cqueue.add bc.requests req;
+				Cqueue.add bc.requests req;
+				Cqueue.add bc.requests req;
+				Cqueue.add bc.requests req
+		);
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (

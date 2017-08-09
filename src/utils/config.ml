@@ -72,7 +72,7 @@ let rec load_or_init () =
 	with
 	| _ -> 
 		try
-			let json = Yojson.Basic.from_string "{ \"peers\": 4, \"chain\": \"XTN\", \"api_port\": 8086 }" in 
+			let json = Yojson.Basic.from_string "{ \"peers\": 6, \"chain\": \"XTN\", \"api_port\": 8086 }" in 
 			let _ = Yojson.Basic.to_file (Unix.getenv "HOME" ^ "/.letchain/config.json") json in
 			Log.debug "Config" "Created %s" (Unix.getenv "HOME" ^ "/.letchain/config.json");
 			load_or_init ()
