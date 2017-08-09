@@ -88,7 +88,7 @@ let genesis path p =
 
 		block_height 	= 0L;
 		block_last 		= {
-			size= 1;
+			(*size= 1;*)
 			txs= [];
 			header= {
 				hash= "0000000000000000000000000000000000000000000000000000000000000000";
