@@ -20,3 +20,4 @@ val serialize   : t -> bytes
 val parse       : bytes -> bytes * t option
 
 val find_parent : t list -> Block.Header.t -> t option
+val best_branch : t list -> t option

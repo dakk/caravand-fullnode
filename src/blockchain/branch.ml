@@ -88,3 +88,12 @@ let rec find_parent branches header = match branches with
 | [] -> None
 | b :: bl -> if (header.prev_block) = last b then Some (b) else find_parent bl header
 ;;
+
+
+let best_branch branches = 
+  let rec bc' bl b = match (bl, b) with
+  | ([], b) -> b
+  | (b' :: bl', None) -> bc' bl' @@ Some (b')
+  | (b' :: bl', Some (b)) -> if b'.header_height > b.header_height then bc' bl' @@ Some (b') else (bc' bl' @@ Some (b))
+  in bc' branches None
+;;
