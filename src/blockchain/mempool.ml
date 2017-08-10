@@ -1,5 +1,11 @@
 open Bitcoinml;;
 
-type t = (Hash.t, Tx.t) Hashtbl.t;;
+type t = {
+  txs     : (Hash.t, Tx.t) Hashtbl.t;
+  fees    : Int64.t;
+};;
 
-let empty () = Hashtbl.create 512;;
+let empty () = {
+  txs= Hashtbl.create 512;
+  fees= Int64.zero;
+};;
