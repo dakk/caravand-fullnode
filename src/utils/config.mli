@@ -4,6 +4,7 @@ type t = {
 	base_path: string;
 	path		: string;
 	api_port	: int;
+	log_peer	: bool;
 }
 
 val parse_base_path			: unit -> string

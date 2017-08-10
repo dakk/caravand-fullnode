@@ -10,11 +10,11 @@ type t = {
 	addrs: 		Unix.inet_addr list;
 	peers:		(string, Peer.t) Hashtbl.t;
 	params: 	Params.t;
-	peers_n:	int;
+	config:		Config.t;
 };;
 
 
-let init p pc =
+let init p conf =
 	let rec init_peers par pt addrs n =
 		match (n, addrs) with
 		| (0, a::al') -> pt
@@ -26,16 +26,16 @@ let init p pc =
 				let _ = Hashtbl.find pt a' in
 				init_peers par pt al' n 
 			with Not_found -> 
-				let peer = Peer.create par a par.port in
+				let peer = Peer.create par conf a par.port in
 				Hashtbl.add pt a' peer;
 				init_peers par pt al' (n-1)
 	in
 	Log.info "Network" "Initalization...";
  	let addrs = Dns.query_set p.seeds in
-	let peers = init_peers p (Hashtbl.create pc) addrs pc in
+	let peers = init_peers p (Hashtbl.create conf.peers) addrs conf.peers in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
-	{ addrs= addrs; peers= peers; params= p; peers_n= pc }
+	{ addrs= addrs; peers= peers; params= p; config= conf  }
 ;;
 
 let send n m =
@@ -97,7 +97,7 @@ let loop n bc =
 		in 
 			(*Log.info "Network" "Connected peers: %d" connected_peers;*)
 			match connected_peers with
-			| cp when cp < n.peers_n ->
+			| cp when cp < n.config.peers ->
 				let rec iterate_connect addrs = 
 					match List.length addrs with
 					| 0 -> 0
@@ -109,7 +109,7 @@ let loop n bc =
 							iterate_connect addrs
 						with
 						| Not_found ->
-							let peer = Peer.create n.params a n.params.port in
+							let peer = Peer.create n.params n.config a n.params.port in
 							Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
 							Thread.create (Peer.start peer) bc |> ignore; 
 							1

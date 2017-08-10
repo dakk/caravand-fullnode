@@ -1,5 +1,6 @@
 open Message
 open Blockchain
+open Utils
 
 type status = 
 	| CONNECTED
@@ -12,6 +13,7 @@ type t = {
 	address 	: Unix.inet_addr;
 	port		: int;
 	params		: Params.t;
+	config		: Config.t;
 
 	mutable received	: int;
 	mutable sent		: int;
@@ -22,7 +24,7 @@ type t = {
 	mutable user_agent	: string;
 }
 
-val create		: Params.t -> Unix.inet_addr -> int -> t
+val create		: Params.t -> Config.t -> Unix.inet_addr -> int -> t
 val connect 	: t -> status
 val send		: t -> Message.t -> unit
 val recv		: t -> Message.t option

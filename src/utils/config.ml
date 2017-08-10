@@ -6,6 +6,7 @@ type t = {
 	base_path: string;
 	path		: string;
 	api_port	: int;
+	log_peer	: bool;
 };;
 
 let parse_base_path () = 
@@ -23,13 +24,18 @@ let parse_base_path () =
 ;;
 
 let parse_command_line conf =
+	let bool_of_string s = match s with
+	| "true" -> true
+	| _ -> false
+	in
 	let help conf = 
 		Printf.printf "Usage:\n"; 
 		Printf.printf " -h, --help\t\t\tShow this help\n"; 
 		Printf.printf " -c XTN|BTC, --chain XTN|BTC\tSelect the chain\n"; 
 		Printf.printf " -p 12, --peer 12\tSet the number of peers\n"; 
 		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
-		Printf.printf " -ap 807\t\t\tSelect api port\n%!"; 
+		Printf.printf " -ap 807\t\t\tSelect api port\n%!";  
+		Printf.printf " --log-peer true\t\t\tEnable log for peer mesages\n%!"; 
 		Thread.exit (); 
 		conf
 	in
@@ -49,6 +55,10 @@ let parse_command_line conf =
 			Log.debug "Config" "Setting api port from command line: %s" x';
 			parse ({ conf with 
 				api_port= int_of_string x'
+			}) xl'
+		| "--log-peer" ->
+			parse ({ conf with 
+				log_peer= bool_of_string x'
 			}) xl'
 		| "--peer"
 		| "-p" -> 
@@ -77,6 +87,7 @@ let rec load_or_init base_path =
 			chain= json |> member "chain" |> to_string;
 			api_port= json |> member "api_port" |> to_int;
 			path= base_path ^ (json |> member "chain" |> to_string);
+			log_peer= false;
 		} in
 		try
 			Unix.mkdir (base_path ^ "/" ^ conf.chain) 0o777;

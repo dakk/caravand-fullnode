@@ -15,9 +15,10 @@ type status =
 type t = {
 	socket		: Unix.file_descr;
 	address 	: Unix.inet_addr;
-	port		: int;
+	port			: int;
 	params		: Params.t;
-	
+	config		: Config.t;
+
 	mutable received	: int;
 	mutable sent		: int;
 
@@ -45,14 +46,15 @@ let rec is_readable s = match String.length s with
 ;;
 
 
-let create params addr port = {
+let create params conf addr port = {
 	socket		= Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0; 
 	address		= addr; 
-	port		= port; 
+	port			= port; 
 	params		= params; 
+	config		= conf;
 
 	received	= 0;
-	sent		= 0;
+	sent			= 0;
 
 	last_seen	= Unix.time ();
 	height		= Int32.of_int 0;
@@ -84,7 +86,8 @@ let send peer message =
 	try (
 		let data = Message.serialize peer.params message in
 		let wl = Unix.send peer.socket data 0 (Bytes.length data) [] in
-		Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+		if peer.config.log_peer then 
+			Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
 				(string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 		peer.sent <- peer.sent + wl;
 	) with
@@ -133,8 +136,9 @@ let recv peer =
 					peer.received <- peer.received + String.length rdata;
 					let m' = Message.parse m rdata in 
 
-					Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-						m.command (byten_to_string peer.sent) (byten_to_string peer.received);
+					if peer.config.log_peer then 
+						Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+							m.command (byten_to_string peer.sent) (byten_to_string peer.received);
 					
 					Some (m')
 				)

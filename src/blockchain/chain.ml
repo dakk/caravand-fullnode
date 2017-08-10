@@ -353,7 +353,6 @@ let loop bc =
 		));
 
 		(* Check branch status *)
-		(* TODO *)
 		(* Check if a branch is too old, then delete it *)
 		bc.branches <- (List.filter (fun bi ->
 			if bi.Branch.header_height < (Int64.sub bc.header_height @@ Int64.of_int 12) then (
@@ -362,7 +361,7 @@ let loop bc =
 			) else true			
 		)) bc.branches;
 
-		(* 2. Check if a branch need updates (HBLOCKS) *)
+		(* TODO Check if a branch need updates (HBLOCKS) *)
 		
 		(* Check if a branch is longer than the best chain *)
 		(match Branch.best_branch bc.branches with
@@ -377,8 +376,9 @@ let loop bc =
 			in
 			Log.debug "Branch" "Found that branch %s is the main branch, rollback" bc.header_last.hash;
 			rollback ();
-			(* 3.1 Move old blocks to new branch *)
-			(* 3.2 Push branch headers to the main branch *)
+			(* TODO Move old blocks to new branch *)
+			(* TODO Push branch headers to the main branch *)
+
 			bc.branches <- (List.filter (fun bi -> br.fork_hash <> bi.Branch.fork_hash) bc.branches);
 			()
 		);
@@ -388,7 +388,7 @@ let loop bc =
 		Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash;
 		Log.info "Blockchain" "There are %d active side-branches" @@ List.length bc.branches;
 		List.iter (fun b ->
-			Log.info "Branch" "Last block of branch %s header is %d (%d)" (b.Branch.fork_hash) (Int64.to_int b.header_height)
+			Log.info "Branch" "Last block of branch %s (%d blocks) header is %d (diff: %d)" (b.Branch.header_last.hash) (List.length b.Branch.header_list) (Int64.to_int b.header_height)
 				(Int64.to_int @@ Int64.sub bc.header_height b.Branch.header_height); (* b.header_last.hash; *)
 		) bc.branches;
 	

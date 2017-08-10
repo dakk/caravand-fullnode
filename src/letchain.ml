@@ -10,7 +10,7 @@ let main () =
 		Chain.loop bc 
 	in
 	let net_job (bc, conf) = 
-		let n = Net.init bc.Chain.params conf.peers in 
+		let n = Net.init bc.Chain.params conf in 
 		Net.loop n bc
 	in
 	let api_job (bc, conf) =
