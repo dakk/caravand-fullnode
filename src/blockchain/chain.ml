@@ -173,23 +173,24 @@ let revert_last_block bc =
 let loop bc = 
 	let check_branch_updates h =
 		(* Insert into a branch (if present) *)
-		match Branch.find_parent bc.branches h with
-		| Some (br) -> 
+		match (Branch.find_parent bc.branches h, Branch.find_fork bc.branches h) with
+		| (Some (br), _) -> 
 			Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
 			Branch.push br h |> ignore;
 			Storage.update_branches bc.storage bc.branches
-		| None ->
-			(* Find if this block is connected with an already connected block *)
-			match Storage.get_block bc.storage h.prev_block with
-			| None -> (* unknow parent *) ()
+		(* Branch parent not found, but there is already a branch with the same fork_block *)
+		| (None, Some (br)) -> ()
+		(* Find if this block is connected with an already connected block *)
+		| (None, None) -> match Storage.get_header bc.storage h.prev_block with
+			| None -> ()
 			| Some (banc) ->
 				let height = Storage.get_block_height bc.storage h.prev_block in
-				if height < ((Int64.to_int bc.header_height) - 1) then (
+				if height >= ((Int64.to_int bc.header_height) - 1) then (
 				(* Found a valid new branch *)
-					let branch = Branch.create banc.header.hash (Int64.of_int height) h in
+					let branch = Branch.create banc.hash (Int64.of_int height) h in
 					bc.branches <- bc.branches @ [ branch ];
 					Storage.update_branches bc.storage bc.branches;
-					Log.debug "Blockchain ←" "New branch created from %s to %s" banc.header.hash h.hash;
+					Log.debug "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
 					()
 				) else ()
 	in
@@ -299,16 +300,15 @@ let loop bc =
 		consume ();
 
 		(* Request old headers for branch verification *)
-		if bc.header_last.time < (Unix.time () -. 60. *. 120.) then (
+		if bc.header_last.time < (Unix.time () -. 60. *. 60. *. 5.) then (
 			match Storage.get_headeri bc.storage (Int64.sub bc.header_height @@ Int64.of_int 64) with
 			| None -> ()
 			| Some (h) ->
-				let req = Request.REQ_HBLOCKS ([h.hash], None) in
 				Log.debug "Blockchain" "Requesting periodic ancestor headers for fork detection";
-				Cqueue.add bc.requests req;
-				Cqueue.add bc.requests req;
-				Cqueue.add bc.requests req;
-				Cqueue.add bc.requests req
+				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None)
 		);
 
 		(* Check sync status *)
@@ -366,6 +366,10 @@ let loop bc =
 		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
 		Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash;
 		Log.info "Blockchain" "There are %d active side-branches" @@ List.length bc.branches;
+		List.iter (fun b ->
+			Log.info "Branch" "Last block of branch %s header is %d" (b.Branch.fork_hash) (Int64.to_int b.header_height); (* b.header_last.hash; *)
+		) bc.branches;
+	
 		()
 	) done
 ;;

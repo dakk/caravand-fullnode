@@ -36,7 +36,7 @@ let push b head =
 let parse data = 
   let rec parse_headers rest n hlist = match n with
   | 0 -> (rest, Some (hlist))
-  | _ -> 
+  | n ->
     let chead = String.sub rest 0 80 in
     let rest' = String.sub rest 80 @@ (String.length rest) - 80 in
     match Block.Header.parse chead with
@@ -50,8 +50,8 @@ let parse data =
     fork_hash  : 32*8 : string;
     fork_height: 64 : littleendian;
     header_height: 64 : littleendian;
-    header_last : 80 : string;
     header_n : 32 : littleendian;
+    header_last : 80 : string;
     rest : -1 : bitstring
   |} -> 
     match parse_headers (Bitstring.string_of_bitstring rest) (Int32.to_int header_n) [] with
@@ -69,17 +69,13 @@ let parse data =
 ;;
 
 let serialize b =
-  let headers =
-    List.fold_left (^) "" @@ List.map (fun h -> Block.Header.serialize h) b.header_list
-  in
-	[%bitstring {|
-		Hash.to_bin b.fork_hash   : 32*8 : string;
-		b.fork_height			      	: 64 : littleendian;
-		b.header_height			      : 64 : littleendian;
-    Block.Header.serialize b.header_last   : 80 : string;
-    Int32.of_int @@ List.length b.header_list : 32 : littleendian;
-    headers                   : 80*(List.length b.header_list) : string
-  |}] |> Bitstring.string_of_bitstring
+  Bitstring.string_of_bitstring [%bitstring {| 
+    Hash.to_bin b.fork_hash   : 32*8 : string;
+    b.fork_height			      	: 64 : littleendian;
+    b.header_height			      : 64 : littleendian;
+    Int32.of_int @@ List.length b.header_list : 32 : littleendian |}] ^
+  Block.Header.serialize b.header_last ^
+  List.fold_left (^) "" @@ List.map (fun h -> Block.Header.serialize h) b.header_list
 ;;
 
 
@@ -87,6 +83,11 @@ let serialize b =
 let rec find_parent branches header = match branches with
 | [] -> None
 | b :: bl -> if (header.prev_block) = last b then Some (b) else find_parent bl header
+;;
+
+let rec find_fork branches header = match branches with
+| [] -> None
+| b :: bl -> if (header.prev_block) = b.fork_hash then Some (b) else find_fork bl header
 ;;
 
 
