@@ -186,12 +186,15 @@ let loop bc =
 			| Some (banc) ->
 				let height = Storage.get_block_height bc.storage h.prev_block in
 				if height >= ((Int64.to_int bc.header_height) - 1) then (
-				(* Found a valid new branch *)
-					let branch = Branch.create banc.hash (Int64.of_int height) h in
-					bc.branches <- bc.branches @ [ branch ];
-					Storage.update_branches bc.storage bc.branches;
-					Log.debug "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
-					()
+					match Storage.get_header bc.storage h.hash with
+					| Some (x) -> ()
+					| None ->
+						(* Found a valid new branch *)
+						let branch = Branch.create banc.hash (Int64.of_int height) h in
+						bc.branches <- bc.branches @ [ branch ];
+						Storage.update_branches bc.storage bc.branches;
+						Log.debug "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
+						()
 				) else ()
 	in
 	let rec consume () =
