@@ -4,9 +4,11 @@
 
 
 Bitcoin fullnode OCaml implementation. 
-Letchain will be usable as a standalone bitcoin node with a REST api interface 
-or through a library that expose all the features.
+Letchain will be usable as a standalone bitcoin node with a REST api interface.
 
+Letchain is directly connected to other 2 projects:
+- Bitcoinml: https://github.com/dakk/bitcoinml/
+- Secp256k1-ml: https://github.com/dakk/secp256k1-ml 
 
 ## Features
 
