@@ -354,13 +354,27 @@ let loop bc =
 
 		(* Check branch status *)
 		(* TODO *)
-		(* 1. Check if a branch is too old *)
+		(* 1. Check if a branch is too old, then delete it *)
 		(* 2. Check if a branch need updates (HBLOCKS) *)
-		(* 3. Check if a branch is longer than the best chain; 
-		 * 3.1 Revert block from the last to the fork block, put them in a branch
-		 * 3.2 Push branch headers to the main branch
-		 * 3.3 Delete the old branch
-		 *)
+		
+		(* Check if a branch is longer than the best chain *)
+		(match Branch.best_branch bc.branches with
+		| None -> ()
+		| Some (br) when br.header_height <= bc.header_height -> ()
+		| Some (br) when br.header_height > bc.header_height ->
+			let rec rollback () =
+				revert_last_block bc;
+				match bc.header_last.hash with
+				| l when l = br.fork_hash -> ()
+				| l -> rollback ()
+			in
+			Log.debug "Branch" "Found that branch %s is the main branch, rollback" bc.header_last.hash;
+			rollback ();
+			(* 3.1 Move old blocks to new branch *)
+			(* 3.2 Push branch headers to the main branch *)
+			bc.branches <- (List.filter (fun bi -> br.fork_hash <> bi.Branch.fork_hash) bc.branches);
+			()
+		);
 		(*Storage.update_branches bc.storage bc.branches;*)
 
 		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
