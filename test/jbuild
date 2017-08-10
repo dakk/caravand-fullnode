@@ -1,0 +1,8 @@
+(executable
+ ((name test)
+  (libraries (network utils api blockchain bitcoinml oUnit hex))))
+
+(alias
+ ((name    runtest)
+  (deps    (test.exe))
+(action (run ${<}))))

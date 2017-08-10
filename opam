@@ -32,6 +32,7 @@ depends: [
 
   "ounit" {test & >= "2.0.0"}
   "odoc" {test & >= "1.1.1"}
+  "hex" {test & >= "1.1.1"}
 ]
 
 depexts: [
