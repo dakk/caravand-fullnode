@@ -354,7 +354,14 @@ let loop bc =
 
 		(* Check branch status *)
 		(* TODO *)
-		(* 1. Check if a branch is too old, then delete it *)
+		(* Check if a branch is too old, then delete it *)
+		bc.branches <- (List.filter (fun bi ->
+			if bi.Branch.header_height < (Int64.sub bc.header_height @@ Int64.of_int 12) then (
+				Log.debug "Branch" "Removing branch %s because is too old" bi.header_last.hash;
+				false
+			) else true			
+		)) bc.branches;
+
 		(* 2. Check if a branch need updates (HBLOCKS) *)
 		
 		(* Check if a branch is longer than the best chain *)
@@ -381,7 +388,8 @@ let loop bc =
 		Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash;
 		Log.info "Blockchain" "There are %d active side-branches" @@ List.length bc.branches;
 		List.iter (fun b ->
-			Log.info "Branch" "Last block of branch %s header is %d" (b.Branch.fork_hash) (Int64.to_int b.header_height); (* b.header_last.hash; *)
+			Log.info "Branch" "Last block of branch %s header is %d (%d)" (b.Branch.fork_hash) (Int64.to_int b.header_height)
+				(Int64.to_int @@ Int64.sub bc.header_height b.Branch.header_height); (* b.header_last.hash; *)
 		) bc.branches;
 	
 		()
