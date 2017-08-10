@@ -91,11 +91,11 @@ let genesis path p =
 			size= 1;
 			txs= [];
 			header= {
-				hash= "0000000000000000000000000000000000000000000000000000000000000000";
+				hash= Hash.zero ();
 				time= 0.0;
 				version= Int32.zero;
-				prev_block= "0000000000000000000000000000000000000000000000000000000000000000";
-				merkle_root= "0000000000000000000000000000000000000000000000000000000000000000";
+				prev_block= Hash.zero ();
+				merkle_root= Hash.zero ();
 				bits= Uint32.zero;
 				nonce= Uint32.zero
 			}
@@ -120,9 +120,9 @@ let load path p =
 	let bcg = genesis path p in
 	bcg.branches <- bcg.storage.chainstate.Chainstate.branches;
 		
-	if bcg.storage.chainstate.Chainstate.header <> "0000000000000000000000000000000000000000000000000000000000000000" 
+	if bcg.storage.chainstate.Chainstate.header <> Hash.zero () 
 	&& bcg.storage.chainstate.Chainstate.header_height <> Uint32.zero then (
-		if bcg.storage.chainstate.Chainstate.block <> "0000000000000000000000000000000000000000000000000000000000000000" 
+		if bcg.storage.chainstate.Chainstate.block <> Hash.zero ()
 		&& bcg.storage.chainstate.Chainstate.height <> Uint32.zero then (
 			match Storage.get_block bcg.storage bcg.storage.chainstate.Chainstate.block with
 			| None -> failwith "impossible situation"

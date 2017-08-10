@@ -78,18 +78,15 @@ let serialize b =
   List.fold_left (^) "" @@ List.map (fun h -> Block.Header.serialize h) b.header_list
 ;;
 
-
-
-let rec find_parent branches header = match branches with
-| [] -> None
-| b :: bl -> if (header.prev_block) = last b then Some (b) else find_parent bl header
+let rec find_parent branches header = 
+  try Some (List.find (fun b -> (header.prev_block) = last b) branches)
+  with | Not_found -> None
 ;;
 
-let rec find_fork branches header = match branches with
-| [] -> None
-| b :: bl -> if (header.prev_block) = b.fork_hash then Some (b) else find_fork bl header
+let rec find_fork branches header =
+  try Some (List.find (fun b -> (header.prev_block) = b.fork_hash) branches)
+  with | Not_found -> None
 ;;
-
 
 let best_branch branches = 
   let rec bc' bl b = match (bl, b) with
