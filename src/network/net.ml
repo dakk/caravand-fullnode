@@ -73,7 +73,7 @@ let loop n bc =
 	) n.peers;
 					
 	while true do
-		Unix.sleep 4;
+		Unix.sleep 2;
 
 		(* Print network stats *)
 		let connected_peers = Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0 in

@@ -20,7 +20,7 @@ module Address : sig
 	val parse 					: bytes -> t
 	val serialize 			: t -> bytes
 	val load_or_create 	: LevelDB.db -> string -> t
-	val save 						: LevelDB.db -> string -> t -> unit
+	val save 						: LevelDB.writebatch -> string -> t -> unit
 end
 
 module Chainstate : sig 
@@ -47,12 +47,12 @@ end
 type t = {
 	chainstate		:	Chainstate.t;
 	db       			: LevelDB.db;
+	mutable batch : LevelDB.writebatch;
 }
 
 
 val load					:	string -> t
 val close 				:	t -> unit
-val sync					:	t -> unit 
 
 val update_difficulty	: t -> uint64 -> unit
 val update_reward			: t -> uint64 -> unit 

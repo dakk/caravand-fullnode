@@ -46,15 +46,15 @@ module Address = struct
 	;;
 
 
-	let add_tx db addr txhash time =
-		LevelDB.put db ("adt_" ^ addr ^ string_of_float time ^ txhash) @@ 
+	let add_tx batch addr txhash time =
+		Batch.put batch ("adt_" ^ addr ^ string_of_float time ^ txhash) @@ 
 			Bitstring.string_of_bitstring ([%bitstring {|
 			Hash.to_bin (txhash)	: 32*8 : string
 		|}])
 	;;
 
-	let remove_tx db addr txhash time =
-		LevelDB.delete db ("adt_" ^ addr ^ string_of_float time ^ txhash)
+	let remove_tx batch addr txhash time =
+		Batch.delete batch ("adt_" ^ addr ^ string_of_float time ^ txhash)
 	;;
 
 	let get_txs db addr txs =
@@ -72,8 +72,8 @@ module Address = struct
 		get_tx it txs
 	;;
 	
-	let add_utxo db addr txhash i value =
-		LevelDB.put db ("adu_" ^ addr ^ txhash ^ string_of_int i) @@ 
+	let add_utxo batch addr txhash i value =
+		Batch.put batch ("adu_" ^ addr ^ txhash ^ string_of_int i) @@ 
 			Bitstring.string_of_bitstring ([%bitstring {|
 			Hash.to_bin (txhash)	: 32*8 : string;
 			Int32.of_int i			: 32 : littleendian;
@@ -81,8 +81,8 @@ module Address = struct
 		|}])
 	;;
 
-	let remove_utxo db addr txhash i =
-		LevelDB.delete db ("adu_" ^ addr ^ txhash ^ string_of_int i)
+	let remove_utxo batch addr txhash i =
+		Batch.delete batch ("adu_" ^ addr ^ txhash ^ string_of_int i)
 	;;
 
 	let get_utxos db addr utxs =
@@ -120,9 +120,9 @@ module Address = struct
 			empty
 	;;
 
-	let save db addr data = 
+	let save batch addr data = 
 		let key = "adr_" ^ addr in
-		LevelDB.put db key @@ serialize data
+		Batch.put batch key @@ serialize data
 	;;
 end
 
@@ -197,16 +197,19 @@ open Chainstate;;
 
 type t = {
 	chainstate		:	Chainstate.t;
-	db            :   LevelDB.db;
+	db       			: LevelDB.db;
+	mutable batch : LevelDB.writebatch;
 };;
 
 
 let save_cs storage =
 	let d = Chainstate.serialize storage.chainstate in
-	LevelDB.put storage.db "chainstate" d 
+	Batch.put storage.batch "chainstate" d 
 ;;
 
 let sync storage =
+	Batch.write storage.db storage.batch;
+	storage.batch <- LevelDB.Batch.make ();
 	let d = Chainstate.serialize storage.chainstate in
 	LevelDB.put ~sync:true storage.db "chainstate" d 
 ;;
@@ -232,7 +235,8 @@ let load path =
 	let db = LevelDB.open_db path in 
 	{
 		chainstate= load_cs db;
-		db= db
+		db= db;
+		batch= LevelDB.Batch.make ();
 	}
 ;;
 
@@ -259,9 +263,9 @@ let update_reward storage reward =
 let insert_header storage height (header : Block.Header.t) = 
 	storage.chainstate.header_height <- Uint32.of_int64 height;
 
-	LevelDB.put storage.db ("blk_" ^ header.hash) @@ Block.Header.serialize header;
-	LevelDB.put storage.db ("bih_" ^ header.hash) @@ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height);
-	LevelDB.put storage.db ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height)) header.hash;
+	Batch.put storage.batch ("blk_" ^ header.hash) @@ Block.Header.serialize header;
+	Batch.put storage.batch ("bih_" ^ header.hash) @@ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height);
+	Batch.put storage.batch ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height)) header.hash;
 	storage.chainstate.header <- header.hash;
 
 	save_cs storage    
@@ -269,7 +273,7 @@ let insert_header storage height (header : Block.Header.t) =
 
 
 let insert_block storage height (block : Block.t) = 
-	LevelDB.put storage.db ("blk_" ^ block.header.hash) @@ Block.serialize block;
+	Batch.put storage.batch ("blk_" ^ block.header.hash) @@ Block.serialize block;
 	storage.chainstate.block <- block.header.hash;
 
 	List.iteri (fun i tx -> 		
@@ -278,27 +282,27 @@ let insert_block storage height (block : Block.t) =
 			Hash.to_bin (block.header.hash)	: 32*8 : string;
 			Int32.of_int i					: 32 : littleendian
 		|}]) in
-		LevelDB.put storage.db ("txi_" ^ tx.Tx.hash) data;
+		Batch.put storage.batch ("txi_" ^ tx.Tx.hash) data;
 		storage.chainstate.txs <- Uint64.add storage.chainstate.txs Uint64.one;
 
 		(* Insert utxo and user utxo, set balances *)
 		List.iteri (fun i out -> 
 			if Tx.Out.is_spendable out then (
-				LevelDB.put storage.db ("utx_" ^ tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
+				Batch.put storage.batch ("utx_" ^ tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
 				storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
 
 				(match Tx.Out.spendable_by out with
 				| None -> ()
 				| Some (addr) -> 
-					Address.add_utxo storage.db addr tx.Tx.hash i out.value;
-					Address.add_tx storage.db addr tx.Tx.hash block.header.time;
+					Address.add_utxo storage.batch addr tx.Tx.hash i out.value;
+					Address.add_tx storage.batch addr tx.Tx.hash block.header.time;
 						
 					let addrd = Address.load_or_create storage.db addr in
 					addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
 					addrd.utxs <- Uint64.add addrd.utxs @@ Uint64.one;
 					addrd.received <- Uint64.add addrd.received @@ Uint64.of_int64 out.value;
 					addrd.balance <- Uint64.add addrd.balance @@ Uint64.of_int64 out.value;
-					Address.save storage.db addr addrd)
+					Address.save storage.batch addr addrd)
 			)
 		) tx.txout;
 
@@ -318,18 +322,18 @@ let insert_block storage height (block : Block.t) =
 							(match Tx.Out.spendable_by utx with
 							| None -> ()
 							| Some (addr) -> 
-								Address.remove_utxo storage.db addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
-								Address.add_tx storage.db addr tx.Tx.hash block.header.time;
+								Address.remove_utxo storage.batch addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
+								Address.add_tx storage.batch addr tx.Tx.hash block.header.time;
 
 								let addrd = Address.load_or_create storage.db addr in
 								addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
 								addrd.sent <- Uint64.add addrd.sent @@ Uint64.of_int64 utx.value;
 								addrd.balance <- Uint64.sub addrd.balance @@ Uint64.of_int64 utx.value;
 								addrd.utxs <- Uint64.sub addrd.utxs @@ Uint64.one;
-								Address.save storage.db addr addrd
+								Address.save storage.batch addr addrd
 							);
 
-							LevelDB.delete storage.db key;
+							Batch.delete storage.batch key;
 							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
 						);
 			)
@@ -337,7 +341,8 @@ let insert_block storage height (block : Block.t) =
 	) block.txs;
 	
 	storage.chainstate.height <- Uint32.of_int64 height;
-	save_cs storage 
+	save_cs storage;
+	sync storage
 ;;
 
 
@@ -466,12 +471,13 @@ let get_address_txs storage addr =
 
 let remove_last_header storage prevhash =
 	storage.chainstate.header_height <- Uint32.sub (storage.chainstate.header_height) (Uint32.one);
-	LevelDB.delete storage.db ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height));
-	LevelDB.delete storage.db ("blk_" ^ storage.chainstate.header);
-	LevelDB.delete storage.db ("bih_" ^ storage.chainstate.header);	
+	Batch.delete storage.batch ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height));
+	Batch.delete storage.batch ("blk_" ^ storage.chainstate.header);
+	Batch.delete storage.batch ("bih_" ^ storage.chainstate.header);	
 	storage.chainstate.header <- prevhash;
 
-	save_cs storage    
+	save_cs storage;
+	sync storage
 ;;
 
 let remove_last_block storage prevhash =
@@ -482,27 +488,27 @@ let remove_last_block storage prevhash =
 	| None -> failwith "impossible"
 	| Some (block) -> (
 		List.iteri (fun i tx -> 		
-			LevelDB.delete storage.db ("txi_" ^ tx.Tx.hash);
+			Batch.delete storage.batch ("txi_" ^ tx.Tx.hash);
 			storage.chainstate.txs <- Uint64.sub storage.chainstate.txs Uint64.one;
 
 			(* Remove utxo and user utxo, reset balances *)
 			List.iteri (fun i out -> 
 				if Tx.Out.is_spendable out then (
-					LevelDB.delete storage.db ("utx_" ^ tx.Tx.hash ^ string_of_int i);
+					Batch.delete storage.batch ("utx_" ^ tx.Tx.hash ^ string_of_int i);
 					storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one;
 
 					(match Tx.Out.spendable_by out with
 					| None -> ()
 					| Some (addr) -> 
-						Address.remove_utxo storage.db addr tx.Tx.hash i;
-						Address.remove_tx storage.db addr tx.Tx.hash block.header.time;
+						Address.remove_utxo storage.batch addr tx.Tx.hash i;
+						Address.remove_tx storage.batch addr tx.Tx.hash block.header.time;
 							
 						let addrd = Address.load_or_create storage.db addr in
 						addrd.txs <- Uint64.sub addrd.txs @@ Uint64.one;
 						addrd.utxs <- Uint64.sub addrd.utxs @@ Uint64.one;
 						addrd.received <- Uint64.sub addrd.received @@ Uint64.of_int64 out.value;
 						addrd.balance <- Uint64.sub addrd.balance @@ Uint64.of_int64 out.value;
-						Address.save storage.db addr addrd)
+						Address.save storage.batch addr addrd)
 				)
 			) tx.txout;
 
@@ -514,21 +520,21 @@ let remove_last_block storage prevhash =
 				match utx with
 				| None -> ()
 				| Some (utx) -> 
-					LevelDB.put storage.db key @@ Tx.Out.serialize utx;
+					Batch.put storage.batch key @@ Tx.Out.serialize utx;
 
 					if Tx.Out.is_spendable utx then (
 						(match Tx.Out.spendable_by utx with
 						| None -> ()
 						| Some (addr) -> 
-							Address.remove_utxo storage.db addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
-							Address.add_tx storage.db addr tx.Tx.hash block.header.time;
+							Address.remove_utxo storage.batch addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
+							Address.add_tx storage.batch addr tx.Tx.hash block.header.time;
 
 							let addrd = Address.load_or_create storage.db addr in
 							addrd.txs <- Uint64.sub addrd.txs @@ Uint64.one;
 							addrd.sent <- Uint64.sub addrd.sent @@ Uint64.of_int64 utx.value;
 							addrd.balance <- Uint64.add addrd.balance @@ Uint64.of_int64 utx.value;
 							addrd.utxs <- Uint64.add addrd.utxs @@ Uint64.one;
-							Address.save storage.db addr addrd
+							Address.save storage.batch addr addrd
 						);
 
 						storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one
@@ -536,6 +542,7 @@ let remove_last_block storage prevhash =
 			) tx.txin
 		) block.txs;
 
-		remove_last_header storage prevhash
+		remove_last_header storage prevhash;
+		sync storage
 	))
 ;;

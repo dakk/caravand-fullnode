@@ -164,8 +164,7 @@ let revert_last_block bc =
 		| None -> failwith "impossible situation"
 	in
 
-	if bc.header_height > bc.block_height then revert_header () else (revert_header (); revert_block ());
-	Storage.sync bc.storage
+	if bc.header_height > bc.block_height then revert_header () else (revert_header (); revert_block ())
 ;;
 	
 
@@ -212,7 +211,9 @@ let loop bc =
 				bc.blocks_requested <- bc.blocks_requested - 1;
 				bc.block_height <- Int64.succ bc.block_height;
 				bc.block_last <- b;
-				Storage.insert_block bc.storage bc.block_height b;
+				let a = Unix.time () in
+				let _ = Storage.insert_block bc.storage bc.block_height b in
+				Log.debug "Blockchain ←" "Block %d processed in %f seconds (%d transactions)" (Int64.to_int bc.block_height) ((Unix.time ()) -. a) (List.length b.txs);
 				bc.block_last_received <- Unix.time ();
 
 				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
@@ -346,8 +347,8 @@ let loop bc =
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
 				if bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
-					let hashes = getblockhashes (bc.block_height) 128 [] in
-					bc.blocks_requested <- 128;
+					let hashes = getblockhashes (bc.block_height) 16 [] in
+					bc.blocks_requested <- 16;
 					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
