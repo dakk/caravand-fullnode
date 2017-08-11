@@ -212,8 +212,8 @@ let loop bc =
 				bc.block_height <- Int64.succ bc.block_height;
 				bc.block_last <- b;
 				let a = Unix.time () in
-				let _ = Storage.insert_block bc.storage bc.block_height b in
-				Log.debug "Blockchain ←" "Block %d processed in %f seconds (%d transactions)" (Int64.to_int bc.block_height) ((Unix.time ()) -. a) (List.length b.txs);
+				Storage.insert_block bc.storage bc.block_height b;
+				Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions)" (Int64.to_int bc.block_height) (int_of_float ((Unix.time ()) -. a)) (List.length b.txs);
 				bc.block_last_received <- Unix.time ();
 
 				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
