@@ -1,5 +1,6 @@
 open Bitcoinml;;
 open Utils;;
+open Conv;;
 open Dns;;
 open Peer;;
 open Message;;
@@ -72,7 +73,13 @@ let loop n bc =
 	) n.peers;
 					
 	while true do
-		Unix.sleep 2;
+		Unix.sleep 4;
+
+		(* Print network stats *)
+		let connected_peers = Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0 in
+		let sent = Hashtbl.fold (fun k p c -> p.sent + c) n.peers 0 in 
+		let received = Hashtbl.fold (fun k p c -> p.received + c) n.peers 0 in 
+		Log.info "Network" "Stats: %s sent, %s received, %d connected peers" (byten_to_string sent) (byten_to_string received) connected_peers;
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
