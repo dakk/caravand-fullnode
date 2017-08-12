@@ -127,7 +127,7 @@ let handle_request bc req =
 				("out_n", `Int (Uint32.to_int i.out_n))
 			]
 			| Some (utx) ->
-				let addr = match spendable_by utx with None -> "" | Some (a) -> a in
+				let addr = match spendable_by utx bc.params.prefixes with None -> "" | Some (a) -> a in
 				`Assoc [
 					("out_tx", `String (i.out_hash));
 					("out_n", `Int (Uint32.to_int i.out_n));
@@ -139,7 +139,7 @@ let handle_request bc req =
 		let rec outputs_to_jsonlist outputs = match outputs with
 		| [] -> []
 		| o :: out' ->
-			let addr = match spendable_by o with None -> "" | Some (a) -> a in
+			let addr = match spendable_by o bc.params.prefixes with None -> "" | Some (a) -> a in
 			let outj = `Assoc [
 				("address", `String addr);
 				("value", `String (Int64.to_string o.value))

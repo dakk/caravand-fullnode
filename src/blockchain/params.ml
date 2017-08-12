@@ -25,6 +25,7 @@ type t = {
 	seeds				: string list;
 	network			: e;
 	checkpoints	: (int * Hash.t) list;
+	prefixes		: Address.prefix;
 };;
 
 
@@ -37,6 +38,7 @@ let of_network n =
 			version	= 70001;
 			services= 0x0000000000000001L;
 			network	= BTC;
+			prefixes = { pubkeyhash = 0x00; scripthash = 0x05; };
 
 			genesis = { 
 				hash		= "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
@@ -79,7 +81,8 @@ let of_network n =
 			version	= 70015;
 			services= 0x0000000000000001L;
 			network	= BCH;
-
+			prefixes = { pubkeyhash = 0x00; scripthash = 0x05; };
+			
 			genesis = { 
 				hash		= "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
 				merkle_root	= "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b";
@@ -123,7 +126,8 @@ let of_network n =
 			version	= 70001;
 			services= 0x0000000000000001L;
 			network	= XTN;
-
+			prefixes = { pubkeyhash = 0x6f; scripthash = 0xc4; };
+			
 			genesis = { 
 				hash		= "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943";
 				merkle_root	= "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b";

@@ -149,7 +149,7 @@ let revert_last_block bc =
 	Log.debug "Blockchain" "Removing last block: %s" bc.header_last.hash;
 				
 	let revert_block () = 
-		Storage.remove_last_block bc.storage bc.block_last.header.prev_block;
+		Storage.remove_last_block bc.storage bc.params bc.block_last.header.prev_block;
 		bc.block_height <- Int64.sub (bc.block_height) (Int64.one);
 		match Storage.get_block bc.storage @@ bc.block_last.header.prev_block with
 		| Some (h) -> bc.block_last <- h 
@@ -203,7 +203,7 @@ let loop bc =
 			| (b, block, hl) when block.header.time = 0.0 && b.header.hash = bc.params.genesis.hash ->
 				bc.block_height <- Int64.zero;
 				bc.block_last <- b;
-				Storage.insert_block bc.storage bc.block_height b;
+				Storage.insert_block bc.storage bc.params bc.block_height b;
 				consume ()
 				
 			(* Next block *)
@@ -212,7 +212,7 @@ let loop bc =
 				bc.block_height <- Int64.succ bc.block_height;
 				bc.block_last <- b;
 				let a = Unix.time () in
-				Storage.insert_block bc.storage bc.block_height b;
+				Storage.insert_block bc.storage bc.params bc.block_height b;
 				Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions)" (Int64.to_int bc.block_height) (int_of_float ((Unix.time ()) -. a)) (List.length b.txs);
 				bc.block_last_received <- Unix.time ();
 
@@ -228,7 +228,7 @@ let loop bc =
 				if b.header.prev_block = block.header.hash then (
 					bc.block_height <- Int64.succ bc.block_height;
 					bc.block_last <- b;
-					Storage.insert_block bc.storage bc.block_height b;
+					Storage.insert_block bc.storage bc.params bc.block_height b;
 					bc.block_last_received <- Unix.time ();
 					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
 				) else (
@@ -348,8 +348,8 @@ let loop bc =
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
 				if bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
-					let hashes = getblockhashes (bc.block_height) 500 [] in
-					bc.blocks_requested <- 500;
+					let hashes = getblockhashes (bc.block_height) 1 [] in
+					bc.blocks_requested <- 1;
 					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;

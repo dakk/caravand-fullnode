@@ -272,7 +272,7 @@ let insert_header storage height (header : Block.Header.t) =
 ;;
 
 
-let insert_block storage height (block : Block.t) = 
+let insert_block storage params height (block : Block.t) = 
 	Batch.put storage.batch ("blk_" ^ block.header.hash) @@ Block.serialize block;
 	storage.chainstate.block <- block.header.hash;
 
@@ -291,7 +291,7 @@ let insert_block storage height (block : Block.t) =
 				Batch.put storage.batch ("utx_" ^ tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
 				storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
 
-				(match Tx.Out.spendable_by out with
+				(match Tx.Out.spendable_by out params.Params.prefixes with
 				| None -> ()
 				| Some (addr) -> 
 					Address.add_utxo storage.batch addr tx.Tx.hash i out.value;
@@ -319,7 +319,7 @@ let insert_block storage height (block : Block.t) =
 					| None -> ()
 					| Some (utx) ->
 						if Tx.Out.is_spendable utx then (
-							(match Tx.Out.spendable_by utx with
+							(match Tx.Out.spendable_by utx params.Params.prefixes with
 							| None -> ()
 							| Some (addr) -> 
 								Address.remove_utxo storage.batch addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
@@ -480,7 +480,7 @@ let remove_last_header storage prevhash =
 	sync storage
 ;;
 
-let remove_last_block storage prevhash =
+let remove_last_block storage params prevhash =
 	storage.chainstate.height <- Uint32.sub (storage.chainstate.height) (Uint32.one);
 	storage.chainstate.block <- prevhash;
 
@@ -497,7 +497,7 @@ let remove_last_block storage prevhash =
 					Batch.delete storage.batch ("utx_" ^ tx.Tx.hash ^ string_of_int i);
 					storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one;
 
-					(match Tx.Out.spendable_by out with
+					(match Tx.Out.spendable_by out params.Params.prefixes with
 					| None -> ()
 					| Some (addr) -> 
 						Address.remove_utxo storage.batch addr tx.Tx.hash i;
@@ -523,7 +523,7 @@ let remove_last_block storage prevhash =
 					Batch.put storage.batch key @@ Tx.Out.serialize utx;
 
 					if Tx.Out.is_spendable utx then (
-						(match Tx.Out.spendable_by utx with
+						(match Tx.Out.spendable_by utx params.Params.prefixes with
 						| None -> ()
 						| Some (addr) -> 
 							Address.remove_utxo storage.batch addr ins.In.out_hash (Uint32.to_int ins.In.out_n);

@@ -3,5 +3,5 @@
 (library
  ((name        network)
   (preprocess (pps (ppx_bitstring)))
-  (libraries (bitstring stdint blockchain bitcoinml))))
+  (libraries (bitstring stdint blockchain bitcoinml hex))))
 

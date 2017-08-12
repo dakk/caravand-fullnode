@@ -24,6 +24,7 @@ type t = {
 	seeds				: string list;
 	network			: e;
 	checkpoints	: (int * Hash.t) list;
+	prefixes		: Address.prefix;
 }
 
 val of_network 			: e -> t
