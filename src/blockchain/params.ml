@@ -137,10 +137,10 @@ let of_network n =
 			port	= 18333;
 			magic	= 0x0709110B;
 			seeds	= [ 
+				(*"testnet-seed.bitcoin.schildbach.de";*)
 				"testnet-seed.alexykot.me"; 
-				"testnet-seed.bitcoin.petertodd.org";
 				"testnet-seed.bluematt.me";
-				"testnet-seed.bitcoin.schildbach.de"
+				"testnet-seed.bitcoin.petertodd.org";
 			];
 			checkpoints = [
 				 11111, "0000000028502288da2fa584d24403536a3755351fd53a39f8e9d48d1709fc0e";

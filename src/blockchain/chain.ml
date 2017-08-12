@@ -286,7 +286,8 @@ let loop bc =
 
 						(* Check if the list of headers is less than 1999; if yes, then verify to all nodes *)
 
-						let _ = consume_headers (List.rev hbs) in ()
+						let _ = consume_headers (List.rev hbs) in 
+						Storage.sync bc.storage
 						(*if pheads = 0 then revert_last_block bc else ();*)
 					);
 					consume ()
@@ -308,7 +309,7 @@ let loop bc =
 			match Storage.get_headeri bc.storage (Int64.sub bc.header_height @@ Int64.of_int 64) with
 			| None -> ()
 			| Some (h) ->
-				Log.debug "Blockchain" "Requesting periodic ancestor headers for fork detection";
+				(*Log.debug "Blockchain" "Requesting periodic ancestor headers for fork detection";*)
 				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
 				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
 				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
@@ -347,8 +348,8 @@ let loop bc =
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
 				if bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
-					let hashes = getblockhashes (bc.block_height) 128 [] in
-					bc.blocks_requested <- 128;
+					let hashes = getblockhashes (bc.block_height) 500 [] in
+					bc.blocks_requested <- 500;
 					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;

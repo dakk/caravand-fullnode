@@ -53,6 +53,7 @@ type t = {
 
 val load					:	string -> t
 val close 				:	t -> unit
+val sync					:	t -> unit 
 
 val update_difficulty	: t -> uint64 -> unit
 val update_reward			: t -> uint64 -> unit 
