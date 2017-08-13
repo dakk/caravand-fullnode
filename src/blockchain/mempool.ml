@@ -7,7 +7,11 @@ type t = {
   mutable size          : int;
 };;
 
-let empty () = {
+let fee_of_tx tx = 
+  Int64.zero
+;;
+
+let create () = {
   txs= Hashtbl.create 512;
   fees= Int64.zero;
   average_fee= Int64.zero;
@@ -24,9 +28,10 @@ let clear mp =
 
 
 let add mp tx =
+  let fee = fee_of_tx tx in
   Hashtbl.add mp.txs tx.Tx.hash tx;
   mp.size <- mp.size + tx.Tx.size;
-  mp.fees <- Int64.add mp.fees @@ Tx.fee tx;
-  mp.average_fee <- Int64.div (Int64.add mp.average_fee @@ Tx.fee tx) @@ Int64.of_int 2;
+  mp.fees <- Int64.add mp.fees fee;
+  mp.average_fee <- Int64.div (Int64.add mp.average_fee fee) @@ Int64.of_int 2;
   true
 ;;

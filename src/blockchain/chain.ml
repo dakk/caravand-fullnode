@@ -54,7 +54,7 @@ type t = {
 	mutable block_last_received : float;
 	mutable blocks_requested	:	int;
 	
-	mempool			:	(Hash.t, Tx.t) Hashtbl.t;
+	mempool			:	Mempool.t;
 	
 	(* Queue for incoming resources*)
 	resources		:	(Resource.t) Cqueue.t;
@@ -103,7 +103,7 @@ let genesis path p =
 		block_last_received = Unix.time ();
 		blocks_requested = 0;
 		
-		mempool			= Hashtbl.create 4096;
+		mempool			= Mempool.create ();
 		
 		resources		= Cqueue.create ();
 		requests		= Cqueue.create ();
