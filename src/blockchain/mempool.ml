@@ -26,6 +26,18 @@ let clear mp =
   Hashtbl.reset mp.txs
 ;;
 
+let remove mp txhash = 
+  try 
+    let tx = Hashtbl.find mp.txs txhash in
+    let fee = fee_of_tx tx in
+    mp.size <- mp.size - tx.size;
+    mp.fees <- Int64.sub mp.fees fee;
+    (* TODO: adjust average_fee *)
+    Hashtbl.remove mp.txs txhash;
+    true
+  with 
+  | _ -> false
+;;
 
 let add mp tx =
   let fee = fee_of_tx tx in
