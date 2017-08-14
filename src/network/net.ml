@@ -141,7 +141,7 @@ let loop n bc =
 					let msg = {
 						version= Int32.of_int 1;
 						hashes= h;
-						stop= Hash.zero ();
+						stop= Hash.zero;
 					} in send n (Message.GETHEADERS msg)
 				| Chain.Request.REQ_BLOCKS (hs, addr)	->
 					let rec create_invs hs acc = match hs with

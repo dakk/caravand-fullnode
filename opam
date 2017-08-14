@@ -23,7 +23,7 @@ depends: [
   
   "bitstring" {>= "2.1.0"}
   "bignum" {>= "v0.9.0"}
-  "bitcoinml" {>= "0.2.4"}
+  "bitcoinml" {>= "0.3.0"}
   "cryptokit" {>= "1.11"}
   "ctypes" {>= "0.11.2"}
   "yojson" {>= "1.3.3"}
