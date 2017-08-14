@@ -239,9 +239,11 @@ let loop bc =
 
 			(* New block maybe on side-branch *)
 			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> 
+				(*Log.debug "Blockchain" "Skip block %s %s %s" b.header.hash b.header.prev_block block.header.hash;*)
 				check_branch_updates b.header;
 				consume ()
-			| _ -> consume ()
+			| (b, block, hl) -> 
+				consume ()
 		in
 		let rec consume_headers hl =
 			match hl with
@@ -295,7 +297,6 @@ let loop bc =
 			| None -> 
 				consume ()
 	in 
-
 	
 	while true do (
 		Unix.sleep 4;
@@ -348,8 +349,8 @@ let loop bc =
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
 				if bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
-					let hashes = getblockhashes (bc.block_height) 1 [] in
-					bc.blocks_requested <- 1;
+					let hashes = getblockhashes (bc.block_height) 500 [] in
+					bc.blocks_requested <- 500;
 					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;

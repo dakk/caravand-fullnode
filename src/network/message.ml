@@ -303,13 +303,9 @@ let parse header payload =
 		| rest, Some (tx) -> TX (tx)
 	)
 	| "block" -> (
-		Printf.printf "Parsing block %d\n%s\n%!" (Bytes.length payload)
-			"";
 		match Block.parse payload with
-		| None -> Printf.printf "Block invalid\n%!"; INVALID
-		| Some (block) -> 
-			Printf.printf "Parsed block\n%!";
-			BLOCK (block)
+		| None -> INVALID
+		| Some (block) -> BLOCK (block)
 	)
 	| "getdata" -> GETDATA (parse_getdata payload)
 	| "addr" -> ADDR
