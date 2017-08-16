@@ -77,14 +77,15 @@ let loop n bc =
 
 		(* Print network stats *)
 		let connected_peers = Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0 in
+		let waitping_peers = Hashtbl.fold (fun k p c -> (match p.status with | WAITPING (x) -> c + 1 | _ -> c)) n.peers 0 in
 		let sent = Hashtbl.fold (fun k p c -> p.sent + c) n.peers 0 in 
 		let received = Hashtbl.fold (fun k p c -> p.received + c) n.peers 0 in 
-		Log.info "Network" "Stats: %s sent, %s received, %d connected peers" (byten_to_string sent) (byten_to_string received) connected_peers;
+		Log.info "Network" "Stats: %s sent, %s received, %d connected peers (%d waitping)" (byten_to_string sent) (byten_to_string received) connected_peers waitping_peers;
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
 			match (peer.status, peer.last_seen) with
-			| (WAITPING (rnd), x) when x < (Unix.time () -. 60. *. 2.0) ->
+			| (WAITPING (rnd), x) when x < (Unix.time () -. 60. *. 1.5) ->
 				Peer.disconnect peer;
 				Log.info "Network" "Peer %s disconnected for inactivity" k;
 				if Hashtbl.length n.peers < 4 then ()
@@ -100,7 +101,7 @@ let loop n bc =
 
 		(* Count available peers and reconnect to others *)		
 		let connected_peers = 
-			Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0
+			int_of_float (Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | WAITPING (x) -> c +. 0.5 | _ -> c +. 1.0)) n.peers 0.0)
 		in 
 			(*Log.info "Network" "Connected peers: %d" connected_peers;*)
 			match connected_peers with
