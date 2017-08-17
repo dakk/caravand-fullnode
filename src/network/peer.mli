@@ -28,7 +28,7 @@ val create		: Params.t -> Config.t -> Unix.inet_addr -> int -> t
 val connect 	: t -> status
 val send		: t -> Message.t -> unit
 val recv		: t -> Message.t option
-val handshake	: t -> unit
+val handshake	: t -> Int64.t -> unit
 val disconnect	: t -> unit
 val start		: t -> Chain.t -> unit
 val handle		: t -> Chain.t -> unit

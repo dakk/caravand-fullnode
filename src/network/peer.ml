@@ -78,15 +78,20 @@ let disconnect peer =
 ;;
 
 let send peer message = 
-	try (
-		let data = Message.serialize peer.params message in
-		let wl = Unix.send peer.socket data 0 (Bytes.length data) [] in
-		if peer.config.log_peer then 
-			Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-				(string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
-		peer.sent <- peer.sent + wl;
-	) with
-	| _ -> disconnect peer; Log.error "Peer →" "Broken pipe"; ()
+	let data = Message.serialize peer.params message in
+	let _, wd, _ = Unix.select [] [peer.socket] [] 5.0 in
+	match List.length wd with
+	| 0 -> Log.debug "Peer" "%s: write descriptor not available" (Unix.string_of_inet_addr peer.address)
+	| n -> (
+		try (
+			let wl = Unix.send peer.socket data 0 (Bytes.length data) [] in
+			if peer.config.log_peer then 
+				Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+					(string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
+			peer.sent <- peer.sent + wl
+		) with
+		| _ -> Log.error "Peer →" "Broken pipe"; disconnect peer; ()
+	)
 ;;
 
 
@@ -130,7 +135,6 @@ let recv peer =
 				| Some (rdata) -> (
 					peer.received <- peer.received + String.length rdata;
 					let m' = Message.parse m rdata in 
-
 					if peer.config.log_peer then 
 						Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
 							m.command (byten_to_string peer.sent) (byten_to_string peer.received);
@@ -147,7 +151,7 @@ let recv peer =
 
 
 
-let handshake peer =
+let handshake peer height =
 	let verm = {
 		version		= Int32.of_int peer.params.version;
 		services	= peer.params.services;
@@ -155,8 +159,8 @@ let handshake peer =
 		addr_recv	= { address="0000000000000000" ; services=(Uint64.of_int 1) ; port= Uint16.of_int 8333 };
 		addr_from	= { address="0000000000000000" ; services=(Uint64.of_int 1) ; port= Uint16.of_int 8333 };
 		nonce		= Random.int64 0xFFFFFFFFFFFFFFFL;
-		user_agent	= "/letchain:0.13.1/";
-		start_height= Int32.of_int 0;
+		user_agent	= "/letchain:0.14.2/";
+		start_height= Int32.of_int64 height;
 		relay		= true;
 	} in send peer (Message.VERSION (verm))
 ;;
@@ -201,7 +205,7 @@ let handle peer bc = match recv peer with
 	| ADDR -> ()
 	| GETADDR -> ()
 	| VERACK -> ()
-	| _ -> Log.debug "Network" "Message not handled\n%!"; ()
+	| _ -> Log.debug "Network" "Message not handled"; ()
 );;
 
 let start peer bc = 
@@ -210,7 +214,7 @@ let start peer bc =
 	match connect peer with 
 	| DISCONNECTED -> Thread.exit ()
 	| _ -> (
-		handshake peer;
+		handshake peer bc.block_height;
 		
 		let rec loop () = (match peer.status with
 		| CONNECTED ->		

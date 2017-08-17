@@ -192,7 +192,7 @@ let parse_netaddr data =
 		time		: 4*8 : string;
 		services	: 8*8 : littleendian;
 		address		: 16*8 : string;
-		port		: 16 : littleendian
+		port		: 2*8 : littleendian
 	|} -> 
 		{ 
 			address="0000000000000000" ; 
@@ -207,11 +207,11 @@ let parse_version data =
 	| {|
 		version 			: 4*8 : littleendian;
 		services 			: 8*8 : littleendian;
-		time 				: 8*8 : littleendian;
+		time 					: 8*8 : littleendian;
 		addr_recv			: 26*8 : string;
 		addr_from	 		: 26*8 : string;
-		nonce				: 8*8 : littleendian;
-		rest				: -1 : bitstring
+		nonce					: 8*8 : littleendian;
+		rest					: -1 : bitstring
 	|} -> 
 		match parse_varstring rest with
 		| (user_agent, rest) ->
@@ -220,8 +220,16 @@ let parse_version data =
 				start_height		: 4*8 : littleendian;
 				relay				: 1*8 : littleendian						
 			|} -> {
-				addr_recv= parse_netaddr addr_recv;
-				addr_from= parse_netaddr addr_from;
+				addr_recv= { 
+					address="0000000000000000" ; 
+					services= Uint64.of_int 0; 
+					port= Uint16.of_int 0
+				} (*parse_netaddr addr_recv;*);
+				addr_from= { 
+					address="0000000000000000" ; 
+					services= Uint64.of_int 0; 
+					port= Uint16.of_int 0
+				} (*parse_netaddr addr_from;*);
 				version= version;
 				services= services;
 				time= Int64.to_float (time);

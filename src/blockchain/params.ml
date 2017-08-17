@@ -35,7 +35,7 @@ let of_network n =
 	| BTC -> 
 		{ 
 			blocksize = 1000000;
-			version	= 70001;
+			version	= 70015;
 			services= 0x0000000000000001L;
 			network	= BTC;
 			prefixes = { pubkeyhash = 0x00; scripthash = 0x05; };
@@ -123,7 +123,7 @@ let of_network n =
 	| XTN -> 
 		{ 
 			blocksize = 1000000;
-			version	= 70001;
+			version	= 70015;
 			services= 0x0000000000000001L;
 			network	= XTN;
 			prefixes = { pubkeyhash = 0x6f; scripthash = 0xc4; };
