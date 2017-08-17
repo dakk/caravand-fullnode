@@ -74,6 +74,8 @@ type t =
 	| GETADDR
 	| MEMPOOL
 	| REJECT
+	| FEEFILTER of Uint64.t
+	| SENDHEADERS
 	
 	(* Bloom filter related *)
 	| FILTERLOAD
@@ -82,7 +84,6 @@ type t =
 	| MERKLEBLOCK
 	
 	| ALERT
-	| SENDHEADERS
 ;;
 
 

@@ -179,6 +179,7 @@ let handle peer bc = match recv peer with
 		peer.height <- v.start_height;
 		peer.user_agent <- v.user_agent;
 		send peer VERACK;
+		send peer SENDHEADERS;
 		Log.info "Network" "Peer %s with agent %s starting from height %d" 
 			(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
 	| BLOCK (b) -> 
@@ -205,7 +206,9 @@ let handle peer bc = match recv peer with
 	| ADDR -> ()
 	| GETADDR -> ()
 	| VERACK -> ()
-	| _ -> Log.debug "Network" "Message not handled"; ()
+	| FEEFILTER (rate) -> ()
+	| SENDHEADERS -> ()
+	| m -> Log.debug "Network" "Message not handled %s" @@ Message.string_of_command m; ()
 );;
 
 let start peer bc = 

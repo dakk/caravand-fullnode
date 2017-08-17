@@ -77,6 +77,8 @@ type t =
 	| GETADDR
 	| MEMPOOL
 	| REJECT
+	| FEEFILTER of Uint64.t
+	| SENDHEADERS
 	
 	(* Bloom filter related *)
 	| FILTERLOAD
@@ -85,7 +87,6 @@ type t =
 	| MERKLEBLOCK
 	
 	| ALERT
-	| SENDHEADERS
 ;;
 
 
@@ -107,6 +108,8 @@ let string_of_command c = match c with
 	| GETADDR -> "getaddr"
 	| MEMPOOL -> "mempool"
 	| REJECT -> "reject"
+	| FEEFILTER (f) -> "feefilter"
+	| SENDHEADERS -> "sendheaders"
 	
 	(* Bloom filter related *)
 	| FILTERLOAD -> "filterload"
@@ -115,7 +118,6 @@ let string_of_command c = match c with
 	| MERKLEBLOCK -> "merkleblock"
 	
 	| ALERT -> "alert"
-	| SENDHEADERS -> "sendheaders"
 ;;
 
 
@@ -255,6 +257,14 @@ let parse_pong data =
 	| {| _ |} -> raise (Invalid_argument "Invalid pong message")
 ;;
 
+let parse_feefilter data =
+	let bdata = bitstring_of_string data in
+	match%bitstring bdata with
+	| {| feerate		: 8*8	: littleendian |} -> Uint64.of_int64 feerate
+	| {| _ |} -> raise (Invalid_argument "Invalid feefilter message")
+;;
+
+
 
 let parse_getheaders data =
 	let bdata = bitstring_of_string data in
@@ -305,6 +315,7 @@ let parse header payload =
 	| "getheaders" -> GETHEADERS (parse_getheaders payload)
 	| "getblocks" -> GETBLOCKS (parse_getblocks payload)
 	| "inv" -> INV (parse_inv payload)
+	| "feefilter" -> FEEFILTER (parse_feefilter payload)
 	| "tx" -> (
 		match Tx.parse payload with
 		| rest, None -> INVALID
