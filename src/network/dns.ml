@@ -14,6 +14,8 @@ let query server =
 			Log.error "Dns" "No peer found from seed %s" server; []
 ;;
 
+let query_set2 servers = [inet_addr_of_string "127.0.0.1"];;
+
 let query_set servers =
 	let rec qs sl = 
 		match sl with
@@ -24,5 +26,4 @@ let query_set servers =
 	in
 	Log.info "Dns" "Fetched %d peers from the seed set" (List.length addrs);
 	addrs
-	(*;[inet_addr_of_string "127.0.0.1"]*)
 ;;

@@ -198,7 +198,10 @@ let handle peer bc = match recv peer with
 		| [] -> ()
 		in 
 		if bc.sync then vis i else ();
-	| _ -> ()
+	| ADDR -> ()
+	| GETADDR -> ()
+	| VERACK -> ()
+	| _ -> Log.debug "Network" "Message not handled\n%!"; ()
 );;
 
 let start peer bc = 
