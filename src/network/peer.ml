@@ -180,9 +180,15 @@ let handle peer bc = match recv peer with
 	| BLOCK (b) -> 
 		Cqueue.add bc.resources @@ Chain.QueueMessage.RES_BLOCK (b)
 	| HEADERS (hl) ->
+<<<<<<< HEAD
 		Cqueue.add bc.resources (Chain.Resource.RES_HBLOCKS (hl));
 	| GETHEADERS (hl) ->
 		Cqueue.add bc.resources (Chain.Resource.REQ_HBLOCKS (hl.hashes, hl.stop, peer.address))
+=======
+		Cqueue.add bc.resources @@ Chain.QueueMessage.RES_HBLOCKS (hl, peer.address)
+	| GETHEADERS (ghl) ->
+		Cqueue.add bc.resources @@ Chain.QueueMessage.REQ_HBLOCKS (ghl.hashes @ [ghl.stop], Some (peer.address))
+>>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 	| INV (i) ->
 		let rec vis h = match h with
 		| x::xl ->

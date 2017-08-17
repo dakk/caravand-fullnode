@@ -13,12 +13,13 @@ module QueueMessage : sig
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
-<<<<<<< HEAD
 	| REQ_HBLOCKS of Hash.t list * Hash.t * Unix.inet_addr
 end
 
 module Request : sig
 	type t =
+=======
+>>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 =======
 >>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 	| REQ_TXS of Hash.t list * Unix.inet_addr option

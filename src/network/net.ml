@@ -145,12 +145,21 @@ let loop n bc =
 			| None -> ()
 			| Some (req) ->
 				(match req with
+<<<<<<< HEAD
 				| Chain.Request.RES_HBLOCKS (hl, addr) -> (
 					match peer_of_addr n addr with
 					| None -> ()
 					| Some (p) -> Peer.send p @@ Message.HEADERS (hl)
 				);
 				| Chain.Request.REQ_HBLOCKS (h, addr)	->
+=======
+				| Chain.QueueMessage.RES_HBLOCKS (hl, addr) -> (
+					match peer_of_addr n addr with
+					| None -> ()
+					| Some (p) -> Peer.send p @@ Message.HEADERS (hl) 
+				)
+				| Chain.QueueMessage.REQ_HBLOCKS (h, addr)	->
+>>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 					let msg = {
 						version= Int32.of_int 1;
 						hashes= h;

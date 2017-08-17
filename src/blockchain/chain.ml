@@ -17,13 +17,14 @@ module QueueMessage = struct
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
-<<<<<<< HEAD
 	| REQ_HBLOCKS of Hash.t list * Hash.t * Unix.inet_addr
 	;;
 end
 
 module Request = struct
 	type t =
+=======
+>>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 =======
 >>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 	| REQ_TXS of Hash.t list * Unix.inet_addr option
@@ -278,11 +279,14 @@ let loop bc =
 		else
 			match Cqueue.get bc.resources with 
 <<<<<<< HEAD
+<<<<<<< HEAD
 			| Some (res) -> (match (res : Resource.t) with 
 				| REQ_HBLOCKS (hl, stop, addr) ->
 					Cqueue.add bc.requests @@ Request.RES_HBLOCKS ([], addr);
 					consume ()
 =======
+=======
+>>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 			| Some (res) -> (match (res : QueueMessage.t) with 
 				| REQ_HBLOCKS (bl, Some (addr)) ->
 					let headers = List.fold_left 
@@ -291,6 +295,9 @@ let loop bc =
 							| None -> l
 						) [] bl in
 					Cqueue.add bc.requests @@ QueueMessage.RES_HBLOCKS (headers, addr);
+<<<<<<< HEAD
+>>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
+=======
 >>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 				| RES_INV_BLOCK (bs, addr) -> 
 					(if bc.sync then  Cqueue.add bc.requests @@ QueueMessage.REQ_BLOCKS ([bs], Some (addr)));
