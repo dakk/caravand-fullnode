@@ -10,7 +10,7 @@ open Timediff;;
 open Stdint;;
 open Storage;;
 
-module QueueMessage = struct
+module Resource = struct
 	type t = 
 	| RES_TXS of Tx.t list
 	| RES_BLOCK of Block.t
@@ -23,10 +23,6 @@ end
 
 module Request = struct
 	type t =
-=======
->>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
-=======
->>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 	| REQ_TXS of Hash.t list * Unix.inet_addr option
 	| REQ_BLOCKS of Hash.t list * Unix.inet_addr option
 	| REQ_HBLOCKS of Hash.t list * Unix.inet_addr option
@@ -61,10 +57,10 @@ type t = {
 	mempool			:	Mempool.t;
 	
 	(* Queue for incoming resources*)
-	resources		:	(QueueMessage.t) Cqueue.t;
+	resources		:	(Resource.t) Cqueue.t;
 	
 	(* Queue for data request *)
-	requests		:	(QueueMessage.t) Cqueue.t;
+	requests		:	(Request.t) Cqueue.t;
 };;
 
 let genesis path p = 
@@ -278,29 +274,12 @@ let loop bc =
 		if Cqueue.length bc.resources = 0 then ()
 		else
 			match Cqueue.get bc.resources with 
-<<<<<<< HEAD
-<<<<<<< HEAD
 			| Some (res) -> (match (res : Resource.t) with 
 				| REQ_HBLOCKS (hl, stop, addr) ->
 					Cqueue.add bc.requests @@ Request.RES_HBLOCKS ([], addr);
 					consume ()
-=======
-=======
->>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
-			| Some (res) -> (match (res : QueueMessage.t) with 
-				| REQ_HBLOCKS (bl, Some (addr)) ->
-					let headers = List.fold_left 
-						(fun l h -> match Storage.get_header bc.storage h with 
-							| Some (head) -> l @ [head]
-							| None -> l
-						) [] bl in
-					Cqueue.add bc.requests @@ QueueMessage.RES_HBLOCKS (headers, addr);
-<<<<<<< HEAD
->>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
-=======
->>>>>>> 6acee1281950c0dfd420d950ab1e1e9d96bc3a8c
 				| RES_INV_BLOCK (bs, addr) -> 
-					(if bc.sync then  Cqueue.add bc.requests @@ QueueMessage.REQ_BLOCKS ([bs], Some (addr)));
+					(if bc.sync then  Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bs], Some (addr)));
 					consume ()
 				| RES_INV_TX (txs, addr) -> consume ()
 				| RES_BLOCK (bs) -> 
@@ -335,17 +314,17 @@ let loop bc =
 			| None -> ()
 			| Some (h) ->
 				(*Log.debug "Blockchain" "Requesting periodic ancestor headers for fork detection";*)
-				Cqueue.add bc.requests @@ QueueMessage.REQ_HBLOCKS ([h.hash], None);
-				Cqueue.add bc.requests @@ QueueMessage.REQ_HBLOCKS ([h.hash], None);
-				Cqueue.add bc.requests @@ QueueMessage.REQ_HBLOCKS ([h.hash], None);
-				Cqueue.add bc.requests @@ QueueMessage.REQ_HBLOCKS ([h.hash], None)
+				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
+				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None)
 		);
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			Log.info "Blockchain" "Headers not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- false;
-			Cqueue.add bc.requests @@ QueueMessage.REQ_HBLOCKS ([bc.header_last.hash], None);
+			Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([bc.header_last.hash], None);
 		) else (
 			Log.info "Blockchain" "Headers in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- true
@@ -355,7 +334,7 @@ let loop bc =
 		| 0.0 -> (
 			Log.info "Blockchain" "Blocks not in sync, waiting for genesis";
 			bc.sync <- false;
-			Cqueue.add bc.requests @@ QueueMessage.REQ_BLOCKS ([bc.params.genesis.hash], None)
+			Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bc.params.genesis.hash], None)
 		)
 		| _ -> (
 			if bc.block_last.header.time < (Unix.time () -. 60. *. 10.) then (
@@ -375,7 +354,7 @@ let loop bc =
 				if bc.block_last_received < (Unix.time () -. 12.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
 					let hashes = getblockhashes (bc.block_height) 500 [] in
 					bc.blocks_requested <- 500;
-					Cqueue.add bc.requests @@ QueueMessage.REQ_BLOCKS (hashes, None))
+					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- true
