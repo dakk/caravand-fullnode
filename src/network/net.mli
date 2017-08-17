@@ -5,3 +5,4 @@ type t
 
 val init : Params.t -> Config.t -> t
 val loop : t -> Chain.t -> unit
+val peer_of_addr : t -> Unix.inet_addr -> Peer.t option
