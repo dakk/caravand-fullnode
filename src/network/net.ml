@@ -62,6 +62,13 @@ let send n m =
 ;;
 
 
+let peer_of_addr n addr =
+	try
+		Some (Hashtbl.find n.peers @@ Unix.string_of_inet_addr addr)
+	with
+	| _ -> None
+;;
+	
 
 
 let loop n bc = 
@@ -138,13 +145,18 @@ let loop n bc =
 			| None -> ()
 			| Some (req) ->
 				(match req with
-				| Chain.Request.REQ_HBLOCKS (h, addr)	->
+				| Chain.QueueMessage.RES_HBLOCKS (hl, addr) -> (
+					match peer_of_addr n addr with
+					| None -> ()
+					| Some (p) -> Peer.send p @@ Message.HEADERS (hl) 
+				)
+				| Chain.QueueMessage.REQ_HBLOCKS (h, addr)	->
 					let msg = {
 						version= Int32.of_int 1;
 						hashes= h;
 						stop= Hash.zero;
 					} in send n (Message.GETHEADERS msg)
-				| Chain.Request.REQ_BLOCKS (hs, addr)	->
+				| Chain.QueueMessage.REQ_BLOCKS (hs, addr)	->
 					let rec create_invs hs acc = match hs with
 					| [] -> acc
 					| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)

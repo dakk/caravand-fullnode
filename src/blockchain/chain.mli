@@ -6,17 +6,13 @@ open Utils
 type peerdest = None | Some of Unix.inet_addr | Broadcast
 *)
 
-module Resource : sig
+module QueueMessage : sig
 	type t = 
 	| RES_TXS of Tx.t list
 	| RES_BLOCK of Block.t
-	| RES_HBLOCKS of Block.Header.t list
+	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
-end
-
-module Request : sig
-	type t =
 	| REQ_TXS of Hash.t list * Unix.inet_addr option
 	| REQ_BLOCKS of Hash.t list * Unix.inet_addr option
 	| REQ_HBLOCKS of Hash.t list * Unix.inet_addr option
@@ -50,10 +46,10 @@ type t = {
 	mempool			:	Mempool.t;
 	
 	(* Queue for incoming resources*)
-	resources		:	(Resource.t) Cqueue.t;
+	resources		:	(QueueMessage.t) Cqueue.t;
 	
 	(* Queue for data request *)
-	requests		:	(Request.t) Cqueue.t;
+	requests		:	(QueueMessage.t) Cqueue.t;
 }
 
 (* Data verification *)

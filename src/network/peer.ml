@@ -178,21 +178,21 @@ let handle peer bc = match recv peer with
 		Log.info "Network" "Peer %s with agent %s starting from height %d" 
 			(Unix.string_of_inet_addr peer.address) (peer.user_agent) (Int32.to_int peer.height);
 	| BLOCK (b) -> 
-		Cqueue.add bc.resources (Chain.Resource.RES_BLOCK (b));			
+		Cqueue.add bc.resources @@ Chain.QueueMessage.RES_BLOCK (b)
 	| HEADERS (hl) ->
-		Cqueue.add bc.resources (Chain.Resource.RES_HBLOCKS (hl));
-	| GETHEADERS (hl) ->
-		();
+		Cqueue.add bc.resources @@ Chain.QueueMessage.RES_HBLOCKS (hl, peer.address)
+	| GETHEADERS (ghl) ->
+		Cqueue.add bc.resources @@ Chain.QueueMessage.REQ_HBLOCKS (ghl.hashes @ [ghl.stop], Some (peer.address))
 	| INV (i) ->
 		let rec vis h = match h with
 		| x::xl ->
 			let _ = (match x with
 				| INV_TX (txid) -> 
 					(*Log.info "Network" "Got inv tx %s" txid;*)
-					Cqueue.add bc.resources (Chain.Resource.RES_INV_TX (txid, peer.address));
+					Cqueue.add bc.resources (Chain.QueueMessage.RES_INV_TX (txid, peer.address));
 				| INV_BLOCK (bhash) -> 
 					(*Log.info "Network" "Got inv block %s" bhash;*)
-					Cqueue.add bc.resources (Chain.Resource.RES_INV_BLOCK (bhash, peer.address));
+					Cqueue.add bc.resources (Chain.QueueMessage.RES_INV_BLOCK (bhash, peer.address));
 				| _ -> ()
 			) in vis xl  
 		| [] -> ()
