@@ -307,7 +307,7 @@ let loop bc =
 		bc.block_last <- b;
 		Storage.insert_block bc.storage bc.params bc.block_height b;
 		()			
-	| (b, block, hl) when block.header.time <> 0.0 -> (* Next block *)
+	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> (* Next block *)
 		if verify_block bc bc.block_height bc.block_last b then (
 			bc.blocks_requested <- bc.blocks_requested - 1;
 			bc.block_height <- Int64.succ bc.block_height;
@@ -317,13 +317,13 @@ let loop bc =
 			Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions, %d KB)" (Int64.to_int bc.block_height) 
 				(int_of_float ((Unix.time ()) -. a)) (List.length b.txs) (b.size / 1024);
 			bc.block_last_received <- Unix.time ();
-			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
+			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" b.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
 			()
 		) else (
-			Log.error "Blockchain" "Block valdiation failed"
+			Log.error "Blockchain" "Block validation failed: %s" b.header.hash
 		)
 	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = hl.hash -> (* New block *)
-		if verify_block_header bc bc.header_height bc.header_last b.header then
+		if verify_block_header bc bc.header_height bc.header_last b.header then (
 			bc.header_last <- b.header;
 			bc.header_height <- Int64.succ bc.header_height;
 			if verify_block bc bc.block_height bc.block_last b then (
@@ -332,9 +332,12 @@ let loop bc =
 				Storage.insert_block bc.storage bc.params bc.block_height b;
 				bc.block_last_received <- Unix.time ();
 				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+			) else (
+				Storage.insert_header bc.storage bc.header_height bc.header_last;
+				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+			)
 		) else (
-			Storage.insert_header bc.storage bc.header_height bc.header_last;
-			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+			Log.error "Blockchain" "Block validation failed: %s" b.header.hash
 		);
 		()
 	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> (* New block maybe on side-branch *)
