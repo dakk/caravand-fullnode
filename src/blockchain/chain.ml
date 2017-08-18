@@ -172,7 +172,17 @@ let verify_block_header bc lhh lh h =
 			| false -> Log.error "Blockchain" "Checkpoint failed: %s <> %s" hash' hash; false
 		with | _ -> true
 	in
-	if h.Header.prev_block = lh.Header.hash && check_checkpoint ((Int64.to_int lhh) + 1) h.Header.hash then 
+	
+	(* Block hash must satisfy claimed nBits proof of work *)
+	(* Block timestamp must not be more than two hours in the future *)
+	(* Check that nBits value matches the difficulty rules *)
+	(* Reject if timestamp is the median time of the last 11 blocks or before *)
+
+	if 
+		(* Check if prev block (matching prev hash) is in main branch or side branches. *)
+		h.Header.prev_block = lh.Header.hash 
+		(* Check that hash matches known values *)
+		&& check_checkpoint ((Int64.to_int lhh) + 1) h.Header.hash then 
 		true
 	else
 		false
@@ -442,17 +452,11 @@ let verify_block bc block =
 	(* Transaction list must be non-empty *)
 	if List.length block.txs = 0 then false else
 
-	(* Block hash must satisfy claimed nBits proof of work *)
-	(* Block timestamp must not be more than two hours in the future *)
 	(* First transaction must be coinbase (i.e. only 1 input, with hash=0, n=-1), the rest must not be
 	For each transaction, apply "tx" checks 2-4
 	For the coinbase (first) transaction, scriptSig length must be 2-100
 	Reject if sum of transaction sig opcounts > MAX_BLOCK_SIGOPS
 	Verify Merkle hash
-	Check if prev block (matching prev hash) is in main branch or side branches. If not, add this to orphan blocks, then query peer we got this from for 1st missing orphan block in prev chain; done with block
-	Check that nBits value matches the difficulty rules
-	Reject if timestamp is the median time of the last 11 blocks or before
-	For certain old blocks (i.e. on initial block download) check that hash matches known values
 	Add block into the tree. There are three cases: 1. block further extends the main branch; 2. block extends a side branch but does not add enough difficulty to make it become the new main branch; 3. block extends a side branch and makes it the new main branch.
 	For case 1, adding to main branch:
 
