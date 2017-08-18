@@ -24,6 +24,7 @@ type t = {
 	mutable height		: int32;
 	mutable user_agent: string;
 	mutable fee_rate	:	Uint64.t;
+	mutable send_headers : bool;
 }
 
 val create		: Params.t -> Config.t -> Unix.inet_addr -> int -> t

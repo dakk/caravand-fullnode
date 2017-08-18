@@ -28,6 +28,7 @@ type t = {
 	mutable height		: int32;
 	mutable user_agent: string;
 	mutable fee_rate	:	Uint64.t;
+	mutable send_headers : bool;
 };;
 
 
@@ -57,6 +58,7 @@ let create params conf addr port = {
 	user_agent= ""; 
 	status		= DISCONNECTED;
 	fee_rate	= Uint64.zero;
+	send_headers	= false;
 };;
 
 let connect peer =
@@ -209,7 +211,7 @@ let handle peer bc = match recv peer with
 	| GETADDR -> ()
 	| VERACK -> ()
 	| FEEFILTER (rate) -> peer.fee_rate <- rate
-	| SENDHEADERS -> ()
+	| SENDHEADERS -> peer.send_headers <- true
 	| m -> Log.debug "Network" "Message not handled %s" @@ Message.string_of_command m; ()
 );;
 
