@@ -172,7 +172,7 @@ let verify_block_header bc lhh lh h =
 			| false -> Log.error "Blockchain" "Checkpoint failed: %s <> %s" hash' hash; false
 		with | _ -> true
 	in
-	
+
 	(* Block hash must satisfy claimed nBits proof of work *)
 	(* Block timestamp must not be more than two hours in the future *)
 	(* Check that nBits value matches the difficulty rules *)
@@ -248,20 +248,6 @@ let loop bc =
 		check_branch_updates b.header; ()
 	| (b, block, hl) -> ()
 	in
-	let rec consume_headers hl = match hl with
-	| [] -> 0
-	| h::hl' ->
-		if verify_block_header bc bc.header_height bc.header_last h then (
-			(* Insert in the chain *)
-			bc.header_last <- h;
-			bc.header_height <- Int64.succ bc.header_height;
-			Storage.insert_header bc.storage bc.header_height bc.header_last;
-			1 + (consume_headers hl')
-		) else (
-			check_branch_updates h;
-			consume_headers hl'
-		)
-	in
 	
 	while true do (
 		Unix.sleep 4;
@@ -276,10 +262,18 @@ let loop bc =
 		| RES_INV_TX (txs, addr) -> ()
 		| RES_BLOCK (bs) -> consume_block (bs)
 		| RES_TXS (txs) -> ()
-		| RES_HBLOCKS (hbs, addr) -> if List.length hbs > 0 then (
+		| RES_HBLOCKS (hbs, addr) when List.length hbs = 0 -> ()
+		| RES_HBLOCKS (hbs, addr) -> 
 			Log.debug "Blockchain ←" "Headers %d" (List.length hbs);
-			let _ = consume_headers (List.rev hbs) in 
-			Storage.sync bc.storage)		
+			List.iter (fun h -> 
+				if verify_block_header bc bc.header_height bc.header_last h then (
+					(* Insert in the chain *)
+					bc.header_last <- h;
+					bc.header_height <- Int64.succ bc.header_height;
+					Storage.insert_header bc.storage bc.header_height bc.header_last
+				) else ( check_branch_updates h )
+			) @@ List.rev hbs;
+			Storage.sync bc.storage	
 		);
 
 		(* Request old headers for branch verification *)
