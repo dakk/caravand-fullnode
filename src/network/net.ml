@@ -66,8 +66,11 @@ let peer_of_addr n addr =
 	try Some (Hashtbl.find n.peers @@ Unix.string_of_inet_addr addr)
 	with | _ -> None
 ;;
-	
 
+let connected_weighted_peers n = int_of_float (Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | WAITPING (x) -> c +. 0.5 | _ -> c +. 1.0)) n.peers 0.0);;
+let connected_peers n = Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0;;
+let waitping_peers n = Hashtbl.fold (fun k p c -> (match p.status with | WAITPING (x) -> c + 1 | _ -> c)) n.peers 0;;
+let available_peers n = Hashtbl.fold (fun k p c -> (match p.status with | CONNECTED -> c + 1 | _ -> c)) n.peers 0;;
 
 let loop n bc = 
 	Log.info "Network" "Starting mainloop.";
@@ -81,11 +84,10 @@ let loop n bc =
 		Unix.sleep 2;
 
 		(* Print network stats *)
-		let connected_peers = Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0 in
-		let waitping_peers = Hashtbl.fold (fun k p c -> (match p.status with | WAITPING (x) -> c + 1 | _ -> c)) n.peers 0 in
 		let sent = Hashtbl.fold (fun k p c -> p.sent + c) n.peers 0 in 
 		let received = Hashtbl.fold (fun k p c -> p.received + c) n.peers 0 in 
-		Log.info "Network" "Stats: %s sent, %s received, %d connected peers (%d waitping)" (byten_to_string sent) (byten_to_string received) connected_peers waitping_peers;
+		Log.info "Network" "Stats: %s sent, %s received, %d connected peers (%d waitping)" (byten_to_string sent) 
+			(byten_to_string received) (connected_peers n) (waitping_peers n);
 
 		(* Check for connection timeout and minimum number of peer*)		
 		Hashtbl.iter (fun k peer -> 
@@ -104,43 +106,38 @@ let loop n bc =
 			| _ -> () 
 		) n.peers;
 
-		(* Count available peers and reconnect to others *)		
-		let connected_peers = 
-			int_of_float (Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | WAITPING (x) -> c +. 0.5 | _ -> c +. 1.0)) n.peers 0.0)
-		in 
-			(*Log.info "Network" "Connected peers: %d" connected_peers;*)
-			match connected_peers with
-			| cp when cp < n.config.peers ->
-				let rec iterate_connect addrs nc = 
-					match List.length addrs with
-					| 0 -> 0
-					| _ ->
-						let rindex = Random.int (List.length addrs) in
-						let a = List.nth addrs rindex in	
-						try 
-							Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
-							iterate_connect addrs nc
-						with
-						| Not_found ->
-							let peer = Peer.create n.params n.config a n.params.port in
-							Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
-							Thread.create (Peer.start peer) bc |> ignore; 
-							(match nc with
-							| 1 -> 1
-							| nc' -> 1 + (iterate_connect n.addrs @@ nc' - 1))
-						| _ -> 0
-				in
-				Log.error "Network" "Peers below the number of peers";
-				let nc = iterate_connect n.addrs @@ n.config.peers - cp in
-				Log.info "Network" "Connected to %d new peers" nc;
-				()
-			| _ -> ()
+		(* Reconnect if the minimum is reached *)		
+		match connected_weighted_peers n with
+		| cp when cp < n.config.peers ->
+			let rec iterate_connect addrs nc = 
+				match List.length addrs with
+				| 0 -> 0
+				| _ ->
+					let rindex = Random.int (List.length addrs) in
+					let a = List.nth addrs rindex in	
+					try 
+						Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
+						iterate_connect addrs nc
+					with
+					| Not_found ->
+						let peer = Peer.create n.params n.config a n.params.port in
+						Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
+						Thread.create (Peer.start peer) bc |> ignore; 
+						(match nc with
+						| 1 -> 1
+						| nc' -> 1 + (iterate_connect n.addrs @@ nc' - 1))
+					| _ -> 0
+			in
+			Log.error "Network" "Peers below the number of peers";
+			let nc = iterate_connect n.addrs @@ n.config.peers - cp in
+			Log.info "Network" "Connected to %d new peers" nc;
+			()
+		| _ -> ()
 		;
 		
 		(* Check for request *)
 		(*Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);*)
-		let available_peers = Hashtbl.fold (fun k p c -> (match p.status with | CONNECTED -> c + 1 | _ -> c)) n.peers 0 in
-		if available_peers <> 0 then
+		if available_peers n <> 0 then
 			Cqueue.iter bc.requests (fun req -> match req with
 			| Chain.Request.RES_HBLOCKS (hl, addr) -> (
 				match peer_of_addr n addr with
