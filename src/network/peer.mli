@@ -1,6 +1,7 @@
 open Message
 open Blockchain
 open Utils
+open Stdint
 
 type status = 
 	| CONNECTED
@@ -21,7 +22,8 @@ type t = {
 	mutable status		: status;
 	mutable last_seen	: float;
 	mutable height		: int32;
-	mutable user_agent	: string;
+	mutable user_agent: string;
+	mutable fee_rate	:	Uint64.t;
 }
 
 val create		: Params.t -> Config.t -> Unix.inet_addr -> int -> t
