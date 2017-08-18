@@ -16,7 +16,7 @@ type genesis = {
 
 
 type t = { 
-	blocksize		: int;
+	block_size		: int;
 	services		: Int64.t;
 	version			: int;
 	genesis			: genesis;
@@ -34,7 +34,7 @@ let of_network n =
 	match n with
 	| BTC -> 
 		{ 
-			blocksize = 1000000;
+			block_size = 1000000;
 			version	= 70015;
 			services= 0x0000000000000001L;
 			network	= BTC;
@@ -77,7 +77,7 @@ let of_network n =
 		}
 		| BCH -> 
 		{ 
-			blocksize = 8000000;
+			block_size = 8000000;
 			version	= 70015;
 			services= 0x0000000000000001L;
 			network	= BCH;
@@ -122,7 +122,7 @@ let of_network n =
 		}
 	| XTN -> 
 		{ 
-			blocksize = 1000000;
+			block_size = 1000000;
 			version	= 70015;
 			services= 0x0000000000000001L;
 			network	= XTN;

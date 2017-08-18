@@ -15,7 +15,7 @@ type genesis = {
 }
 
 type t = { 
-	blocksize		: int;
+	block_size	: int;
 	services		: Int64.t;
 	version			: int;
 	genesis			: genesis;
