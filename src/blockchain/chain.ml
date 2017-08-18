@@ -173,20 +173,60 @@ let verify_block_header bc lhh lh h =
 		with | _ -> true
 	in
 
-	(* Block hash must satisfy claimed nBits proof of work *)
-	(* Block timestamp must not be more than two hours in the future *)
 	(* Check that nBits value matches the difficulty rules *)
 	(* Reject if timestamp is the median time of the last 11 blocks or before *)
 
-	if 
-		(* Check if prev block (matching prev hash) is in main branch or side branches. *)
-		h.Header.prev_block = lh.Header.hash 
-		(* Check that hash matches known values *)
-		&& check_checkpoint ((Int64.to_int lhh) + 1) h.Header.hash then 
-		true
-	else
-		false
+	(* Check if prev block (matching prev hash) is in main branch or side branches. *)
+	h.Header.prev_block = lh.Header.hash  
+	(* Block hash must satisfy claimed nBits proof of work *)
+	&& Block.Header.check_target h
+	(* Block timestamp must not be more than two hours in the future *)
+	&& h.Header.time < (Unix.time () +. 60. *. 60. *. 2.)
+	(* Check that hash matches known values *)
+	&& check_checkpoint ((Int64.to_int lhh) + 1) h.Header.hash
 ;;
+
+
+(* https://en.bitcoin.it/wiki/Protocol_rules#.22block.22_messages *)
+let verify_block ?verifyheader:(verifyheader=false) bc lbh lb b =
+	(* TODO remove with bitcoinml 3.1 *)
+	let is_coinbase tx = 
+	if List.length tx.txin <> 1 then false
+	else
+		match (List.nth tx.txin 0) with
+		| i when i.out_hash = Hash.zero && i.out_n = (Uint32.sub Uint32.zero Uint32.one) -> (match i.script with
+			| ([OP_COINBASE (s)], l) when l >= 2 && l <= 100 -> true
+			| _ -> false)
+		| _ -> false
+	in	
+	(* Check header *)
+	((not verifyheader) || verify_block_header bc lbh lb.header b.header)
+	(* Transaction list must be non-empty *)
+	&& List.length b.txs <> 0
+	(* First transaction must be coinbase *)
+	&& (is_coinbase @@ List.nth b.txs 0)
+
+	(* 
+	For each transaction, apply "tx" checks 2-4
+	Reject if sum of transaction sig opcounts > MAX_BLOCK_SIGOPS
+	Verify Merkle hash
+	Add block into the tree. There are three cases: 1. block further extends the main branch; 2. block extends a side branch but does not add enough difficulty to make it become the new main branch; 3. block extends a side branch and makes it the new main branch.
+	For case 1, adding to main branch:
+
+			For all but the coinbase transaction, apply the following:
+					For each input, look in the main branch to find the referenced output transaction. Reject if the output transaction is missing for any input.
+					For each input, if we are using the nth output of the earlier transaction, but it has fewer than n+1 outputs, reject.
+					For each input, if the referenced output transaction is coinbase (i.e. only 1 input, with hash=0, n=-1), it must have at least COINBASE_MATURITY (100) confirmations; else reject.
+					Verify crypto signatures for each input; reject if any are bad
+					For each input, if the referenced output has already been spent by a transaction in the main branch, reject
+					Using the referenced output transactions to get input values, check that each input value, as well as the sum, are in legal money range
+					Reject if the sum of input values < sum of output values
+			Reject if coinbase value > sum of block creation fee and transaction fees
+			(If we have not rejected):
+			For each transaction in the block, delete any matching transaction from the transaction pool
+		*)
+;;
+
 
 let loop bc = 
 	let check_branch_updates h = match (Branch.find_parent bc.branches h, Branch.find_fork bc.branches h) with
@@ -218,26 +258,31 @@ let loop bc =
 		bc.block_last <- b;
 		Storage.insert_block bc.storage bc.params bc.block_height b;
 		()			
-	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = block.header.hash -> (* Next block *)
-		bc.blocks_requested <- bc.blocks_requested - 1;
-		bc.block_height <- Int64.succ bc.block_height;
-		bc.block_last <- b;
-		let a = Unix.time () in
-		Storage.insert_block bc.storage bc.params bc.block_height b;
-		Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions)" (Int64.to_int bc.block_height) (int_of_float ((Unix.time ()) -. a)) (List.length b.txs);
-		bc.block_last_received <- Unix.time ();
-		Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
-		()
-	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = hl.hash -> (* New block *)
-		bc.header_last <- b.header;
-		bc.header_height <- Int64.succ bc.header_height;
-		(*let df = Timediff.diff (Unix.time ()) block.header.time in*)
-		if b.header.prev_block = block.header.hash then (
+	| (b, block, hl) when block.header.time <> 0.0 -> (* Next block *)
+		if verify_block bc bc.block_height bc.block_last b then (
+			bc.blocks_requested <- bc.blocks_requested - 1;
 			bc.block_height <- Int64.succ bc.block_height;
 			bc.block_last <- b;
+			let a = Unix.time () in
 			Storage.insert_block bc.storage bc.params bc.block_height b;
+			Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions, %d KB)" (Int64.to_int bc.block_height) 
+				(int_of_float ((Unix.time ()) -. a)) (List.length b.txs) (b.size / 1024);
 			bc.block_last_received <- Unix.time ();
-			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
+			()
+		) else (
+			Log.error "Blockchain" "Block valdiation failed"
+		)
+	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = hl.hash -> (* New block *)
+		if verify_block_header bc bc.header_height bc.header_last b.header then
+			bc.header_last <- b.header;
+			bc.header_height <- Int64.succ bc.header_height;
+			if verify_block bc bc.block_height bc.block_last b then (
+				bc.block_height <- Int64.succ bc.block_height;
+				bc.block_last <- b;
+				Storage.insert_block bc.storage bc.params bc.block_height b;
+				bc.block_last_received <- Unix.time ();
+				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
 		) else (
 			Storage.insert_header bc.storage bc.header_height bc.header_last;
 			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
@@ -429,73 +474,3 @@ let rec verify_txs bc txs = match txs with
 ;;
 
 
-(* https://en.bitcoin.it/wiki/Protocol_rules#.22block.22_messages *)
-let verify_block bc block =
-	(*blocks in the main branch
-    the transactions in these blocks are considered at least tentatively confirmed
-
-		blocks on side branches off the main branch
-				these blocks have at least tentatively lost the race to be in the main branch
-
-		orphan blocks
-				these are blocks which don't link into the main branch, normally because of a missing predecessor or nth-level predecessor
-	*)
-		
-	(* Reject if duplicate of block we have in any of the three categories *)
-	
-	(* Transaction list must be non-empty *)
-	if List.length block.txs = 0 then false else
-
-	(* First transaction must be coinbase (i.e. only 1 input, with hash=0, n=-1), the rest must not be
-	For each transaction, apply "tx" checks 2-4
-	For the coinbase (first) transaction, scriptSig length must be 2-100
-	Reject if sum of transaction sig opcounts > MAX_BLOCK_SIGOPS
-	Verify Merkle hash
-	Add block into the tree. There are three cases: 1. block further extends the main branch; 2. block extends a side branch but does not add enough difficulty to make it become the new main branch; 3. block extends a side branch and makes it the new main branch.
-	For case 1, adding to main branch:
-
-			For all but the coinbase transaction, apply the following:
-					For each input, look in the main branch to find the referenced output transaction. Reject if the output transaction is missing for any input.
-					For each input, if we are using the nth output of the earlier transaction, but it has fewer than n+1 outputs, reject.
-					For each input, if the referenced output transaction is coinbase (i.e. only 1 input, with hash=0, n=-1), it must have at least COINBASE_MATURITY (100) confirmations; else reject.
-					Verify crypto signatures for each input; reject if any are bad
-					For each input, if the referenced output has already been spent by a transaction in the main branch, reject
-					Using the referenced output transactions to get input values, check that each input value, as well as the sum, are in legal money range
-					Reject if the sum of input values < sum of output values
-			Reject if coinbase value > sum of block creation fee and transaction fees
-			(If we have not rejected):
-			For each transaction, "Add to wallet if mine"
-			For each transaction in the block, delete any matching transaction from the transaction pool
-			Relay block to our peers
-			If we rejected, the block is not counted as part of the main branch
-
-	For case 2, adding to a side branch, we don't do anything.
-	For case 3, a side branch becoming the main branch:
-
-			Find the fork block on the main branch which this side branch forks off of
-			Redefine the main branch to only go up to this fork block
-			For each block on the side branch, from the child of the fork block to the leaf, add to the main branch:
-					Do "branch" checks 3-11
-					For all but the coinbase transaction, apply the following:
-							For each input, look in the main branch to find the referenced output transaction. Reject if the output transaction is missing for any input.
-							For each input, if we are using the nth output of the earlier transaction, but it has fewer than n+1 outputs, reject.
-							For each input, if the referenced output transaction is coinbase (i.e. only 1 input, with hash=0, n=-1), it must have at least COINBASE_MATURITY (100) confirmations; else reject.
-							Verify crypto signatures for each input; reject if any are bad
-							For each input, if the referenced output has already been spent by a transaction in the main branch, reject
-							Using the referenced output transactions to get input values, check that each input value, as well as the sum, are in legal money range
-							Reject if the sum of input values < sum of output values
-					Reject if coinbase value > sum of block creation fee and transaction fees
-					(If we have not rejected):
-					For each transaction, "Add to wallet if mine"
-			If we reject at any point, leave the main branch as what it was originally, done with block
-			For each block in the old main branch, from the leaf down to the child of the fork block:
-					For each non-coinbase transaction in the block:
-							Apply "tx" checks 2-9, except in step 8, only look in the transaction pool for duplicates, not the main branch
-							Add to transaction pool if accepted, else go on to next transaction
-			For each block in the new main branch, from the child of the fork node to the leaf:
-					For each transaction in the block, delete any matching transaction from the transaction pool
-			Relay block to our peers
-
-	For each orphan block for which this block is its prev, run all these steps (including this one) recursively on that orphan *)
-	true
-;;
