@@ -9,4 +9,5 @@ val add     : 'a t -> 'a -> unit
 val get     : 'a t -> 'a option
 val get_n   : 'a t -> 'a list option
 val length	: 'a t -> int
-val clear	: 'a t -> unit
+val clear		: 'a t -> unit
+val iter		: 'a t -> ('a -> unit) -> int

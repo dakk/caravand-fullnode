@@ -65,8 +65,8 @@ type t = {
 
 let genesis path p = 
 	let genesis_header : Block.Header.t = {
-		hash		= p.genesis.hash;
-		version		= p.genesis.version;
+		hash				= p.genesis.hash;
+		version			= p.genesis.version;
 		prev_block	= p.genesis.prev_block;
 		merkle_root = p.genesis.merkle_root;
 		time		= p.genesis.time;
@@ -77,9 +77,9 @@ let genesis path p =
 		params			= p;
 		basedir			= "";
 		
-		storage			= Storage.load path;
+		storage				= Storage.load path;
 		sync_headers	= false;
-		sync			= false;
+		sync					= false;
 
 		branches = [];
 		
@@ -89,19 +89,19 @@ let genesis path p =
 		block_height 	= 0L;
 		block_last 		= {
 			size= 1;
-			txs= [];
+			txs	= [];
 			header= {
-				hash= Hash.zero;
-				time= 0.0;
-				version= Int32.zero;
-				prev_block= Hash.zero;
-				merkle_root= Hash.zero;
-				bits= Uint32.zero;
-				nonce= Uint32.zero
+				hash				= Hash.zero;
+				time				= 0.0;
+				version			= Int32.zero;
+				prev_block	= Hash.zero;
+				merkle_root	= Hash.zero;
+				bits				= Uint32.zero;
+				nonce				= Uint32.zero
 			}
 		};
 		block_last_received = Unix.time ();
-		blocks_requested = 0;
+		blocks_requested 		= 0;
 		
 		mempool			= Mempool.create ();
 		
@@ -120,193 +120,157 @@ let load path p =
 	let bcg = genesis path p in
 	bcg.branches <- bcg.storage.chainstate.Chainstate.branches;
 		
-	if bcg.storage.chainstate.Chainstate.header <> Hash.zero 
-	&& bcg.storage.chainstate.Chainstate.header_height <> Uint32.zero then (
-		if bcg.storage.chainstate.Chainstate.block <> Hash.zero
-		&& bcg.storage.chainstate.Chainstate.height <> Uint32.zero then (
-			match Storage.get_block bcg.storage bcg.storage.chainstate.Chainstate.block with
-			| None -> failwith "impossible situation"
-			| Some (block) -> (
-				bcg.block_last <- block;
-				bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
-			)
-		) else (
-			bcg.block_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.height
-		);
+	let header_last = Storage.get_header bcg.storage bcg.storage.chainstate.Chainstate.header in
+	let block_last = Storage.get_block bcg.storage bcg.storage.chainstate.Chainstate.block in
 
-		match Storage.get_header bcg.storage bcg.storage.chainstate.Chainstate.header with
-		| Some (header) -> (
-			bcg.header_last <- header;
-			bcg.header_height <- Uint32.to_int64 bcg.storage.chainstate.Chainstate.header_height;
-			res bcg
-		)
-		| None -> res bcg
-	) else res bcg
+	match (header_last, bcg.storage.chainstate.Chainstate.header_height, block_last, bcg.storage.chainstate.Chainstate.height) with
+	| (None, hh, b, bh) -> res bcg
+	| (Some (h), hh, None, bh) ->
+		bcg.header_last <- h;
+		bcg.header_height <- Uint32.to_int64 hh;
+		res bcg
+	| (Some (h), hh, Some (b), bh) ->
+		bcg.header_last <- h;
+		bcg.header_height <- Uint32.to_int64 hh;
+		bcg.block_last <- b;
+		bcg.block_height <- Uint32.to_int64 bh;
+		res bcg
 ;;
 
+
 (* Remove the last header / block (if detected a fork) *)
-let revert_last_block bc =
-	Log.debug "Blockchain" "Removing last block: %s" bc.header_last.hash;
-				
-	let revert_block () = 
+let rollback_block bc =
+	let rollback_block' () = 
 		Storage.remove_last_block bc.storage bc.params bc.block_last.header.prev_block;
 		bc.block_height <- Int64.sub (bc.block_height) (Int64.one);
 		match Storage.get_block bc.storage @@ bc.block_last.header.prev_block with
 		| Some (h) -> bc.block_last <- h 
 		| None -> failwith "impossible situation"
-
 	in
-	let revert_header () =
+	let rollback_header' () =
 		Storage.remove_last_header bc.storage bc.header_last.prev_block;
 		bc.header_height <- Int64.sub (bc.header_height) (Int64.one);
 		match Storage.get_header bc.storage @@ bc.header_last.prev_block with
 		| Some (h) -> bc.header_last <- h 
 		| None -> failwith "impossible situation"
 	in
-
-	if bc.header_height > bc.block_height then revert_header () else (revert_header (); revert_block ())
+	Log.debug "Blockchain" "Removing last block: %s" bc.header_last.hash;
+	if bc.header_height > bc.block_height then 
+		rollback_header' () 
+	else 
+		(rollback_header' (); rollback_block' ())
 ;;
 	
 
 
-let loop bc = 
-	let check_branch_updates h =
-		(* Insert into a branch (if present) *)
-		match (Branch.find_parent bc.branches h, Branch.find_fork bc.branches h) with
-		| (Some (br), _) -> 
-			Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
-			Branch.push br h |> ignore;
-			Storage.update_branches bc.storage bc.branches
-		(* Branch parent not found, but there is already a branch with the same fork_block *)
-		| (None, Some (br)) -> ()
-		(* Find if this block is connected with an already connected block *)
-		| (None, None) -> match Storage.get_header bc.storage h.prev_block with
-			| None -> ()
-			| Some (banc) ->
-				let height = Storage.get_block_height bc.storage h.prev_block in
-				if height >= ((Int64.to_int bc.header_height) - 1) then (
-					match Storage.get_header bc.storage h.hash with
-					| Some (x) -> ()
-					| None ->
-						(* Found a valid new branch *)
-						let branch = Branch.create banc.hash (Int64.of_int height) h in
-						bc.branches <- bc.branches @ [ branch ];
-						Storage.update_branches bc.storage bc.branches;
-						Log.debug "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
-						()
-				) else ()
+let verify_block_header bc lhh lh h =
+	let check_checkpoint index hash =
+		try
+			let hash' = List.assoc index bc.params.checkpoints in
+			match hash' = hash with
+			| true -> Log.debug "Blockchain" "Checkpoint: %s" hash'; true
+			| false -> Log.error "Blockchain" "Checkpoint failed: %s <> %s" hash' hash; false
+		with | _ -> true
 	in
-	let rec consume () =
-		let consume_block b = 
-			match (b, bc.block_last, bc.header_last) with
-			(* Genesis block *)
-			| (b, block, hl) when block.header.time = 0.0 && b.header.hash = bc.params.genesis.hash ->
-				bc.block_height <- Int64.zero;
-				bc.block_last <- b;
-				Storage.insert_block bc.storage bc.params bc.block_height b;
-				consume ()
-				
-			(* Next block *)
-			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = block.header.hash ->
-				bc.blocks_requested <- bc.blocks_requested - 1;
-				bc.block_height <- Int64.succ bc.block_height;
-				bc.block_last <- b;
-				let a = Unix.time () in
-				Storage.insert_block bc.storage bc.params bc.block_height b;
-				Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions)" (Int64.to_int bc.block_height) (int_of_float ((Unix.time ()) -. a)) (List.length b.txs);
-				bc.block_last_received <- Unix.time ();
+	if h.Header.prev_block = lh.Header.hash && check_checkpoint ((Int64.to_int lhh) + 1) h.Header.hash then 
+		true
+	else
+		false
+;;
 
-				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
-				consume ()
-			
-			(* New block *)
-			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = hl.hash ->
-				bc.header_last <- b.header;
-				bc.header_height <- Int64.succ bc.header_height;
-
-				(*let df = Timediff.diff (Unix.time ()) block.header.time in*)
-				if b.header.prev_block = block.header.hash then (
-					bc.block_height <- Int64.succ bc.block_height;
-					bc.block_last <- b;
-					Storage.insert_block bc.storage bc.params bc.block_height b;
-					bc.block_last_received <- Unix.time ();
-					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
-				) else (
-					Storage.insert_header bc.storage bc.header_height bc.header_last;
-					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
-				);
-				consume ()
-
-			(* New block maybe on side-branch *)
-			| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> 
-				(*Log.debug "Blockchain" "Skip block %s %s %s" b.header.hash b.header.prev_block block.header.hash;*)
-				check_branch_updates b.header;
-				consume ()
-			| (b, block, hl) -> 
-				consume ()
-		in
-		let rec consume_headers hl =
-			match hl with
-			| [] -> 0
-			| h::hl' ->
-				let check_checkpoint index hash =
-					try
-						let hash' = List.assoc index bc.params.checkpoints in
-						
-						match hash' = hash with
-						| true -> Log.debug "Blockchain" "Checkpoint: %s" hash'; true
-						| false -> Log.error "Blockchain" "Checkpoint failed: %s <> %s" hash' hash; false
-					with | _ -> true
-				in
-				(*Printf.printf "%s - %s\n" h.Header.prev_block bc.header_last.Header.hash;*)
-				if h.Header.prev_block = bc.header_last.Header.hash && check_checkpoint ((Int64.to_int bc.header_height) + 1) h.Header.hash then (
-					(* Insert in the chain *)
-					bc.header_last <- h;
-					bc.header_height <- Int64.succ bc.header_height;
-					Storage.insert_header bc.storage bc.header_height bc.header_last;
-					1 + (consume_headers hl')
-				) else (
-					check_branch_updates h;
-					consume_headers hl'
-				)
-		in
-
-		if Cqueue.length bc.resources = 0 then ()
-		else
-			match Cqueue.get bc.resources with 
-			| Some (res) -> (match (res : Resource.t) with 
-				| REQ_HBLOCKS (hl, stop, addr) ->
-					Cqueue.add bc.requests @@ Request.RES_HBLOCKS ([], addr);
-					consume ()
-				| RES_INV_BLOCK (bs, addr) -> 
-					(if bc.sync then  Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bs], Some (addr)));
-					consume ()
-				| RES_INV_TX (txs, addr) -> consume ()
-				| RES_BLOCK (bs) -> 
-					consume_block (bs)
-				| RES_TXS (txs) -> consume ()
-				| RES_HBLOCKS (hbs, addr) -> 
-					if List.length hbs > 0 then (
-						Log.debug "Blockchain ←" "Headers %d" (List.length hbs);
-
-						(* Check if the list of headers is less than 1999; if yes, then verify to all nodes *)
-
-						let _ = consume_headers (List.rev hbs) in 
-						Storage.sync bc.storage
-						(*if pheads = 0 then revert_last_block bc else ();*)
-					);
-					consume ()
-			)
-			| None -> 
-				consume ()
-	in 
+let loop bc = 
+	let check_branch_updates h = match (Branch.find_parent bc.branches h, Branch.find_fork bc.branches h) with
+	| (Some (br), _) -> (* Insert into a branch (if present) *)
+		Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
+		Branch.push br h |> ignore;
+		Storage.update_branches bc.storage bc.branches
+	| (None, Some (br)) -> (* Branch parent not found, but there is already a branch with the same fork_block *)
+		()
+	| (None, None) -> (* Find if this block is connected with an already connected block *)
+		match Storage.get_header bc.storage h.prev_block with
+		| None -> ()
+		| Some (banc) ->
+			let height = Storage.get_block_height bc.storage h.prev_block in
+			if height >= ((Int64.to_int bc.header_height) - 1) then (
+				match Storage.get_header bc.storage h.hash with
+				| Some (x) -> ()
+				| None -> (* Found a valid new branch *)
+					let branch = Branch.create banc.hash (Int64.of_int height) h in
+					bc.branches <- bc.branches @ [ branch ];
+					Storage.update_branches bc.storage bc.branches;
+					Log.debug "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
+					()
+			) else ()
+	in
+	let consume_block b = match (b, bc.block_last, bc.header_last) with
+	| (b, block, hl) when block.header.time = 0.0 && b.header.hash = bc.params.genesis.hash -> (* Genesis block *)
+		bc.block_height <- Int64.zero;
+		bc.block_last <- b;
+		Storage.insert_block bc.storage bc.params bc.block_height b;
+		()			
+	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = block.header.hash -> (* Next block *)
+		bc.blocks_requested <- bc.blocks_requested - 1;
+		bc.block_height <- Int64.succ bc.block_height;
+		bc.block_last <- b;
+		let a = Unix.time () in
+		Storage.insert_block bc.storage bc.params bc.block_height b;
+		Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions)" (Int64.to_int bc.block_height) (int_of_float ((Unix.time ()) -. a)) (List.length b.txs);
+		bc.block_last_received <- Unix.time ();
+		Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
+		()
+	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = hl.hash -> (* New block *)
+		bc.header_last <- b.header;
+		bc.header_height <- Int64.succ bc.header_height;
+		(*let df = Timediff.diff (Unix.time ()) block.header.time in*)
+		if b.header.prev_block = block.header.hash then (
+			bc.block_height <- Int64.succ bc.block_height;
+			bc.block_last <- b;
+			Storage.insert_block bc.storage bc.params bc.block_height b;
+			bc.block_last_received <- Unix.time ();
+			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+		) else (
+			Storage.insert_header bc.storage bc.header_height bc.header_last;
+			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+		);
+		()
+	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> (* New block maybe on side-branch *)
+		(*Log.debug "Blockchain" "Skip block %s %s %s" b.header.hash b.header.prev_block block.header.hash;*)
+		check_branch_updates b.header; ()
+	| (b, block, hl) -> ()
+	in
+	let rec consume_headers hl = match hl with
+	| [] -> 0
+	| h::hl' ->
+		if verify_block_header bc bc.header_height bc.header_last h then (
+			(* Insert in the chain *)
+			bc.header_last <- h;
+			bc.header_height <- Int64.succ bc.header_height;
+			Storage.insert_header bc.storage bc.header_height bc.header_last;
+			1 + (consume_headers hl')
+		) else (
+			check_branch_updates h;
+			consume_headers hl'
+		)
+	in
 	
 	while true do (
 		Unix.sleep 4;
 		Cqueue.clear bc.requests;
 		
 		(* Handle new resources *)
-		consume ();
+		Cqueue.iter bc.resources (fun res -> match (res : Resource.t) with 
+		| REQ_HBLOCKS (hl, stop, addr) ->
+			Cqueue.add bc.requests @@ Request.RES_HBLOCKS ([], addr);
+		| RES_INV_BLOCK (bs, addr) -> 
+			(if bc.sync then  Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bs], Some (addr)));
+		| RES_INV_TX (txs, addr) -> ()
+		| RES_BLOCK (bs) -> consume_block (bs)
+		| RES_TXS (txs) -> ()
+		| RES_HBLOCKS (hbs, addr) -> if List.length hbs > 0 then (
+			Log.debug "Blockchain ←" "Headers %d" (List.length hbs);
+			let _ = consume_headers (List.rev hbs) in 
+			Storage.sync bc.storage)		
+		);
 
 		(* Request old headers for branch verification *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 60. *. 5.) then (
@@ -378,7 +342,7 @@ let loop bc =
 		| Some (br) when br.header_height <= bc.header_height -> ()
 		| Some (br) when br.header_height > bc.header_height ->
 			let rec rollback () =
-				revert_last_block bc;
+				rollback_block bc;
 				match bc.header_last.hash with
 				| l when l = br.fork_hash -> ()
 				| l -> rollback ()
@@ -535,9 +499,5 @@ let verify_block bc block =
 			Relay block to our peers
 
 	For each orphan block for which this block is its prev, run all these steps (including this one) recursively on that orphan *)
-	true
-;;
-
-let verify_block_header bc blockh =
 	true
 ;;

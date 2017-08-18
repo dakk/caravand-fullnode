@@ -35,3 +35,8 @@ let get q =
 let get_n q = None;;
 
 let length q = Queue.length q.q;;
+
+let rec iter q f = match get q with
+| None -> 0
+| Some (qel) -> f qel; 1 + (iter q f)
+;;

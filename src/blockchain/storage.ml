@@ -466,9 +466,6 @@ let get_address_txs storage addr =
 
 
 
-
-
-
 let remove_last_header storage prevhash =
 	storage.chainstate.header_height <- Uint32.sub (storage.chainstate.header_height) (Uint32.one);
 	Batch.delete storage.batch ("bli_" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height));

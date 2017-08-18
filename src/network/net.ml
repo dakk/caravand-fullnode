@@ -63,10 +63,8 @@ let send n m =
 
 
 let peer_of_addr n addr =
-	try
-		Some (Hashtbl.find n.peers @@ Unix.string_of_inet_addr addr)
-	with
-	| _ -> None
+	try Some (Hashtbl.find n.peers @@ Unix.string_of_inet_addr addr)
+	with | _ -> None
 ;;
 	
 
@@ -141,35 +139,25 @@ let loop n bc =
 		
 		(* Check for request *)
 		(*Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);*)
-		let rec consume_requests () =
-			let reqo = Cqueue.get bc.requests in	
-			match reqo with
-			| None -> ()
-			| Some (req) ->
-				(match req with
-				| Chain.Request.RES_HBLOCKS (hl, addr) -> (
-					match peer_of_addr n addr with
-					| None -> ()
-					| Some (p) -> Peer.send p @@ Message.HEADERS (hl))
-				| Chain.Request.REQ_HBLOCKS (h, addr)	->
-					let msg = {
-						version= Int32.of_int 1;
-						hashes= h;
-						stop= Hash.zero;
-					} in send n @@ Message.GETHEADERS (msg)
-				| Chain.Request.REQ_BLOCKS (hs, addr)	->
-					let rec create_invs hs acc = match hs with
-					| [] -> acc
-					| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)
-					in send n (Message.GETDATA (create_invs hs []));
-				| _ -> ());
-				consume_requests ()
-		in 
-		let available_peers = 
-			Hashtbl.fold (fun k p c -> (match p.status with | CONNECTED -> c + 1 | _ -> c)) n.peers 0
-		in match available_peers with 
-		| 0 -> ()
-		| n -> consume_requests ();
+		let available_peers = Hashtbl.fold (fun k p c -> (match p.status with | CONNECTED -> c + 1 | _ -> c)) n.peers 0 in
+		if available_peers <> 0 then
+			Cqueue.iter bc.requests (fun req -> match req with
+			| Chain.Request.RES_HBLOCKS (hl, addr) -> (
+				match peer_of_addr n addr with
+				| None -> ()
+				| Some (p) -> Peer.send p @@ Message.HEADERS (hl))
+			| Chain.Request.REQ_HBLOCKS (h, addr)	->
+				let msg = {
+					version= Int32.of_int 1;
+					hashes= h;
+					stop= Hash.zero;
+				} in send n @@ Message.GETHEADERS (msg)
+			| Chain.Request.REQ_BLOCKS (hs, addr)	->
+				let rec create_invs hs acc = match hs with
+				| [] -> acc
+				| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)
+				in send n (Message.GETDATA (create_invs hs []));
+			| _ -> ()) |> ignore
 	done;
 	()
 ;;

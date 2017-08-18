@@ -62,7 +62,7 @@ type t = {
 val verify_tx           : t -> Tx.t -> bool
 val verify_txs          : t -> Tx.t list -> bool
 val verify_block        : t -> Block.t -> bool
-val verify_block_header : t -> Block.Header.t -> bool
+val verify_block_header : t -> Int64.t -> Block.Header.t -> Block.Header.t -> bool
 
 (* Load blockchain state *)
 val load			: string -> Params.t -> t
