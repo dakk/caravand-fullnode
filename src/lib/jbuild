@@ -1,0 +1,4 @@
+
+(library
+ ((name        letchainlib)
+  (libraries (cryptokit threads yojson bitcoinml network utils api blockchain))))
