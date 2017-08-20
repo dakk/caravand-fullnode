@@ -44,23 +44,6 @@ opam install letchain
 letchain -c XTN -p 4
 ```
 
-## Letchain as a library
-
-The letchain "framework" will be available also as a library for software who need a full/spv node.
-
-```ocaml
-open Letchain;;
-
-let lc = Letchain.init ~directory="~/.testnode" @@ PrunedNode (1024) in
-lc.run ();;
-```
-
-then the lc node will run in another thread; it is accessible via module functions:
-
-```ocaml
-```
-
-
 
 ## License
 
