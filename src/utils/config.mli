@@ -1,10 +1,19 @@
+type node_type = 
+	| FullNode            (* Node with full block data*)
+	| PrunedNode of int   (* Node with full block data of last n blocks (Address disabled) *)
+	| HeadersOnly         (* Node with only headers *)
+
 type t = {
-	peers	 	: int;
-	chain		: string;
-	base_path: string;
-	path		: string;
+	peers	 		: int;
+	chain			: string;
+	base_path	: string;
+	path			: string;
 	api_port	: int;
 	log_peer	: bool;
+
+	address_index	: bool;
+	tx_index			: bool;
+	mode					: node_type;
 }
 
 val parse_base_path			: unit -> string

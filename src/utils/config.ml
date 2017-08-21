@@ -1,12 +1,22 @@
 open Yojson.Basic.Util;;
 
+type node_type = 
+	| FullNode            (* Node with full block data*)
+	| PrunedNode of int   (* Node with full block data of last n blocks (Address disabled) *)
+	| HeadersOnly         (* Node with only headers *)
+;;
+
 type t = {
-	peers 		: int;
-	chain		: string;
-	base_path: string;
-	path		: string;
+	peers	 		: int;
+	chain			: string;
+	base_path	: string;
+	path			: string;
 	api_port	: int;
 	log_peer	: bool;
+
+	address_index	: bool;
+	tx_index			: bool;
+	mode					: node_type;
 };;
 
 let parse_base_path () = 
@@ -33,6 +43,7 @@ let parse_command_line conf =
 		Printf.printf " -h, --help\t\t\tShow this help\n"; 
 		Printf.printf " -c XTN|BTC, --chain XTN|BTC\tSelect the chain\n"; 
 		Printf.printf " -p 12, --peer 12\tSet the number of peers\n"; 
+		Printf.printf " -r 1024, --prune 1024\tPrune to a custom number of blocks\n"; 
 		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
 		Printf.printf " -ap 807\t\t\tSelect api port\n%!";  
 		Printf.printf " --log-peer true\t\t\tEnable log for peer mesages\n%!"; 
@@ -60,12 +71,23 @@ let parse_command_line conf =
 			parse ({ conf with 
 				log_peer= bool_of_string x'
 			}) xl'
-		| "--peer"
-		| "-p" -> 
-			Log.debug "Config" "Setting peer number to: %s" x';
-			parse ({ conf with 
-				peers= int_of_string x'
-			}) xl'
+			| "--peer"
+			| "-p" -> 
+				Log.debug "Config" "Setting peer number to: %s" x';
+				parse ({ conf with 
+					peers= int_of_string x'
+				}) xl'
+		| "--prune"
+		| "-r" -> 
+			Log.debug "Config" "Setting the prune size to: %s blocks" x';
+			let nblocks = int_of_string x' in
+			if nblocks < 1024 then (
+				Log.error "Config" "Pruned blocks must be greater or equal to 1024";
+				failwith "Config error")
+			else
+				parse ({ conf with 
+					mode= PrunedNode (int_of_string x')
+				}) xl'
 		| "--chain"
 		| "-c" -> 
 			Log.debug "Config" "Setting chain from command line: %s" x';
@@ -88,6 +110,9 @@ let rec load_or_init base_path =
 			api_port= json |> member "api_port" |> to_int;
 			path= base_path ^ (json |> member "chain" |> to_string);
 			log_peer= false;
+			address_index= true;
+			tx_index= true;
+			mode= FullNode;
 		} in
 		try
 			Unix.mkdir (base_path ^ "/" ^ conf.chain) 0o777;

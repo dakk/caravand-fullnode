@@ -4,6 +4,7 @@ open Bitcoinml
 open Tx
 open Block
 open Block.Header
+open Utils
 
 
 module Address : sig
@@ -27,6 +28,7 @@ module Chainstate : sig
 	type t = {
 		mutable block           : Hash.t;
 		mutable height       		: uint32;
+		mutable prune_height    : uint32;
 
 		mutable header        	: Hash.t;
 		mutable header_height 	: uint32;
@@ -61,9 +63,9 @@ val update_reward			: t -> uint64 -> unit
 val update_branches		: t -> Branch.t list -> unit
 
 val insert_header     : t -> int64 -> Block.Header.t -> unit
-val insert_block      : t -> Params.t -> int64 -> Block.t -> unit
+val insert_block      : t -> Config.t -> Params.t -> int64 -> Block.t -> unit
 val remove_last_header: t -> Hash.t -> unit
-val remove_last_block : t -> Params.t -> Hash.t -> unit
+val remove_last_block : t -> Config.t -> Params.t -> Hash.t -> unit
 
 val get_utx						:	t -> Hash.t -> int -> Tx.Out.t option
 val get_blocki        : t -> Int64.t -> Block.t option

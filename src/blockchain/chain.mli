@@ -28,6 +28,7 @@ end
 
 type t = {
 	params	: Params.t;
+	config	: Config.t;
 	basedir	:	string;
 
 	storage :	Storage.t;
@@ -65,7 +66,7 @@ val verify_block        : ?verifyheader:bool -> t -> Int64.t -> Block.t -> Block
 val verify_block_header : t -> Int64.t -> Block.Header.t -> Block.Header.t -> bool
 
 (* Load blockchain state *)
-val load			: string -> Params.t -> t
+val load			: string -> Config.t -> Params.t -> t
 
 (* Start the event loop for blockchain *)
 val loop			: t -> unit

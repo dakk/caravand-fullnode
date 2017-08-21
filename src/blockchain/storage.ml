@@ -4,6 +4,8 @@ open Bitcoinml;;
 open Block;;
 open Block.Header;;
 open Tx;;
+open Utils;;
+open Config;;
 
 module Address = struct
 	type t = {
@@ -131,6 +133,7 @@ module Chainstate = struct
 	type t = {
 		mutable block           : Hash.t;
 		mutable height        	: uint32;
+		mutable prune_height    : uint32;
 
 		mutable header        	: Hash.t;
 		mutable header_height 	: uint32;
@@ -148,6 +151,7 @@ module Chainstate = struct
 		Bitstring.string_of_bitstring [%bitstring {|
 			Hash.to_bin cs.block				: 32*8 : string;
 			Uint32.to_int32 cs.height			: 32 : littleendian;
+			Uint32.to_int32 cs.prune_height			: 32 : littleendian;
 			Hash.to_bin cs.header             	: 32*8 : string;
 			Uint32.to_int32 cs.header_height  	: 32 : littleendian;
 			Uint64.to_int64 cs.txs			  	: 64 : littleendian;
@@ -170,6 +174,7 @@ module Chainstate = struct
 		| {|
 			block 		    : 32*8 	: string;
 			height          : 32 	: string;
+			prune_height          : 32 	: string;
 			header 	        : 32*8 	: string;
 			header_height	: 32 	: string;
 			txs				: 64 	: string;
@@ -182,6 +187,7 @@ module Chainstate = struct
 		{
 			block 		    = Hash.of_bin block;
 			height 	    	= Uint32.of_bytes_little_endian height 0;
+			prune_height 	    	= Uint32.of_bytes_little_endian prune_height 0;
 			header	    	= Hash.of_bin header;
 			header_height	= Uint32.of_bytes_little_endian header_height 0;
 			txs				= Uint64.of_bytes_little_endian txs 0;
@@ -222,6 +228,7 @@ let load path =
 		| None -> {
 			block= "0000000000000000000000000000000000000000000000000000000000000000";
 			height= Uint32.of_int 0;
+			prune_height= Uint32.of_int 0;
 			header= "0000000000000000000000000000000000000000000000000000000000000000";
 			header_height= Uint32.of_int 0;
 
@@ -272,7 +279,34 @@ let insert_header storage height (header : Block.Header.t) =
 ;;
 
 
-let insert_block storage params height (block : Block.t) = 
+
+let get_block_height storage hash =
+	match LevelDB.get storage.db ("bih_" ^ hash) with
+	| Some (hdata) -> int_of_string hdata
+	| None -> 0
+;;
+
+
+let get_block storage hash = 
+	if (get_block_height storage hash) > (Uint32.to_int storage.chainstate.height) then 
+		None
+	else
+		match LevelDB.get storage.db ("blk_" ^ hash) with
+		| Some (bdata) -> Block.parse bdata
+		| None -> None
+;;
+
+let get_blocki storage height = 
+	if (Int64.to_int height) > (Uint32.to_int storage.chainstate.height) then 
+		None
+	else
+		match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Int64.to_int height)) with
+		| Some (h) -> get_block storage h 
+		| None -> None
+;;
+	
+
+let insert_block storage config params height (block : Block.t) = 
 	Batch.put storage.batch ("blk_" ^ block.header.hash) @@ Block.serialize block;
 	storage.chainstate.block <- block.header.hash;
 
@@ -341,36 +375,32 @@ let insert_block storage params height (block : Block.t) =
 	) block.txs;
 	
 	storage.chainstate.height <- Uint32.of_int64 height;
+
+	let rec prune_blocks storage xb = 
+		match (Uint32.to_int storage.chainstate.height) - xb with
+		| x' when x' > Uint32.to_int storage.chainstate.prune_height -> (
+			match get_blocki storage (Int64.of_uint32 storage.chainstate.prune_height) with
+			| None -> 
+				storage.chainstate.prune_height <- Uint32.add storage.chainstate.prune_height Uint32.one;
+				prune_blocks storage xb
+			| Some (block) ->
+				Log.debug "Storage" "Pruned block %d" @@ Uint32.to_int storage.chainstate.prune_height;
+				storage.chainstate.prune_height <- Uint32.add storage.chainstate.prune_height Uint32.one;
+				Batch.put storage.batch block.header.hash (Block.Header.serialize block.header);
+				prune_blocks storage xb)
+		| _ -> ()
+	in
+
+	(match config.mode with
+	| PrunedNode (x) when (Uint32.to_int storage.chainstate.height) - x > Uint32.to_int storage.chainstate.prune_height ->
+			prune_blocks storage x
+	| _ -> ()
+	);
+
 	save_cs storage;
 	sync storage
 ;;
 
-
-let get_block_height storage hash =
-	match LevelDB.get storage.db ("bih_" ^ hash) with
-	| Some (hdata) -> int_of_string hdata
-	| None -> 0
-;;
-
-
-let get_block storage hash = 
-	if (get_block_height storage hash) > (Uint32.to_int storage.chainstate.height) then 
-		None
-	else
-		match LevelDB.get storage.db ("blk_" ^ hash) with
-		| Some (bdata) -> Block.parse bdata
-		| None -> None
-;;
-
-let get_blocki storage height = 
-	if (Int64.to_int height) > (Uint32.to_int storage.chainstate.height) then 
-		None
-	else
-		match LevelDB.get storage.db ("bli_" ^ Printf.sprintf "%d" (Int64.to_int height)) with
-		| Some (h) -> get_block storage h 
-		| None -> None
-;;
-	
 
 let get_utx	storage tx index =
 	match LevelDB.get storage.db ("utx_" ^ tx ^ string_of_int index) with
@@ -477,7 +507,7 @@ let remove_last_header storage prevhash =
 	sync storage
 ;;
 
-let remove_last_block storage params prevhash =
+let remove_last_block storage config params prevhash =
 	storage.chainstate.height <- Uint32.sub (storage.chainstate.height) (Uint32.one);
 	storage.chainstate.block <- prevhash;
 

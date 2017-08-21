@@ -27,7 +27,7 @@ let main () =
 		Log.info "letchain" "Selected network: %s" (Params.name_of_network cn);
 		let p = Params.of_network cn in	
 		
-		let bc = Chain.load conf.path p in
+		let bc = Chain.load conf.path conf p in
 		let chain_thread = Thread.create chain_job bc in
 		let api_thread = Thread.create api_job (bc, conf) in
 		let net_thread = Thread.create net_job (bc, conf) in
