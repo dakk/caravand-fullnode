@@ -19,10 +19,11 @@ Letchain is directly connected to other 2 projects:
 - Account storage (balance, sent, txs, utxo)
 - JSON REST api interface
 - Prune-mode for low disk footprint
+- Segregated witness
 
 We are planning to integrate other cool features:
 - Letchain-as-a-library for applications who need blockchain data
-- Bloom filtering and compactblock support
+- Bloom filtering and compactblock
 - Side-chain
 - Pluggable script systems
 
