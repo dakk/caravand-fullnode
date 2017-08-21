@@ -44,6 +44,12 @@ opam install letchain
 letchain -c XTN -p 4
 ```
 
+## Supported chains
+
+At the moment letchain supports these chains:
+- XTN - Bitcoin testnet
+- BTC - Bitcoin mainnet
+- BCH - BitcoinCash mainnet
 
 ## License
 
