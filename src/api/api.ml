@@ -166,32 +166,38 @@ let handle_request bc net req =
 
 	(* Get block info by index *)
 	| (Request.GET, "block" :: "i" :: bli :: []) -> 
-		let bl = Storage.get_blocki bc.storage @@ Int64.of_string bli in
-		(match bl with
+		(match Storage.get_blocki bc.storage @@ Int64.of_string bli with
 		| None -> not_found ()
-		| Some (bl) ->
+		| Some (b) ->
 			Request.reply req 200 (`Assoc [
 				("status", `String "ok");
 				("block", `Assoc [
-					("hash", `String (bl.header.hash));
+					("hash", `String (b.header.hash));
+					("prev_block", `String (b.header.prev_block));
 					("height", `String bli);
-					("txs", `Int (List.length bl.txs))
+					("time", `Float (b.header.time));
+					("age", `String (Timediff.diffstring (Unix.time ()) b.header.time));
+					("txs", `List (List.map (fun tx -> `String tx.Tx.hash) b.txs));
+					("size", `Int (b.size))
 				])
 			])
 		)
 
 	(* Get block info by hash *)
 	| (Request.GET, "block" :: bid :: []) -> 
-		let bl = Storage.get_block bc.storage bid in
-		(match bl with
+		(match Storage.get_block bc.storage bid with
 		| None -> not_found ()
-		| Some (bl) ->
+		| Some (b) ->
 			Request.reply req 200 (`Assoc [
 				("status", `String "ok");
 				("block", `Assoc [
-					("hash", `String (bl.header.hash));
-					("height", `Int (Storage.get_block_height bc.storage @@ bl.header.hash));
-					("txs", `Int (List.length bl.txs))
+					("hash", `String (b.header.hash));
+					("prev_block", `String (b.header.prev_block));
+					("height", `Int (Storage.get_block_height bc.storage @@ b.header.hash));
+					("time", `Float (b.header.time));
+					("age", `String (Timediff.diffstring (Unix.time ()) b.header.time));
+					("txs", `List (List.map (fun tx -> `String tx.Tx.hash) b.txs));
+					("size", `Int (b.size))
 				])
 			])
 		)
