@@ -307,6 +307,21 @@ let get_blocki storage height =
 	
 
 let insert_block storage config params height (block : Block.t) = 
+	let rec prune_blocks storage xb = 
+		match (Uint32.to_int storage.chainstate.height) - xb with
+		| x' when x' > Uint32.to_int storage.chainstate.prune_height -> (
+			match get_blocki storage (Int64.of_uint32 storage.chainstate.prune_height) with
+			| None -> 
+				storage.chainstate.prune_height <- Uint32.add storage.chainstate.prune_height Uint32.one;
+				prune_blocks storage xb
+			| Some (block) ->
+				Log.debug "Storage" "Pruned block %d" @@ Uint32.to_int storage.chainstate.prune_height;
+				storage.chainstate.prune_height <- Uint32.add storage.chainstate.prune_height Uint32.one;
+				Batch.put storage.batch block.header.hash (Block.Header.serialize block.header);
+				prune_blocks storage xb)
+		| _ -> ()
+	in
+
 	Batch.put storage.batch ("blk_" ^ block.header.hash) @@ Block.serialize block;
 	storage.chainstate.block <- block.header.hash;
 
@@ -376,24 +391,9 @@ let insert_block storage config params height (block : Block.t) =
 	
 	storage.chainstate.height <- Uint32.of_int64 height;
 
-	let rec prune_blocks storage xb = 
-		match (Uint32.to_int storage.chainstate.height) - xb with
-		| x' when x' > Uint32.to_int storage.chainstate.prune_height -> (
-			match get_blocki storage (Int64.of_uint32 storage.chainstate.prune_height) with
-			| None -> 
-				storage.chainstate.prune_height <- Uint32.add storage.chainstate.prune_height Uint32.one;
-				prune_blocks storage xb
-			| Some (block) ->
-				Log.debug "Storage" "Pruned block %d" @@ Uint32.to_int storage.chainstate.prune_height;
-				storage.chainstate.prune_height <- Uint32.add storage.chainstate.prune_height Uint32.one;
-				Batch.put storage.batch block.header.hash (Block.Header.serialize block.header);
-				prune_blocks storage xb)
-		| _ -> ()
-	in
 
 	(match config.mode with
-	| PrunedNode (x) when (Uint32.to_int storage.chainstate.height) - x > Uint32.to_int storage.chainstate.prune_height ->
-			prune_blocks storage x
+	| PrunedNode (x) -> prune_blocks storage x
 	| _ -> ()
 	);
 
