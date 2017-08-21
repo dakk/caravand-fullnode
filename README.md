@@ -12,12 +12,19 @@ Letchain is directly connected to other 2 projects:
 
 ## Features
 
-- Chain syncronization for Bitcoin and Bitcoin testnet
+- Chain syncronization for Bitcoin, Bitcoin testnet and Bitcoincash
 - Header-first syncronization
 - Block storage
 - UTXO storage
 - Account storage (balance, sent, txs, utxo)
 - JSON REST api interface
+- Prune-mode for low disk footprint
+
+We are planning to integrate other cool features:
+- Letchain-as-a-library for applications who need blockchain data
+- Bloom filtering and compactblock support
+- Side-chain
+- Pluggable script systems
 
 
 ## Build & run
