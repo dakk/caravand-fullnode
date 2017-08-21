@@ -9,12 +9,11 @@ let main () =
 	let chain_job bc = 
 		Chain.loop bc 
 	in
-	let net_job (bc, conf) = 
-		let n = Net.init bc.Chain.params conf in 
-		Net.loop n bc
+	let net_job (bc, net, conf) = 
+		Net.loop net bc
 	in
-	let api_job (bc, conf) =
-		Api.loop conf.api_port bc
+	let api_job (bc, net, conf) =
+		Api.loop conf.api_port bc net
 	in
 	
 	Random.self_init ();
@@ -28,9 +27,10 @@ let main () =
 		let p = Params.of_network cn in	
 		
 		let bc = Chain.load conf.path conf p in
+		let n = Net.init bc.Chain.params conf in 
 		let chain_thread = Thread.create chain_job bc in
-		let api_thread = Thread.create api_job (bc, conf) in
-		let net_thread = Thread.create net_job (bc, conf) in
+		let api_thread = Thread.create api_job (bc, n, conf) in
+		let net_thread = Thread.create net_job (bc, n, conf) in
 		
 		Log.info "letchain" "Waiting for childs";
 		Thread.join net_thread;

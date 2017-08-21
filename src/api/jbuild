@@ -2,5 +2,5 @@
 
 (library
  ((name        api)
-  (libraries (blockchain yojson))))
+  (libraries (blockchain network yojson))))
 

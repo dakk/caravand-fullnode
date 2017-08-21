@@ -3,6 +3,7 @@ open Bitcoinml;;
 open Log;;
 open Unix;;
 open Blockchain;;
+open Network;;
 open Chain;;
 open Block;;
 open Block.Header;;
@@ -65,7 +66,7 @@ let send_string sock str =
 	send sock str 0 len [] |> ignore
 ;;
 
-let handle_request bc req = 
+let handle_request bc net req = 
 	let not_found () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 	
 	Log.debug "Api ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
@@ -195,6 +196,29 @@ let handle_request bc req =
 			])
 		)
 
+	(* Get last blocks *)
+	| (Request.GET, "lastblocks" :: []) ->
+		let rec get_last_blocks height n = match n with
+		| 0 -> []
+		| n' -> match Storage.get_blocki bc.storage height with
+			| Some (b) ->
+				(`Assoc [
+					("hash", `String (b.header.hash));
+					("height", `Int (Int64.to_int height));
+					("time", `Float (b.header.time));
+					("age", `String (Timediff.diffstring (Unix.time ()) b.header.time));
+					("txs", `Int (List.length b.txs));
+					("size", `Int (b.size))
+				])::get_last_blocks (Int64.sub height Int64.one) (n-1)
+			| None -> []
+		in
+		Request.reply req 200 (`Assoc [
+			("status", `String "ok");
+			("state", `Assoc [
+				("blocks", `List (get_last_blocks bc.block_height 10));
+			]);
+		])
+
 	(* Get chain state *)
 	| (Request.GET, "" :: []) ->
 		Request.reply req 200 (`Assoc [
@@ -211,6 +235,11 @@ let handle_request bc req =
 					("last", `String (bc.header_last.hash));
 					("time", `String (Timediff.diffstring (Unix.time ()) bc.header_last.time));
 				]);
+				("network", `Assoc [
+					("peers", `Int (Net.connected_peers net));
+					("sent", `Int (Net.sent net));
+					("received", `Int (Net.received net));
+				]);
 				("mempool", `Assoc [
 					("size", `Int 0);
 					("n", `Int 0);
@@ -226,7 +255,7 @@ let handle_request bc req =
 		not_found ()
 ;;
 
-let loop port bc =
+let loop port bc net =
 	let rec do_listen socket =
 		let (client_sock, _) = accept socket in
 		match Request.recv client_sock with
@@ -234,7 +263,7 @@ let loop port bc =
 			(*close client_sock;*)
 			do_listen socket
 		| Some (req) ->
-			handle_request bc req;
+			handle_request bc net req;
 			(*close client_sock;*)
 			do_listen socket
 	in

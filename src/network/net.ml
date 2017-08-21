@@ -71,6 +71,8 @@ let connected_weighted_peers n = int_of_float (Hashtbl.fold (fun k p c -> (match
 let connected_peers n = Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0;;
 let waitping_peers n = Hashtbl.fold (fun k p c -> (match p.status with | WAITPING (x) -> c + 1 | _ -> c)) n.peers 0;;
 let available_peers n = Hashtbl.fold (fun k p c -> (match p.status with | CONNECTED -> c + 1 | _ -> c)) n.peers 0;;
+let sent n = Hashtbl.fold (fun k p c -> p.sent + c) n.peers 0;;
+let received n = Hashtbl.fold (fun k p c -> p.received + c) n.peers 0;;
 
 let loop n bc = 
 	Log.info "Network" "Starting mainloop.";
@@ -84,8 +86,8 @@ let loop n bc =
 		Unix.sleep 2;
 
 		(* Print network stats *)
-		let sent = Hashtbl.fold (fun k p c -> p.sent + c) n.peers 0 in 
-		let received = Hashtbl.fold (fun k p c -> p.received + c) n.peers 0 in 
+		let sent = sent n in
+		let received = received n in
 		Log.info "Network" "Stats: %s sent, %s received, %d connected peers (%d waitping)" (byten_to_string sent) 
 			(byten_to_string received) (connected_peers n) (waitping_peers n);
 

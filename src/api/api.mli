@@ -1,5 +1,6 @@
 (* REST api interface *)
 open Blockchain
+open Network
 
 
 module Request : sig
@@ -17,4 +18,4 @@ module Request : sig
 end
 
 
-val loop : int -> Chain.t -> unit
+val loop : int -> Chain.t -> Net.t -> unit
