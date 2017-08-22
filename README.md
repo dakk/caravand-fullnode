@@ -20,9 +20,9 @@ Letchain is directly connected to other 2 projects:
 - JSON REST api interface
 - Prune-mode for low disk footprint
 - Segregated witness
+- Letchain-as-a-library for applications who need blockchain data
 
 We are planning to integrate other cool features:
-- Letchain-as-a-library for applications who need blockchain data
 - Bloom filtering and compactblock
 - Side-chain
 - Pluggable script systems
@@ -41,7 +41,7 @@ To build the project, first install dependencies from `letchain.opam` file, then
 
 ```bash
 make
-./_build/install/default/bin/letchain -c XTN -p 4
+./_build/install/default/bin/letchaind -c XTN -p 4
 ```
 
 Otherwise you can automate the process by using opam:
@@ -49,7 +49,7 @@ Otherwise you can automate the process by using opam:
 ```bash
 opam pin add letchain . -n
 opam install letchain
-letchain -c XTN -p 4
+letchaind -c XTN -p 4
 ```
 
 ## Supported chains

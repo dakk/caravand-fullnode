@@ -4,12 +4,6 @@ open Network;;
 open Utils;;
 open Unix;;
 
-type node_type = 
-  | FullNode            (* Node with full block data*)
-  | PrunedNode of int   (* Node with full block data of last n blocks (Address disabled) *)
-  | HeadersOnly         (* Node with only headers *)
-;;
-
 type t = {
   chain       : Chain.t;
   net         : Net.t;
@@ -26,7 +20,7 @@ let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?lo
 	Log.set_level loglevel;
 	Random.self_init ();
 	Log.info "letchain" "Starting 0.1";
-	let conf = { (directory |> Config.load_or_init) with peers=peers; log_level=loglevel } in
+	let conf = { (directory |> Config.load_or_init) with peers=peers; log_level=loglevel; mode=mode } in
  	let cn = Params.abbr_to_network conf.chain in
 	if cn = NOTFOUND then
 		Log.info "letchain" "Invalid chain"

@@ -1,9 +1,6 @@
 open Bitcoinml
-
-type node_type = 
-| FullNode            (* Node with full block data*)
-| PrunedNode of int   (* Node with full block data of last n blocks (Address disabled) *)
-| HeadersOnly         (* Node with only headers *)
+open Utils
+open Config
 
 type t
 
