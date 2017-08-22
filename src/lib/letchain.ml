@@ -26,7 +26,7 @@ let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?lo
 	Log.set_level loglevel;
 	Random.self_init ();
 	Log.info "letchain" "Starting 0.1";
-	let conf = directory |> Config.load_or_init in
+	let conf = { (directory |> Config.load_or_init) with peers=peers; log_level=loglevel } in
  	let cn = Params.abbr_to_network conf.chain in
 	if cn = NOTFOUND then
 		Log.info "letchain" "Invalid chain"
