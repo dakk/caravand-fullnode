@@ -1,6 +1,6 @@
 open Printf;;
 
-type level = FATAL | ERROR | WARN | INFO | DEBUG;;
+type level = FATAL | ERROR | WARN | INFO | DEBUG | DEBUG2;;
 type color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
 					 | Default
 
@@ -20,19 +20,21 @@ let color_reset = "\027[0m";;
 let color_of_level lev = match lev with
 	| INFO -> Green
 	| DEBUG -> Yellow 
+	| DEBUG2 -> Cyan 
 	| _ -> Red
 ;;
 
 let level_str lev = match lev with
 	| INFO -> color_to_string Blue ^ "ℹ" ^ color_reset
 	| DEBUG -> color_to_string Yellow ^ "⚙" ^ color_reset
+	| DEBUG2 -> color_to_string Cyan ^ "⚙" ^ color_reset
 	| ERROR -> color_to_string Red ^ "⚡" ^ color_reset
 	| FATAL -> color_to_string Red ^ "⚠" ^ color_reset
 	| _ -> " "
 ;;
 
 
-(* (color_to_string Magenta) ^^ *)
+let log_level = ref 4;;
 
 let head_str lev sec =
 		let ts = Unix.gettimeofday() in
@@ -59,11 +61,22 @@ let head_str lev sec =
 
 let log lev sec fmt =
 	let now = head_str lev sec in
-	fprintf stdout ("%s" ^^ fmt ^^ "\n%!") now
+	match lev, !log_level with
+	| FATAL, l when l > 0 -> fprintf stdout ("%s" ^^ fmt ^^ "\n%!") now
+	| ERROR, l when l > 0 -> fprintf stdout ("%s" ^^ fmt ^^ "\n%!") now
+	| WARN, l when l > 2 -> fprintf stdout ("%s" ^^ fmt ^^ "\n%!") now
+	| INFO, l when l > 2 -> fprintf stdout ("%s" ^^ fmt ^^ "\n%!") now
+	| DEBUG, l when l > 3 -> fprintf stdout ("%s" ^^ fmt ^^ "\n%!") now
+	| DEBUG2, l when l > 4 -> fprintf stdout ("%s" ^^ fmt ^^ "\n%!") now
+	| _ -> ifprintf stdout ("%s" ^^ fmt ^^ "\n%!") now
 ;;
+
 
 let fatal sec fmt = log FATAL sec fmt;;
 let error sec fmt = log ERROR sec fmt;;
 let warn  sec fmt = log WARN  sec fmt;;
 let info  sec fmt = log INFO  sec fmt;;
 let debug sec fmt = log DEBUG sec fmt;;
+let debug2 sec fmt = log DEBUG2 sec fmt;;
+
+let set_level l = log_level := l;;

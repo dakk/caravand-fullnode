@@ -1,9 +1,18 @@
 lib: [
   "_build/install/default/lib/letchain/META" {"META"}
   "_build/install/default/lib/letchain/opam" {"opam"}
+  "_build/install/default/lib/letchain/letchain.cmi"
+  "_build/install/default/lib/letchain/letchain.cmx"
+  "_build/install/default/lib/letchain/letchain.cmt"
+  "_build/install/default/lib/letchain/letchain.cmti"
+  "_build/install/default/lib/letchain/letchain.mli"
+  "_build/install/default/lib/letchain/letchain.cma"
+  "_build/install/default/lib/letchain/letchain.cmxa"
+  "_build/install/default/lib/letchain/letchain.a"
+  "_build/install/default/lib/letchain/letchain.cmxs"
 ]
 bin: [
-  "_build/install/default/bin/letchain" {"letchain"}
+  "_build/install/default/bin/letchaind" {"letchaind"}
 ]
 doc: [
   "_build/install/default/doc/letchain/README.md"

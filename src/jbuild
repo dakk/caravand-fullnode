@@ -1,7 +1,8 @@
 (jbuild_version 1)
 
 (executable
- ((name letchain)
-  (public_name letchain)
+ ((name letchaind)
+  (public_name letchaind)
+  (package letchain)
   (libraries (bitcoinml network utils api blockchain))))
 

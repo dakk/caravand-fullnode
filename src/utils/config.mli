@@ -9,11 +9,11 @@ type t = {
 	base_path	: string;
 	path			: string;
 	api_port	: int;
-	log_peer	: bool;
 
 	address_index	: bool;
 	tx_index			: bool;
 	mode					: node_type;
+	log_level			: int;
 }
 
 val parse_base_path			: unit -> string

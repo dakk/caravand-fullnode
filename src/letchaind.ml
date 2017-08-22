@@ -19,7 +19,8 @@ let main () =
 	Random.self_init ();
 	Log.info "letchain" "Starting 0.1";
 	let conf = Config.parse_base_path () |> Config.load_or_init |> Config.parse_command_line in
- 	let cn = Params.abbr_to_network conf.chain in
+	let cn = Params.abbr_to_network conf.chain in
+	Log.set_level conf.log_level;
 	if cn = NOTFOUND then
 		Log.info "letchain" "Invalid chain"
 	else 	

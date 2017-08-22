@@ -88,7 +88,7 @@ let loop n bc =
 		(* Print network stats *)
 		let sent = sent n in
 		let received = received n in
-		Log.info "Network" "Stats: %s sent, %s received, %d connected peers (%d waitping)" (byten_to_string sent) 
+		Log.debug "Network" "Stats: %s sent, %s received, %d connected peers (%d waitping)" (byten_to_string sent) 
 			(byten_to_string received) (connected_peers n) (waitping_peers n);
 
 		(* Check for connection timeout and minimum number of peer*)		
@@ -130,7 +130,7 @@ let loop n bc =
 						| nc' -> 1 + (iterate_connect n.addrs @@ nc' - 1))
 					| _ -> 0
 			in
-			Log.error "Network" "Peers below the number of peers";
+			Log.warn "Network" "Peers below the number of peers";
 			let nc = iterate_connect n.addrs @@ n.config.peers - cp in
 			Log.info "Network" "Connected to %d new peers" nc;
 			()

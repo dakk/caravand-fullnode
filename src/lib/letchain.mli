@@ -5,9 +5,9 @@ type node_type =
 
 type t
 
-val init : ?directory:string -> ?network:string -> ?peers:int -> node_type -> t
-val run  : t -> Thread.t
-val kill : t -> bool
+val init : ?directory:string -> ?network:string -> ?peers:int -> ?loglevel:int -> node_type -> t
 val stop : t -> bool
 
+(*
 val is_sync : t -> bool
+*)

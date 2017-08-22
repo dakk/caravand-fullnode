@@ -89,9 +89,8 @@ let send peer message =
 	| n -> (
 		try (
 			let wl = Unix.send peer.socket data 0 (Bytes.length data) [] in
-			if peer.config.log_peer then 
-				Log.debug "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
-					(string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
+			Log.debug2 "Peer →" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+				(string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 			peer.sent <- peer.sent + wl
 		) with
 		| _ -> Log.error "Peer →" "Broken pipe"; disconnect peer; ()
@@ -139,8 +138,7 @@ let recv peer =
 				| Some (rdata) -> (
 					peer.received <- peer.received + String.length rdata;
 					let m' = Message.parse m rdata in 
-					if peer.config.log_peer then 
-						Log.debug "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
+					Log.debug2 "Peer ←" "%s: %s (s: %s, r: %s)" (Unix.string_of_inet_addr peer.address) 
 							m.command (byten_to_string peer.sent) (byten_to_string peer.received);
 					
 					Some (m')

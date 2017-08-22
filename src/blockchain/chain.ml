@@ -171,7 +171,7 @@ let verify_block_header bc lhh lh h =
 			let hash' = List.assoc index bc.params.checkpoints in
 			match hash' = hash with
 			| true -> Log.debug "Blockchain" "Checkpoint: %s" hash'; true
-			| false -> Log.error "Blockchain" "Checkpoint failed: %s <> %s" hash' hash; false
+			| false -> Log.warn "Blockchain" "Checkpoint failed: %s <> %s" hash' hash; false
 		with | _ -> true
 	in
 
@@ -282,7 +282,7 @@ let verify_block ?verifyheader:(verifyheader=false) bc lbh lb b =
 let loop bc = 
 	let check_branch_updates h = match (Branch.find_parent bc.branches h, Branch.find_fork bc.branches h) with
 	| (Some (br), _) -> (* Insert into a branch (if present) *)
-		Log.debug "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
+		Log.info "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
 		if verify_block_header bc br.header_height br.header_last h then (
 			Branch.push br h |> ignore;
 			Storage.update_branches bc.storage bc.branches
@@ -301,7 +301,7 @@ let loop bc =
 					let branch = Branch.create banc.hash (Int64.of_int height) h in
 					bc.branches <- bc.branches @ [ branch ];
 					Storage.update_branches bc.storage bc.branches;
-					Log.debug "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
+					Log.info "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
 					()
 			) else ()
 	in
@@ -321,10 +321,10 @@ let loop bc =
 			Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions, %d KB)" (Int64.to_int bc.block_height) 
 				(int_of_float ((Unix.time ()) -. a)) (List.length b.txs) (b.size / 1024);
 			bc.block_last_received <- Unix.time ();
-			Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" b.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
+			Log.info "Blockchain ←" "Block %s - %d, time: %s ago" b.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
 			()
 		) else (
-			Log.error "Blockchain" "Block validation failed: %s - %d" b.header.hash (Int64.to_int bc.block_height) 
+			Log.warn "Blockchain" "Block validation failed: %s - %d" b.header.hash (Int64.to_int bc.block_height) 
 		)
 	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = hl.hash -> (* New block *)
 		if verify_block_header bc bc.header_height bc.header_last b.header then (
@@ -341,7 +341,7 @@ let loop bc =
 				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
 			)
 		) else (
-			Log.error "Blockchain" "Block header validation failed: %s" b.header.hash
+			Log.warn "Blockchain" "Block header validation failed: %s" b.header.hash
 		);
 		()
 	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> (* New block maybe on side-branch *)
@@ -391,23 +391,23 @@ let loop bc =
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
-			Log.info "Blockchain" "Headers not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
+			Log.debug "Blockchain" "Headers not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- false;
 			Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([bc.header_last.hash], None);
 		) else (
-			Log.info "Blockchain" "Headers in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
+			Log.debug "Blockchain" "Headers in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- true
 		);
 
 		(match bc.block_last.header.time with
 		| 0.0 -> (
-			Log.info "Blockchain" "Blocks not in sync, waiting for genesis";
+			Log.debug "Blockchain" "Blocks not in sync, waiting for genesis";
 			bc.sync <- false;
 			Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bc.params.genesis.hash], None)
 		)
 		| _ -> (
 			if bc.block_last.header.time < (Unix.time () -. 60. *. 10.) then (
-				Log.info "Blockchain" "Blocks not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
+				Log.debug "Blockchain" "Blocks not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- false;
 
 				(* Ask the storage for next n blocks hashes *)
@@ -425,7 +425,7 @@ let loop bc =
 					bc.blocks_requested <- 500;
 					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
 			) else (
-				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
+				Log.debug "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- true
 			)
 		));
@@ -434,7 +434,7 @@ let loop bc =
 		(* Check if a branch is too old, then delete it *)
 		bc.branches <- (List.filter (fun bi ->
 			if bi.Branch.header_height < (Int64.sub bc.header_height @@ Int64.of_int 12) then (
-				Log.debug "Branch" "Removing branch %s because is too old" bi.header_last.hash;
+				Log.info "Branch" "Removing branch %s because is too old" bi.header_last.hash;
 				false
 			) else true			
 		)) bc.branches;
@@ -452,7 +452,7 @@ let loop bc =
 				| l when l = br.fork_hash -> ()
 				| l -> rollback ()
 			in
-			Log.debug "Branch" "Found that branch %s is the main branch, rollback" bc.header_last.hash;
+			Log.info "Branch" "Found that branch %s is the main branch, rollback" bc.header_last.hash;
 			rollback ();
 			(* TODO Move old blocks to new branch *)
 			(* TODO Push branch headers to the main branch *)
@@ -462,11 +462,11 @@ let loop bc =
 		);
 		(*Storage.update_branches bc.storage bc.branches;*)
 
-		Log.info "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
-		Log.info "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash;
-		Log.info "Blockchain" "There are %d active side-branches" @@ List.length bc.branches;
+		Log.debug "Blockchain" "Last block header is %d : %s" (Int64.to_int bc.header_height) bc.header_last.hash;
+		Log.debug "Blockchain" "Last block is %d : %s" (Int64.to_int bc.block_height) bc.block_last.header.hash;
+		Log.debug "Blockchain" "There are %d active side-branches" @@ List.length bc.branches;
 		List.iter (fun b ->
-			Log.info "Branch" "Last block of branch %s (%d blocks) header is %d (diff: %d)" (b.Branch.header_last.hash) (List.length b.Branch.header_list) (Int64.to_int b.header_height)
+			Log.debug "Branch" "Last block of branch %s (%d blocks) header is %d (diff: %d)" (b.Branch.header_last.hash) (List.length b.Branch.header_list) (Int64.to_int b.header_height)
 				(Int64.to_int @@ Int64.sub bc.header_height b.Branch.header_height); (* b.header_last.hash; *)
 		) bc.branches;
 	

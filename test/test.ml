@@ -3,6 +3,7 @@ open Blockchain;;
 open Stdint;;
 open OUnit2;;
 open Hex;;
+open Letchain;;
 
 
 let branch_serialize_test rawh octx =
@@ -16,7 +17,13 @@ let branch_serialize_test rawh octx =
     assert_equal true true
 ;;
 
+let letchain_init () octx = 
+	let _ = Letchain.init (PrunedNode (1024)) in
+	assert_equal true true
+;;
+
 let suite = "letchain" >::: [
+	"letchain.init" >:: letchain_init ();
 	"branch.serialize_and_parse" >:: branch_serialize_test (`Hex "02000000f6e1cc50df9bfb420162e365fd26d783581367c0a4a7f2683ee60702000000000e65cda8974f3989caeafcaa46ad665ffd07fe558cb63f3f639fee284db83aa4436c6b500045011cec2b25fb");
 ];;
 

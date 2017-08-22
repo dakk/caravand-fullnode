@@ -12,11 +12,11 @@ type t = {
 	base_path	: string;
 	path			: string;
 	api_port	: int;
-	log_peer	: bool;
 
 	address_index	: bool;
 	tx_index			: bool;
 	mode					: node_type;
+	log_level			: int;
 };;
 
 let parse_base_path () = 
@@ -46,7 +46,7 @@ let parse_command_line conf =
 		Printf.printf " -r 1024, --prune 1024\tPrune to a custom number of blocks\n"; 
 		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
 		Printf.printf " -ap 807\t\t\tSelect api port\n%!";  
-		Printf.printf " --log-peer true\t\t\tEnable log for peer mesages\n%!"; 
+		Printf.printf " -ll 5, --log-level 5\tSet the log level\n%!";  
 		Thread.exit (); 
 		conf
 	in
@@ -66,19 +66,20 @@ let parse_command_line conf =
 			Log.debug "Config" "Setting api port from command line: %s" x';
 			parse ({ conf with 
 				api_port= int_of_string x'
-			}) xl'
-		| "--log-peer" ->
+			}) xl'	
+		| "--log-level"
+		| "-ll" -> 
+			Log.debug "Config" "Setting the log level from command line: %s" x';
 			parse ({ conf with 
-				log_peer= bool_of_string x'
+				log_level= int_of_string x'
 			}) xl'
-			| "--peer"
-			| "-p" -> 
-				Log.debug "Config" "Setting peer number to: %s" x';
-				parse ({ conf with 
-					peers= int_of_string x'
-				}) xl'
-		| "--prune"
-		| "-r" -> 
+		| "--peer"
+		| "-p" -> 
+			Log.debug "Config" "Setting peer number to: %s" x';
+			parse ({ conf with 
+				peers= int_of_string x'
+			}) xl'
+		| "--prune" -> 
 			Log.debug "Config" "Setting the prune size to: %s blocks" x';
 			let nblocks = int_of_string x' in
 			if nblocks < 1024 then (
@@ -109,10 +110,10 @@ let rec load_or_init base_path =
 			chain= json |> member "chain" |> to_string;
 			api_port= json |> member "api_port" |> to_int;
 			path= base_path ^ (json |> member "chain" |> to_string);
-			log_peer= false;
 			address_index= true;
 			tx_index= true;
 			mode= FullNode;
+			log_level= 4;
 		} in
 		try
 			Unix.mkdir (base_path ^ "/" ^ conf.chain) 0o777;
