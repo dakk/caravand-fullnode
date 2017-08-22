@@ -1,6 +1,6 @@
+B ../_build/default/src
 B ../_build/default/src/api
 B ../_build/default/src/blockchain
-B ../_build/default/src/lib
 B ../_build/default/src/network
 B ../_build/default/src/utils
 B ../_build/default/test
@@ -100,8 +100,8 @@ PKG unix
 PKG variantslib
 PKG yojson
 PKG zarith
+S ../src
 S ../src/api
 S ../src/blockchain
-S ../src/lib
 S ../src/network
 S ../src/utils

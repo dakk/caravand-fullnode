@@ -1,5 +1,0 @@
-
-(library
- ((name        letchain)
-  (public_name letchain)
-  (libraries (cryptokit threads yojson bitcoinml network utils api blockchain))))

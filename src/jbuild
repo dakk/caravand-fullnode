@@ -3,6 +3,10 @@
 (executable
  ((name letchaind)
   (public_name letchaind)
-  (package letchain)
+  (modules letchaind)
   (libraries (bitcoinml network utils api blockchain))))
 
+(library
+ ((name        letchain)
+  (public_name letchain)
+  (libraries (cryptokit threads yojson bitcoinml network utils api blockchain))))
