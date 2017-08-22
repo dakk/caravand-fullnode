@@ -17,14 +17,16 @@ type t = {
   net_thread  : Thread.t;
 };;
 
-let init ?directory ?network:(network="XBT") ?peers:(peers=6) ?loglevel:(loglevel=0) mode = 
+let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?loglevel:(loglevel=0) mode = 
+	let directory = if directory = "" then (Unix.getenv "HOME") ^ "/.letchain/" else directory in
+
 	let chain_job bc = Chain.loop bc in
 	let net_job (bc, net, conf) = Net.loop net bc in
 	
 	Log.set_level loglevel;
 	Random.self_init ();
 	Log.info "letchain" "Starting 0.1";
-	let conf = Config.parse_base_path () |> Config.load_or_init |> Config.parse_command_line in
+	let conf = directory |> Config.load_or_init in
  	let cn = Params.abbr_to_network conf.chain in
 	if cn = NOTFOUND then
 		Log.info "letchain" "Invalid chain"
