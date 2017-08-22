@@ -55,3 +55,18 @@ let stop lc =
 	Log.info "letchain" "Chain thread stopped.";
 	true
 ;;
+
+
+let is_synchronized lc = lc.chain.sync;;
+
+let get_height lc = lc.chain.block_height;;
+
+let get_last_block lc = lc.chain.block_last;;
+
+let get_header_height lc = lc.chain.header_height;;
+
+let get_last_heaer lc = lc.chain.header_last;;
+
+let push_tx lc tx = false;;
+
+let get_utxo lc h n = Storage.get_utx lc.chain.storage h n;;

@@ -18,8 +18,8 @@ let branch_serialize_test rawh octx =
 ;;
 
 let letchain_init () octx = 
-	let _ = Letchain.init (PrunedNode (1024)) in
-	assert_equal true true
+	let lc = Letchain.init ~loglevel:0 (PrunedNode (1024)) in
+	assert_equal false @@ Letchain.is_synchronized lc
 ;;
 
 let suite = "letchain" >::: [
