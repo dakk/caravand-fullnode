@@ -11,7 +11,13 @@ bug-reports: "https://github.com/dakk/letchain/issues"
 license: "MIT"
 dev-repo: "https://github.com/dakk/letchain.git"
 build: [
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["jbuilder" "build" "-p" name "-j" jobs "@install"]
+]
+build-test: [
+  ["jbuilder" "build" "-p" name "-j" jobs "@runtest" "@doc"]
+]
+build-doc: [
+  ["jbuilder" "build" "-p" name "-j" jobs "@doc"]
 ]
 
 depends: [
