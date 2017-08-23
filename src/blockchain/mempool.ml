@@ -47,3 +47,5 @@ let add mp tx =
   mp.average_fee <- Int64.div (Int64.add mp.average_fee fee) @@ Int64.of_int 2;
   true
 ;;
+
+let (<<) mp tx = add mp tx;;
