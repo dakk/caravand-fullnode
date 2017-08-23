@@ -9,6 +9,7 @@ open Hash;;
 open Timediff;;
 open Stdint;;
 open Storage;;
+open Cqueue;;
 
 module Resource = struct
 	type t = 
@@ -357,14 +358,14 @@ let loop bc =
 		(* Handle new resources *)
 		Cqueue.iter bc.resources (fun res -> match (res : Resource.t) with 
 		| REQ_HBLOCKS (hl, stop, addr) ->
-			Cqueue.add bc.requests @@ Request.RES_HBLOCKS ([], addr);
+			bc.requests << Request.RES_HBLOCKS ([], addr);
 		| RES_INV_BLOCK (bs, addr) -> 
-			(if bc.sync then  Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bs], Some (addr)));
+			(if bc.sync then bc.requests << Request.REQ_BLOCKS ([bs], Some (addr)));
 		| RES_INV_TX (txs, addr) -> ()
 		| RES_BLOCK (bs) -> consume_block (bs)
 		| RES_TXS (txs) -> ()
 		| RES_HBLOCKS (hbs, addr) when List.length hbs = 0 -> ()
-		| RES_HBLOCKS (hbs, addr) -> 
+		| RES_HBLOCKS (hbs, addr) -> (
 			Log.debug "Blockchain ←" "Headers %d" (List.length hbs);
 			List.iter (fun h -> 
 				if verify_block_header bc bc.header_height bc.header_last h then (
@@ -375,7 +376,8 @@ let loop bc =
 				) else ( check_branch_updates h )
 			) @@ List.rev hbs;
 			Storage.sync bc.storage	
-		);
+		)
+		) |> ignore;
 
 		(* Request old headers for branch verification *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 60. *. 5.) then (
@@ -383,17 +385,17 @@ let loop bc =
 			| None -> ()
 			| Some (h) ->
 				(*Log.debug "Blockchain" "Requesting periodic ancestor headers for fork detection";*)
-				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
-				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
-				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None);
-				Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([h.hash], None)
+				bc.requests << Request.REQ_HBLOCKS ([h.hash], None);
+				bc.requests << Request.REQ_HBLOCKS ([h.hash], None);
+				bc.requests << Request.REQ_HBLOCKS ([h.hash], None);
+				bc.requests << Request.REQ_HBLOCKS ([h.hash], None)
 		);
 
 		(* Check sync status *)
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			Log.debug "Blockchain" "Headers not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- false;
-			Cqueue.add bc.requests @@ Request.REQ_HBLOCKS ([bc.header_last.hash], None);
+			bc.requests << Request.REQ_HBLOCKS ([bc.header_last.hash], None);
 		) else (
 			Log.debug "Blockchain" "Headers in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- true
@@ -403,7 +405,7 @@ let loop bc =
 		| 0.0 -> (
 			Log.debug "Blockchain" "Blocks not in sync, waiting for genesis";
 			bc.sync <- false;
-			Cqueue.add bc.requests @@ Request.REQ_BLOCKS ([bc.params.genesis.hash], None)
+			bc.requests << Request.REQ_BLOCKS ([bc.params.genesis.hash], None)
 		)
 		| _ -> (
 			if bc.block_last.header.time < (Unix.time () -. 60. *. 10.) then (
@@ -421,9 +423,9 @@ let loop bc =
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
 				if bc.block_last_received < (Unix.time () -. 6.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
-					let hashes = getblockhashes (bc.block_height) 500 [] in
-					bc.blocks_requested <- 500;
-					Cqueue.add bc.requests @@ Request.REQ_BLOCKS (hashes, None))
+					let hashes = getblockhashes (bc.block_height) 16 [] in
+					bc.blocks_requested <- 16;
+					bc.requests << Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.debug "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- true
@@ -459,6 +461,7 @@ let loop bc =
 
 			bc.branches <- (List.filter (fun bi -> br.fork_hash <> bi.Branch.fork_hash) bc.branches);
 			()
+		| _ -> ()
 		);
 		(*Storage.update_branches bc.storage bc.branches;*)
 

@@ -25,6 +25,8 @@ let add q e =
 	Mutex.unlock q.qlock;
 ;;
 
+let (<<) q e = add q e;;
+
 let get q = 
 	Mutex.lock q.qlock;
 	let r = if Queue.is_empty q.q then None else Some (Queue.take q.q) in
