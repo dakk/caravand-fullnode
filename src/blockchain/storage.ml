@@ -539,7 +539,6 @@ let remove_last_block storage config params prevhash =
 				)
 			) tx.txout;
 
-
 			(* Remove utxo and user utxo, set balances *)
 			List.iter (fun ins -> 
 				let utx = get_tx_output storage ins.In.out_hash @@ Uint32.to_int ins.In.out_n in
@@ -553,8 +552,8 @@ let remove_last_block storage config params prevhash =
 						(match Tx.Out.spendable_by utx params.Params.prefixes with
 						| None -> ()
 						| Some (addr) -> 
-							Address.remove_utxo storage.batch addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
-							Address.add_tx storage.batch addr tx.Tx.hash block.header.time;
+							Address.add_utxo storage.batch addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
+							Address.remove_tx storage.batch addr tx.Tx.hash block.header.time;
 
 							let addrd = Address.load_or_create storage.db addr in
 							addrd.txs <- Uint64.sub addrd.txs @@ Uint64.one;
