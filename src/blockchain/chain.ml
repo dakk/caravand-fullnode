@@ -13,7 +13,7 @@ open Cqueue;;
 
 module Resource = struct
 	type t = 
-	| RES_TXS of Tx.t list
+	| RES_TX of Tx.t
 	| RES_BLOCK of Block.t
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
 	| RES_INV_TX of Hash.t * Unix.inet_addr
@@ -24,7 +24,7 @@ end
 
 module Request = struct
 	type t =
-	| REQ_TXS of Hash.t list * Unix.inet_addr option
+	| REQ_TX of Hash.t * Unix.inet_addr option
 	| REQ_BLOCKS of Hash.t list * Unix.inet_addr option
 	| REQ_HBLOCKS of Hash.t list * Unix.inet_addr option
 	| REQ_DATA of Hash.t list * Unix.inet_addr option
@@ -361,9 +361,10 @@ let loop bc =
 			bc.requests << Request.RES_HBLOCKS ([], addr);
 		| RES_INV_BLOCK (bs, addr) -> 
 			(if bc.sync then bc.requests << Request.REQ_BLOCKS ([bs], Some (addr)));
-		| RES_INV_TX (txs, addr) -> ()
+		| RES_INV_TX (txs, addr) ->
+			(if bc.sync then bc.requests << Request.REQ_TX (txs, Some (addr)));
 		| RES_BLOCK (bs) -> consume_block (bs)
-		| RES_TXS (txs) -> ()
+		| RES_TX (tx) -> Mempool.add bc.mempool tx |> ignore
 		| RES_HBLOCKS (hbs, addr) when List.length hbs = 0 -> ()
 		| RES_HBLOCKS (hbs, addr) -> (
 			Log.debug "Blockchain ←" "Headers %d" (List.length hbs);
@@ -408,7 +409,8 @@ let loop bc =
 			bc.requests << Request.REQ_BLOCKS ([bc.params.genesis.hash], None)
 		)
 		| _ -> (
-			if bc.block_last.header.time < (Unix.time () -. 60. *. 10.) then (
+			(*if bc.block_last.header.time < (Unix.time () -. 60. *. 10.) then ( *)
+			if bc.block_last.header.hash <> bc.header_last.hash then (
 				Log.debug "Blockchain" "Blocks not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- false;
 

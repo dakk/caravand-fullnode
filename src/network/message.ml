@@ -449,6 +449,7 @@ let serialize_message message =
 	| GETADDR -> empty_bitstring
 	| MEMPOOL -> empty_bitstring
 	| SENDHEADERS -> empty_bitstring
+	| TX (tx) -> bitstring_of_string @@ Tx.serialize tx
 	| _ -> empty_bitstring
 	in string_of_bitstring bdata
 ;;

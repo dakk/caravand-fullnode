@@ -196,17 +196,13 @@ let handle peer bc = match recv peer with
 		let rec vis h = match h with
 		| x::xl ->
 			let _ = (match x with
-				| INV_TX (txid) -> 
-					(*Log.info "Network" "Got inv tx %s" txid;*)
-					bc.resources << Chain.Resource.RES_INV_TX (txid, peer.address);
-				| INV_BLOCK (bhash) -> 
-					(*Log.info "Network" "Got inv block %s" bhash;*)
-					bc.resources << Chain.Resource.RES_INV_BLOCK (bhash, peer.address);
+				| INV_TX (txid) -> bc.resources << Chain.Resource.RES_INV_TX (txid, peer.address);
+				| INV_BLOCK (bhash) -> bc.resources << Chain.Resource.RES_INV_BLOCK (bhash, peer.address);
 				| _ -> ()
 			) in vis xl  
 		| [] -> ()
-		in 
-		if bc.sync then vis i else ();
+		in vis i
+	| TX (tx) -> bc.resources << Chain.Resource.RES_TX (tx)
 	| ADDR -> ()
 	| GETADDR -> ()
 	| VERACK -> ()

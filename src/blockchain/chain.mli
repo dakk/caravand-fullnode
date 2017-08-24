@@ -8,7 +8,7 @@ type peerdest = None | Some of Unix.inet_addr | Broadcast
 
 module Resource : sig
 	type t = 
-	| RES_TXS of Tx.t list
+	| RES_TX of Tx.t
 	| RES_BLOCK of Block.t
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
 	| RES_INV_TX of Hash.t * Unix.inet_addr
@@ -18,7 +18,7 @@ end
 
 module Request : sig
 	type t =
-	| REQ_TXS of Hash.t list * Unix.inet_addr option
+	| REQ_TX of Hash.t * Unix.inet_addr option
 	| REQ_BLOCKS of Hash.t list * Unix.inet_addr option
 	| REQ_HBLOCKS of Hash.t list * Unix.inet_addr option
 	| REQ_DATA of Hash.t list * Unix.inet_addr option

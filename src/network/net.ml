@@ -151,11 +151,15 @@ let loop n bc =
 					hashes= h;
 					stop= Hash.zero;
 				} in send n @@ Message.GETHEADERS (msg)
+			| Chain.Request.REQ_TX (txh, Some (addr)) -> (
+				match peer_of_addr n addr with
+				| None -> ()
+				| Some (p) -> Peer.send p @@ Message.GETDATA ([INV_TX (txh)]))
 			| Chain.Request.REQ_BLOCKS (hs, addr)	->
 				let rec create_invs hs acc = match hs with
 				| [] -> acc
 				| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)
-				in send n (Message.GETDATA (create_invs hs []));
+				in send n @@ Message.GETDATA (create_invs hs []);
 			| _ -> ()) |> ignore
 	done;
 	()
