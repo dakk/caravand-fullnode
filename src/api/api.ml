@@ -247,9 +247,9 @@ let handle_request bc net req =
 					("received", `Int (Net.received net));
 				]);
 				("mempool", `Assoc [
-					("size", `Int 0);
-					("n", `Int 0);
-					("fees", `Int 0)
+					("size", `Int (Mempool.size bc.mempool));
+					("n", `Int (Mempool.length bc.mempool));
+					("fees", `Int (Int64.to_int @@ Mempool.fees bc.mempool))
 				]);
 				("txs", `Int (Uint64.to_int bc.storage.chainstate.txs));
 				("utxos", `Int (Uint64.to_int bc.storage.chainstate.utxos))

@@ -362,7 +362,7 @@ let loop bc =
 		| RES_INV_BLOCK (bs, addr) -> 
 			(if bc.sync then bc.requests << Request.REQ_BLOCKS ([bs], Some (addr)));
 		| RES_INV_TX (txs, addr) ->
-			(if bc.sync then bc.requests << Request.REQ_TX (txs, Some (addr)));
+			(if bc.sync && not (Mempool.has bc.mempool txs) then bc.requests << Request.REQ_TX (txs, Some (addr)));
 		| RES_BLOCK (bs) -> consume_block (bs)
 		| RES_TX (tx) -> Mempool.add bc.mempool tx |> ignore
 		| RES_HBLOCKS (hbs, addr) when List.length hbs = 0 -> ()

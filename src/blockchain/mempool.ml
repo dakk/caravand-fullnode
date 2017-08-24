@@ -28,6 +28,8 @@ let clear mp =
   Hashtbl.reset mp.txs
 ;;
 
+let fees mp = mp.fees;;
+
 let remove mp txhash = 
   try 
     let tx = Hashtbl.find mp.txs txhash in
@@ -36,20 +38,27 @@ let remove mp txhash =
     mp.fees <- Int64.sub mp.fees fee;
     (* TODO: adjust average_fee *)
     Hashtbl.remove mp.txs txhash;
-    Log.debug "Mempool" "Size: %s, Txs: %d" (byten_to_string mp.size) (Hashtbl.length mp.txs);
+    Log.debug "Mempool" "Size: %s, Txs: %d, Fees: %d" (byten_to_string mp.size) (Hashtbl.length mp.txs) (Int64.to_int @@ fees mp);
     true
   with 
   | _ -> false
 ;;
 
+let has mp txh = if Hashtbl.mem mp.txs txh then true else false;;
+
 let add mp tx =
+  if has mp tx.Tx.hash then false else
   let fee = fee_of_tx tx in
   Hashtbl.add mp.txs tx.Tx.hash tx;
   mp.size <- mp.size + tx.Tx.size;
   mp.fees <- Int64.add mp.fees fee;
   mp.average_fee <- Int64.div (Int64.add mp.average_fee fee) @@ Int64.of_int 2;
-  Log.debug "Mempool ←" "Tx %s (mempool size: %s, txs: %d)" tx.hash (byten_to_string mp.size) (Hashtbl.length mp.txs);
+  Log.debug "Mempool ←" "Tx %s (mempool size: %s, txs: %d, fees: %d)" tx.hash (byten_to_string mp.size) (Hashtbl.length mp.txs) (Int64.to_int @@ fees mp);
   true
 ;;
 
 let (<<) mp tx = add mp tx;;
+
+let length mp = Hashtbl.length mp.txs;;
+
+let size mp = mp.size;;
