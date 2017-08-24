@@ -7,6 +7,7 @@ open Blockchain;;
 open Chain;;
 open Random;;
 open Cqueue;;
+open Bitcoinml;;
 
 type status = 
 	| CONNECTED
@@ -156,8 +157,8 @@ let recv peer =
 
 let handshake peer height =
 	let verm = {
-		version		= Int32.of_int peer.params.version;
-		services	= peer.params.services;
+		version		= Int32.of_int 70015;
+		services	= 0x0000000000000001L;
 		time		= Unix.time ();
 		addr_recv	= { address="0000000000000000" ; services=(Uint64.of_int 1) ; port= Uint16.of_int 8333 };
 		addr_from	= { address="0000000000000000" ; services=(Uint64.of_int 1) ; port= Uint16.of_int 8333 };

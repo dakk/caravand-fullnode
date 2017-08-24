@@ -4,6 +4,7 @@ open Blockchain;;
 open Thread;;
 open Random;;
 open Config;;
+open Bitcoinml;;
 
 let main () =
 	let chain_job bc = 

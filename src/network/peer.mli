@@ -1,6 +1,7 @@
 open Message
 open Blockchain
 open Utils
+open Bitcoinml
 open Stdint
 
 type status = 

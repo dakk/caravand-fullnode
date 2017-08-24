@@ -2,6 +2,7 @@ open Thread;;
 open Blockchain;;
 open Network;;
 open Utils;;
+open Bitcoinml;;
 open Unix;;
 
 type t = {
