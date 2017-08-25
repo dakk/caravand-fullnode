@@ -14,7 +14,7 @@ open Cqueue;;
 module Resource = struct
 	type t = 
 	| RES_TX of Tx.t
-	| RES_BLOCK of Block_lazy.t option
+	| RES_BLOCK of Block_lazy.t
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
@@ -296,49 +296,62 @@ let loop bc =
 					()
 			) else ()
 	in
-	let consume_block b = match (b, bc.block_last, bc.header_last) with
-	| (b, block, hl) when block.header.time = 0.0 && b.header.hash = bc.params.genesis.hash -> (* Genesis block *)
-		bc.block_height <- Int64.zero;
-		bc.block_last <- b;
-		Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
-		()			
-	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = block.header.hash -> (* Next block *)
-		if verify_block bc bc.block_height bc.block_last b then (
-			bc.blocks_requested <- bc.blocks_requested - 1;
-			bc.block_height <- Int64.succ bc.block_height;
+	let consume_block (blazy:Block_lazy.t) = match (blazy, bc.block_last, bc.header_last) with
+	| (blazy, block, hl) when block.header.time = 0.0 && blazy.header.hash = bc.params.genesis.hash -> ( (* Genesis block *)
+		match Block_lazy.force blazy with
+		| Some (b) -> 
+			bc.block_height <- Int64.zero;
 			bc.block_last <- b;
-			let a = Unix.time () in
 			Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
-			Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions, %d KB)" (Int64.to_int bc.block_height) 
-				(int_of_float ((Unix.time ()) -. a)) (List.length b.txs) (b.size / 1024);
-			bc.block_last_received <- Unix.time ();
-			Log.info "Blockchain ←" "Block %s - %d, time: %s ago" b.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
-			()
-		) else (
-			Log.warn "Blockchain" "Block validation failed: %s - %d" b.header.hash (Int64.to_int bc.block_height) 
-		)
-	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block = hl.hash -> (* New block *)
-		if verify_block_header bc bc.header_height bc.header_last b.header then (
-			bc.header_last <- b.header;
-			bc.header_height <- Int64.succ bc.header_height;
+			()			
+		| None -> ()
+	)
+	| (blazy, block, hl) when block.header.time <> 0.0 && blazy.header.prev_block = block.header.hash -> ( (* Next block *)
+		match Block_lazy.force blazy with
+		| Some (b) -> (
 			if verify_block bc bc.block_height bc.block_last b then (
+				bc.blocks_requested <- bc.blocks_requested - 1;
 				bc.block_height <- Int64.succ bc.block_height;
 				bc.block_last <- b;
+				let a = Unix.time () in
 				Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
+				Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions, %d KB)" (Int64.to_int bc.block_height) 
+					(int_of_float ((Unix.time ()) -. a)) (List.length b.txs) (b.size / 1024);
 				bc.block_last_received <- Unix.time ();
-				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+				Log.info "Blockchain ←" "Block %s - %d, time: %s ago" b.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time;
+				()
 			) else (
-				Storage.insert_header bc.storage bc.header_height bc.header_last;
-				Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+				Log.warn "Blockchain" "Block validation failed: %s - %d" b.header.hash (Int64.to_int bc.block_height) 
 			)
+		)
+		| None -> ()
+	)
+	| (blazy, block, hl) when block.header.time <> 0.0 && blazy.header.prev_block = hl.hash -> (* New block *)
+		if verify_block_header bc bc.header_height bc.header_last blazy.header then (
+			bc.header_last <- blazy.header;
+			bc.header_height <- Int64.succ bc.header_height;
+
+			match Block_lazy.force blazy with
+			| Some (b) ->
+				if verify_block bc bc.block_height bc.block_last b then (
+					bc.block_height <- Int64.succ bc.block_height;
+					bc.block_last <- b;
+					Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
+					bc.block_last_received <- Unix.time ();
+					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+				) else (
+					Storage.insert_header bc.storage bc.header_height bc.header_last;
+					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+				)
+			| None -> ()
 		) else (
-			Log.warn "Blockchain" "Block header validation failed: %s" b.header.hash
+			Log.warn "Blockchain" "Block header validation failed: %s" blazy.header.hash
 		);
 		()
-	| (b, block, hl) when block.header.time <> 0.0 && b.header.prev_block <> hl.hash -> (* New block maybe on side-branch *)
+	| (blazy, block, hl) when block.header.time <> 0.0 && blazy.header.prev_block <> hl.hash -> (* New block maybe on side-branch *)
 		(*Log.debug "Blockchain" "Skip block %s %s %s" b.header.hash b.header.prev_block block.header.hash;*)
-		check_branch_updates b.header; ()
-	| (b, block, hl) -> ()
+		check_branch_updates blazy.header; ()
+	| (blazy, block, hl) -> ()
 	in
 	
 	while true do (
@@ -353,9 +366,7 @@ let loop bc =
 			(if bc.sync then bc.requests << Request.REQ_BLOCKS ([bs], Some (addr)));
 		| RES_INV_TX (txs, addr) ->
 			(if bc.sync && not (Mempool.has bc.mempool txs) then bc.requests << Request.REQ_TX (txs, Some (addr)));
-		| RES_BLOCK (bs) -> (match Block_lazy.force_option bs with
-			| Some (b) -> consume_block b
-			| None -> ())
+		| RES_BLOCK (bs) -> consume_block bs
 		| RES_TX (tx) -> Mempool.add bc.mempool tx |> ignore
 		| RES_HBLOCKS (hbs, addr) when List.length hbs = 0 -> ()
 		| RES_HBLOCKS (hbs, addr) -> (
