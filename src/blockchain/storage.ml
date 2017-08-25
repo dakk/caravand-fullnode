@@ -22,9 +22,9 @@ module Address = struct
 		let bdata = Bitstring.bitstring_of_string data in
 		match%bitstring bdata with
 		| {|
-			balance			: 64 	: string;
+			balance		: 64 	: string;
 			sent			: 64 	: string;
-			received		: 64	: string;
+			received	: 64	: string;
 			txs				: 64	: string;
 			utxs			: 64	: string
 		|} ->
@@ -60,18 +60,16 @@ module Address = struct
 	;;
 
 	let get_txs db addr txs =
-		let rec get_tx it n = match n with
-		| 0 -> []
+		let rec get_tx it n acc = match n with
+		| 0 -> acc
 		| n' -> match%bitstring Bitstring.bitstring_of_string @@ LevelDB.Iterator.get_value it with
-			|  {| 
-				txhash		: 32*8 	: string
-			|} -> 
+			|  {| txhash		: 32*8 	: string |} -> 
 				let _ = LevelDB.Iterator.next it in
-				(Hash.of_bin txhash) :: (get_tx it (n' - 1))
+				get_tx it (n' - 1) @@ (Hash.of_bin txhash) :: acc
 		in
 		let it = LevelDB.Iterator.make db in
 		let _ = LevelDB.Iterator.seek it ("adt_" ^ addr) 0 (String.length @@ "adt_" ^ addr) in
-		get_tx it txs
+		get_tx it txs []
 	;;
 	
 	let add_utxo batch addr txhash i value =
@@ -88,21 +86,21 @@ module Address = struct
 	;;
 
 	let get_utxos db addr utxs =
-		let rec get_utx it n = match n with
-		| 0 -> []
+		let rec get_utx it n acc = match n with
+		| 0 -> acc
 		| n' -> match%bitstring Bitstring.bitstring_of_string @@ LevelDB.Iterator.get_value it with
 			|  {|
-				txhash		: 32*8 	: string;
-				i			: 32 	: littleendian;
+				txhash	: 32*8 	: string;
+				i				: 32 	: littleendian;
 				value		: 64	: littleendian
 			|} -> 
 				let ut = (Hash.of_bin txhash, Int32.to_int i, value) in
 				let _ = LevelDB.Iterator.next it in
-				ut :: (get_utx it (n' - 1))
+				get_utx it (n' - 1) @@ ut :: acc
 		in
 		let it = LevelDB.Iterator.make db in
 		let _ = LevelDB.Iterator.seek it ("adu_" ^ addr) 0 (String.length @@ "adu_" ^ addr) in
-		get_utx it utxs
+		get_utx it utxs []
 	;;
 
 	let load_or_create db addr =
