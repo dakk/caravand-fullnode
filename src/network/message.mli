@@ -69,7 +69,7 @@ type t =
 	| GETBLOCKS of getblocks
 	| GETHEADERS of getheaders
 	| TX of Tx.t
-	| BLOCK of Block.t option Lazy.t
+	| BLOCK of Block_lazy.t option
 	| HEADERS of headers
 	| GETADDR
 	| MEMPOOL

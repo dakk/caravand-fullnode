@@ -14,7 +14,7 @@ open Cqueue;;
 module Resource = struct
 	type t = 
 	| RES_TX of Tx.t
-	| RES_BLOCK of Block.t option Lazy.t
+	| RES_BLOCK of Block_lazy.t option
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
@@ -242,16 +242,6 @@ let rec verify_txs bc txs = match txs with
 
 (* https://en.bitcoin.it/wiki/Protocol_rules#.22block.22_messages *)
 let verify_block ?verifyheader:(verifyheader=false) bc lbh lb b =
-	(* TODO remove with bitcoinml 3.1 *)
-	let is_coinbase tx = 
-	if List.length tx.txin <> 1 then false
-	else
-		match (List.nth tx.txin 0) with
-		| i when i.out_hash = Hash.zero && i.out_n = (Uint32.sub Uint32.zero Uint32.one) -> (match i.script with
-			| ([OP_COINBASE (s)], l) when l >= 2 && l <= 100 -> true
-			| _ -> false)
-		| _ -> false
-	in	
 	(* Check header *)
 	((not verifyheader) || verify_block_header bc lbh lb.header b.header)
 	(* Transaction list must be non-empty *)
@@ -363,9 +353,8 @@ let loop bc =
 			(if bc.sync then bc.requests << Request.REQ_BLOCKS ([bs], Some (addr)));
 		| RES_INV_TX (txs, addr) ->
 			(if bc.sync && not (Mempool.has bc.mempool txs) then bc.requests << Request.REQ_TX (txs, Some (addr)));
-		| RES_BLOCK (bs) -> (
-			match Lazy.force bs with
-			| Some (b) -> consume_block (b)
+		| RES_BLOCK (bs) -> (match Block_lazy.force_option bs with
+			| Some (b) -> consume_block b
 			| None -> ())
 		| RES_TX (tx) -> Mempool.add bc.mempool tx |> ignore
 		| RES_HBLOCKS (hbs, addr) when List.length hbs = 0 -> ()
