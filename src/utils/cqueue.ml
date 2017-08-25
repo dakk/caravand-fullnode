@@ -1,5 +1,7 @@
+open Conv;;
+
 type 'a t = {
-	q			        :	'a Queue.t;
+	q			        	:	'a Queue.t;
 	qlock		        :	Mutex.t;
 	mutable qlast		:	float;
 };;
@@ -18,11 +20,17 @@ let clear q =
 	Mutex.unlock q.qlock;
 ;;
 
+let can_add q = if (Obj.reachable_words (Obj.repr q.q)) < 50000000 then true else false;;
+
 let add q e =
-	Mutex.lock q.qlock;
-	Queue.add e q.q;
-	q.qlast <- Unix.time ();
-	Mutex.unlock q.qlock;
+	if can_add q then (
+		Mutex.lock q.qlock;
+		Queue.add e q.q;
+		q.qlast <- Unix.time ();
+		Mutex.unlock q.qlock;
+	) else (
+		Printf.printf "dropping\n%!";
+	)
 ;;
 
 let (<<) q e = add q e;;

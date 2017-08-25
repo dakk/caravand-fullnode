@@ -9,7 +9,7 @@ type peerdest = None | Some of Unix.inet_addr | Broadcast
 module Resource : sig
 	type t = 
 	| RES_TX of Tx.t
-	| RES_BLOCK of Block.t
+	| RES_BLOCK of Block.t option Lazy.t
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr

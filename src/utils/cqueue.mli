@@ -1,5 +1,5 @@
 type 'a t = {
-	q			        :	'a Queue.t;
+	q								:	'a Queue.t;
 	qlock		        :	Mutex.t;
 	mutable qlast		:	float;
 }

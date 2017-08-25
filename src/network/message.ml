@@ -72,7 +72,7 @@ type t =
 	| GETBLOCKS of getblocks
 	| GETHEADERS of getheaders
 	| TX of Tx.t
-	| BLOCK of Block.t
+	| BLOCK of Block.t option Lazy.t
 	| HEADERS of headers
 	| GETADDR
 	| MEMPOOL
@@ -321,11 +321,7 @@ let parse header payload =
 		| rest, None -> INVALID
 		| rest, Some (tx) -> TX (tx)
 	)
-	| "block" -> (
-		match Block.parse payload with
-		| None -> INVALID
-		| Some (block) -> BLOCK (block)
-	)
+	| "block" -> BLOCK (lazy (Block.parse payload))
 	| "getdata" -> GETDATA (parse_getdata payload)
 	| "addr" -> ADDR
 	| "notfound" -> NOTFOUND (parse_notfound payload)
