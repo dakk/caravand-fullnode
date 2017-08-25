@@ -22,6 +22,7 @@ Letchain is directly connected to other 3 projects:
 - Prune-mode for low disk footprint
 - Segregated witness
 - Letchain-as-a-library for applications who need blockchain data
+- Lazy evaluation for block parsing which reduces memory footprint
 
 We are planning to integrate other cool features:
 - Bloom filtering and compactblock
