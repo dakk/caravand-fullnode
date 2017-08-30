@@ -9,7 +9,9 @@ type t = {
   chain       : Chain.t;
   net         : Net.t;
   chain_thread: Thread.t;
-  net_thread  : Thread.t;
+	net_thread  : Thread.t;
+	params			: Params.t;
+	conf				: Config.t;
 };;
 
 let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?loglevel:(loglevel=0) mode = 
@@ -36,7 +38,9 @@ let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?lo
       chain= bc;
       net= n;
       chain_thread= chain_thread;
-      net_thread= net_thread;
+			net_thread= net_thread;
+			params= p;
+			conf= conf;
     }
 ;;
 
@@ -53,6 +57,9 @@ let stop lc =
 	true
 ;;
 
+let get_network lc = lc.params.network;;
+
+let get_directory lc = lc.conf.base_path;;
 
 let join_threads lc = 
 	Thread.join lc.chain_thread;
