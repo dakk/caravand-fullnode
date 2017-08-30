@@ -2,5 +2,6 @@
 
 (library
  ((name        utils)
+  (public_name letchain.utils)
   (libraries (cryptokit threads yojson))))
 

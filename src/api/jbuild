@@ -2,5 +2,6 @@
 
 (library
  ((name        api)
+  (public_name letchain.api)
   (libraries (blockchain network yojson))))
 
