@@ -7,6 +7,7 @@ type t
 val init : ?directory:string -> ?network:string -> ?peers:int -> ?loglevel:int -> node_type -> t
 val stop : t -> bool
 
+val join_threads : t -> unit
 val is_synchronized : t -> bool
 val get_height : t -> Int64.t
 val get_last_block : t -> Block.t

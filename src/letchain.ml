@@ -54,6 +54,12 @@ let stop lc =
 ;;
 
 
+let join_threads lc = 
+	Thread.join lc.chain_thread;
+	Thread.join lc.net_thread
+;;
+
+
 let is_synchronized lc = lc.chain.sync;;
 
 let get_height lc = lc.chain.block_height;;
