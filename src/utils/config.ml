@@ -79,7 +79,8 @@ let parse_command_line conf =
 			parse ({ conf with 
 				peers= int_of_string x'
 			}) xl'
-		| "--prune" -> 
+		| "--prune" 
+		| "-r" -> 
 			Log.debug "Config" "Setting the prune size to: %s blocks" x';
 			let nblocks = int_of_string x' in
 			if nblocks < 1024 then (
