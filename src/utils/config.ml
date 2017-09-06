@@ -64,21 +64,15 @@ let parse_command_line conf =
 		| "-h" -> help conf
 		| "-ap" -> 
 			Log.debug "Config" "Setting api port from command line: %s" x';
-			parse ({ conf with 
-				api_port= int_of_string x'
-			}) xl'	
+			parse ({ conf with api_port= int_of_string x' }) xl'	
 		| "--log-level"
 		| "-ll" -> 
 			Log.debug "Config" "Setting the log level from command line: %s" x';
-			parse ({ conf with 
-				log_level= int_of_string x'
-			}) xl'
+			parse ({ conf with log_level= int_of_string x' }) xl'
 		| "--peer"
 		| "-p" -> 
 			Log.debug "Config" "Setting peer number to: %s" x';
-			parse ({ conf with 
-				peers= int_of_string x'
-			}) xl'
+			parse ({ conf with peers= int_of_string x' }) xl'
 		| "--prune" 
 		| "-r" -> 
 			Log.debug "Config" "Setting the prune size to: %s blocks" x';
@@ -87,16 +81,11 @@ let parse_command_line conf =
 				Log.error "Config" "Pruned blocks must be greater or equal to 1024";
 				failwith "Config error")
 			else
-				parse ({ conf with 
-					mode= PrunedNode (int_of_string x')
-				}) xl'
+				parse ({ conf with mode= PrunedNode (int_of_string x') }) xl'
 		| "--chain"
 		| "-c" -> 
 			Log.debug "Config" "Setting chain from command line: %s" x';
-			parse ({ conf with 
-				chain=x';
-				path= conf.base_path ^ "/" ^ x'
-			}) xl'
+			parse ({ conf with chain=x'; path= conf.base_path ^ "/" ^ x' }) xl'
 		| x -> parse conf (x'::xl')
 	in parse conf (Array.to_list Sys.argv)
 ;;
