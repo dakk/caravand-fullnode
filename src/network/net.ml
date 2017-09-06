@@ -77,10 +77,7 @@ let received n = Hashtbl.fold (fun k p c -> p.received + c) n.peers 0;;
 let loop n bc = 
 	Log.info "Network" "Starting mainloop.";
 	
-	Hashtbl.iter (fun k peer -> 
-		Thread.create (Peer.start peer) bc |> ignore; 
-		()
-	) n.peers;
+	Hashtbl.iter (fun k peer -> Thread.create (Peer.start peer) bc |> ignore) n.peers;
 					
 	while true do
 		Unix.sleep 2;
@@ -96,9 +93,7 @@ let loop n bc =
 			match (peer.status, peer.last_seen) with
 			| (WAITPING (rnd), x) when x < (Unix.time () -. 60. *. 2.0) ->
 				Peer.disconnect peer;
-				Log.info "Network" "Peer %s disconnected for inactivity" k;
-				if Hashtbl.length n.peers < 4 then ()
-				else ()
+				Log.info "Network" "Peer %s disconnected for inactivity" k
 			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 1.5) ->
 				let rnd = Random.int64 0xFFFFFFFFFFFFFFFL in
 				peer.status <- WAITPING (rnd);
@@ -111,24 +106,23 @@ let loop n bc =
 		(* Reconnect if the minimum is reached *)		
 		match connected_weighted_peers n with
 		| cp when cp < n.config.peers ->
-			let rec iterate_connect addrs nc = 
-				match List.length addrs with
-				| 0 -> 0
-				| _ ->
-					let rindex = Random.int (List.length addrs) in
-					let a = List.nth addrs rindex in	
-					try 
-						Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
-						iterate_connect addrs nc
-					with
-					| Not_found ->
-						let peer = Peer.create n.params n.config a n.params.port in
-						Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
-						Thread.create (Peer.start peer) bc |> ignore; 
-						(match nc with
-						| 1 -> 1
-						| nc' -> 1 + (iterate_connect n.addrs @@ nc' - 1))
-					| _ -> 0
+			let rec iterate_connect addrs nc = match List.length addrs with
+			| 0 -> 0
+			| _ ->
+				let rindex = Random.int (List.length addrs) in
+				let a = List.nth addrs rindex in	
+				try 
+					Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
+					iterate_connect addrs nc
+				with
+				| Not_found ->
+					let peer = Peer.create n.params n.config a n.params.port in
+					Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
+					Thread.create (Peer.start peer) bc |> ignore; 
+					(match nc with
+					| 1 -> 1
+					| nc' -> 1 + (iterate_connect n.addrs @@ nc' - 1))
+				| _ -> 0
 			in
 			Log.warn "Network" "Peers below the number of peers";
 			let nc = iterate_connect n.addrs @@ n.config.peers - cp in
@@ -146,11 +140,8 @@ let loop n bc =
 				| None -> ()
 				| Some (p) -> Peer.send p @@ Message.HEADERS (hl))
 			| Chain.Request.REQ_HBLOCKS (h, addr)	->
-				let msg = {
-					version= Int32.of_int 1;
-					hashes= h;
-					stop= Hash.zero;
-				} in send n @@ Message.GETHEADERS (msg)
+				let msg = { version= Int32.of_int 1; hashes= h; stop= Hash.zero; } in 
+				send n @@ Message.GETHEADERS (msg)
 			| Chain.Request.REQ_TX (txh, Some (addr)) -> (
 				match peer_of_addr n addr with
 				| None -> ()
