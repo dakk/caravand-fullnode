@@ -446,8 +446,13 @@ let loop bc =
 			) else true			
 		)) bc.branches;
 
-		(* TODO Check if a branch need updates (HBLOCKS) *)
-		
+		(* Check if a branch need updates (HBLOCKS) *)
+		List.iter (fun b ->
+			if b.Branch.header_last.time < (Unix.time () -. 60. *. 10.) then (
+				bc.requests << Request.REQ_HBLOCKS ([b.Branch.header_last.hash], None)
+			)
+		) bc.branches;
+			
 		(* Check if a branch is longer than the best chain *)
 		(match Branch.best_branch bc.branches with
 		| None -> ()
