@@ -353,6 +353,14 @@ let loop bc =
 		check_branch_updates blazy.header; ()
 	| (blazy, block, hl) -> ()
 	in
+	let consume_header h = 
+		if verify_block_header bc bc.header_height bc.header_last h then (
+			(* Insert in the chain *)
+			bc.header_last <- h;
+			bc.header_height <- Int64.succ bc.header_height;
+			Storage.insert_header bc.storage bc.header_height bc.header_last
+		) else ( check_branch_updates h )
+	in
 	
 	while true do (
 		Unix.sleep 4;
@@ -371,14 +379,7 @@ let loop bc =
 		| RES_HBLOCKS (hbs, addr) when List.length hbs = 0 -> ()
 		| RES_HBLOCKS (hbs, addr) -> (
 			Log.debug "Blockchain ←" "Headers %d" (List.length hbs);
-			List.iter (fun h -> 
-				if verify_block_header bc bc.header_height bc.header_last h then (
-					(* Insert in the chain *)
-					bc.header_last <- h;
-					bc.header_height <- Int64.succ bc.header_height;
-					Storage.insert_header bc.storage bc.header_height bc.header_last
-				) else ( check_branch_updates h )
-			) @@ List.rev hbs;
+			List.iter (fun h -> consume_header h) @@ List.rev hbs;
 			Storage.sync bc.storage	
 		)
 		) |> ignore;
@@ -458,18 +459,27 @@ let loop bc =
 		| None -> ()
 		| Some (br) when br.header_height <= bc.header_height -> ()
 		| Some (br) when br.header_height > bc.header_height ->
-			let rec rollback () =
+			let rec rollback rolled =
 				rollback_block bc;
 				match bc.header_last.hash with
-				| l when l = br.fork_hash -> ()
-				| l -> rollback ()
+				| l when l = br.fork_hash -> rolled
+				| l -> rollback @@ (bc.header_last) :: rolled 
 			in
 			Log.info "Branch" "Found that branch %s is the main branch, rollback" bc.header_last.hash;
-			rollback ();
-			(* TODO Move old blocks to new branch *)
-			(* TODO Push branch headers to the main branch *)
+			let rolled_back = rollback [] in
 
+			(* Push branch headers to the main branch *)
+			List.iter (fun h -> consume_header h) br.header_list;
+
+			(* Remove branch *)
 			bc.branches <- (List.filter (fun bi -> br.fork_hash <> bi.Branch.fork_hash) bc.branches);
+
+			(* Move old blocks to new branch *)
+			let branch = Branch.create (List.hd rolled_back).hash bc.header_height @@ List.hd rolled_back in
+			List.iter (fun h -> Branch.push branch h |> ignore) @@ List.tl rolled_back;
+			bc.branches <- bc.branches @ [ branch ];
+			Storage.update_branches bc.storage bc.branches;
+
 			()
 		| _ -> ()
 		);
