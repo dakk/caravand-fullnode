@@ -99,7 +99,7 @@ let genesis path config p =
 				version			= Int32.zero;
 				prev_block	= Hash.zero;
 				merkle_root	= Hash.zero;
-				bits				= Uint32.zero;
+				bits				= "ffffff";
 				nonce				= Uint32.zero
 			}
 		};
@@ -182,7 +182,7 @@ let verify_block_header bc lhh lh h =
 	(* Check if prev block (matching prev hash) is in main branch or side branches. *)
 	h.Header.prev_block = lh.Header.hash  
 	(* Block hash must satisfy claimed nBits proof of work *)
-	(*&& Block.Header.check_target h*)
+	&& Block.Header.check_target h
 	(* Block timestamp must not be more than two hours in the future *)
 	&& h.Header.time < (Unix.time () +. 60. *. 60. *. 2.)
 	(* Check that hash matches known values *)
@@ -359,7 +359,9 @@ let loop bc =
 			bc.header_last <- h;
 			bc.header_height <- Int64.succ bc.header_height;
 			Storage.insert_header bc.storage bc.header_height bc.header_last
-		) else ( check_branch_updates h )
+		) else ( 
+			if Block.Header.check_target h then check_branch_updates h else ()
+		)
 	in
 	
 	while true do (
