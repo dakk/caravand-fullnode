@@ -116,6 +116,14 @@ let handle_request bc net req =
 			("utxo", `List assoc)
 		])
 
+	| (Request.GET, "tx" :: txid :: "raw" :: []) ->
+		(match Storage.get_tx bc.storage txid with 
+		| None -> not_found ()
+		| Some (tx) -> (
+			let txhex = Tx.serialize tx |> Hash.of_bin_norev in
+			Request.reply req 200 (`Assoc [ ("hex", `String txhex) ]))
+		)
+
 	(* Get tx info *)
 	| (Request.GET, "tx" :: txid :: []) -> 
 		let rec inputs_to_jsonlist inputs = match inputs with
