@@ -107,7 +107,9 @@ let rec load_or_init base_path =
 		} in
 		try
 			Unix.mkdir (base_path ^ "/" ^ conf.chain) 0o777;
-			Log.debug "Config" "Created %s" (base_path ^ "/" ^ conf.chain);
+			Unix.mkdir (base_path ^ "/" ^ conf.chain ^ "/blocks") 0o777;
+			Unix.mkdir (base_path ^ "/" ^ conf.chain ^ "/state") 0o777;
+			Log.debug "Config" "Created %s [/blocks, /state]" (base_path ^ "/" ^ conf.chain);
 			conf
 		with
 		| _ -> conf			

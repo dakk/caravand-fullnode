@@ -48,8 +48,10 @@ end
 
 type t = {
 	chainstate		:	Chainstate.t;
-	db       			: LevelDB.db;
-	mutable batch : LevelDB.writebatch;
+	dbblocks 			: LevelDB.db;
+	dbstate  			: LevelDB.db;
+	mutable batchblocks : LevelDB.writebatch;
+	mutable batchstate 	: LevelDB.writebatch;
 }
 
 
