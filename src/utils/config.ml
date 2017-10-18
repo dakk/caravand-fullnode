@@ -45,7 +45,7 @@ let parse_command_line conf =
 		Printf.printf " -p 12, --peer 12\tSet the number of peers\n"; 
 		Printf.printf " -r 1024, --prune 1024\tPrune to a custom number of blocks\n"; 
 		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
-		Printf.printf " -ap 807\t\t\tSelect api port\n%!";  
+		Printf.printf " -ap 8087\t\t\tSelect api port\n%!";  
 		Printf.printf " -ll 5, --log-level 5\tSet the log level\n%!";  
 		Thread.exit (); 
 		conf
