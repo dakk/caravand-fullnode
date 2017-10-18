@@ -559,7 +559,8 @@ let remove_last_block storage config params prevhash =
 						(match Tx.Out.spendable_by utx params.Params.prefixes with
 						| None -> ()
 						| Some (addr) -> 
-							Address.add_utxo storage.batch_state addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
+							(* TODO: This add utxo has a wrong value *)
+							Address.add_utxo storage.batch_state addr ins.In.out_hash (Uint32.to_int ins.In.out_n) Int64.zero;
 							Address.remove_tx storage.batch_state addr tx.Tx.hash block.header.time;
 
 							let addrd = Address.load_or_create storage.db_state addr in
