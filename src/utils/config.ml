@@ -90,39 +90,43 @@ let parse_command_line conf =
 	in parse conf (Array.to_list Sys.argv)
 ;;
 
+let create_dirs conf =
+	try
+		Unix.mkdir (conf.base_path ^ "/" ^ conf.chain) 0o777;
+		Unix.mkdir (conf.base_path ^ "/" ^ conf.chain ^ "/blocks") 0o777;
+		Unix.mkdir (conf.base_path ^ "/" ^ conf.chain ^ "/state") 0o777;
+		Log.debug "Config" "Created %s [/blocks, /state]" (conf.base_path ^ "/" ^ conf.chain);
+		true
+	with
+	| _ -> false
+;;
+
 let rec load_or_init base_path = 
 	try
-		let json = Yojson.Basic.from_file (base_path ^ "/config.json") in
-		Log.info "Config" "Loaded %s" (base_path ^ "/config.json");
-		let conf = {
-			base_path= base_path;
-			peers= json |> member "peers" |> to_int;
-			chain= json |> member "chain" |> to_string;
-			api_port= json |> member "api_port" |> to_int;
-			path= base_path ^ (json |> member "chain" |> to_string);
-			address_index= true;
-			tx_index= true;
-			mode= FullNode;
-			log_level= 4;
-		} in
-		try
-			Unix.mkdir (base_path ^ "/" ^ conf.chain) 0o777;
-			Unix.mkdir (base_path ^ "/" ^ conf.chain ^ "/blocks") 0o777;
-			Unix.mkdir (base_path ^ "/" ^ conf.chain ^ "/state") 0o777;
-			Log.debug "Config" "Created %s [/blocks, /state]" (base_path ^ "/" ^ conf.chain);
-			conf
-		with
-		| _ -> conf			
+		Unix.mkdir base_path 0o777;
+		Log.debug "Config" "Created directory %s" base_path;
+		load_or_init base_path
 	with
 	| _ -> 
 		try
+			let json = Yojson.Basic.from_file (base_path ^ "/config.json") in
+			Log.info "Config" "Loaded %s" (base_path ^ "/config.json");
+			{
+				base_path= base_path;
+				peers= json |> member "peers" |> to_int;
+				chain= json |> member "chain" |> to_string;
+				api_port= json |> member "api_port" |> to_int;
+				path= base_path ^ (json |> member "chain" |> to_string);
+				address_index= true;
+				tx_index= true;
+				mode= FullNode;
+				log_level= 4;
+			}
+		with
+		| _ ->
 			let json = Yojson.Basic.from_string "{ \"peers\": 6, \"chain\": \"XTN\", \"api_port\": 8086 }" in 
 			let _ = Yojson.Basic.to_file (base_path ^ "/config.json") json in
 			Log.debug "Config" "Created %s" (base_path ^ "/config.json");
 			load_or_init base_path
-		with
-		| _ -> 
-			Unix.mkdir base_path 0o777;
-			Log.debug "Config" "Created directory %s" base_path;
-			load_or_init base_path
+
 ;;

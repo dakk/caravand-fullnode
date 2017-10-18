@@ -19,3 +19,4 @@ type t = {
 val parse_base_path			: unit -> string
 val load_or_init				:	string -> t
 val parse_command_line	: t -> t
+val create_dirs					: t -> bool
