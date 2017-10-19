@@ -476,10 +476,13 @@ let loop bc =
 			(* Remove branch *)
 			bc.branches <- (List.filter (fun bi -> br.fork_hash <> bi.Branch.fork_hash) bc.branches);
 
-			(* Move old blocks to new branch *)
-			let branch = Branch.create (List.hd rolled_back).hash bc.header_height @@ List.hd rolled_back in
-			List.iter (fun h -> Branch.push branch h |> ignore) @@ List.tl rolled_back;
-			bc.branches <- bc.branches @ [ branch ];
+			(* Move old blocks (if any) to new branch *)
+			if List.length rolled_back > 0 then (
+				let branch = Branch.create (List.hd rolled_back).hash bc.header_height @@ List.hd rolled_back in
+				List.iter (fun h -> Branch.push branch h |> ignore) @@ List.tl rolled_back;
+				bc.branches <- bc.branches @ [ branch ];
+			);
+
 			Storage.update_branches bc.storage bc.branches;
 
 			()

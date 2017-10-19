@@ -86,11 +86,11 @@ let handle_request bc net req =
 			("status", `String "ok");
 			("address", `Assoc [
 				("address", `String addr);
-				("balance", `String (Uint64.to_string ad.balance));
-				("unconfirmed_balance", `String (Uint64.to_string @@ Uint64.zero));
-				("sent", `String (Uint64.to_string ad.sent));
-				("received", `String (Uint64.to_string ad.received));
-				("txs", `String (Uint64.to_string ad.txs))				
+				("balance", `String (Int64.to_string ad.balance));
+				("unconfirmed_balance", `String (Int64.to_string @@ Int64.zero));
+				("sent", `String (Int64.to_string ad.sent));
+				("received", `String (Int64.to_string ad.received));
+				("txs", `String (Int64.to_string ad.txs))				
 			])
 		])
 

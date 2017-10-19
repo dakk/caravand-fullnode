@@ -9,11 +9,11 @@ open Utils
 
 module Address : sig
 	type t = {
-		mutable balance		: uint64;
-		mutable sent			: uint64;
-		mutable received	: uint64;
-		mutable txs				: uint64;
-		mutable utxs			: uint64;
+		mutable balance		: int64;
+		mutable sent			: int64;
+		mutable received	: int64;
+		mutable txs				: int64;
+		mutable utxs			: int64;
 	}
 
 	type utx = string * int * int64

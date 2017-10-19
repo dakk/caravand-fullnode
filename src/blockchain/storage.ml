@@ -9,11 +9,11 @@ open Config;;
 
 module Address = struct
 	type t = {
-		mutable balance			: uint64;
-		mutable sent			: uint64;
-		mutable received		: uint64;
-		mutable txs				: uint64;
-		mutable utxs			: uint64;
+		mutable balance		: int64;
+		mutable sent			: int64;
+		mutable received	: int64;
+		mutable txs				: int64;
+		mutable utxs			: int64;
 	};;
 
 	type utx = string * int * int64;;
@@ -22,28 +22,28 @@ module Address = struct
 		let bdata = Bitstring.bitstring_of_string data in
 		match%bitstring bdata with
 		| {|
-			balance		: 64 	: string;
-			sent			: 64 	: string;
-			received	: 64	: string;
-			txs				: 64	: string;
-			utxs			: 64	: string
+			balance		: 64 	: littleendian;
+			sent			: 64 	: littleendian;
+			received	: 64	: littleendian;
+			txs				: 64	: littleendian;
+			utxs			: 64	: littleendian
 		|} ->
 		{
-			balance		= Uint64.of_bytes_little_endian balance 0;
-			sent		= Uint64.of_bytes_little_endian sent 0;
-			received	= Uint64.of_bytes_little_endian received 0;
-			txs			= Uint64.of_bytes_little_endian txs 0;
-			utxs		= Uint64.of_bytes_little_endian utxs 0;
+			balance		= balance;
+			sent		= sent;
+			received	= received;
+			txs			= txs;
+			utxs		= utxs;
 		}
 	;;
 
 	let serialize addr = 
 		let bs = [%bitstring {|
-			Uint64.to_int64 addr.balance	: 64 : littleendian;
-			Uint64.to_int64 addr.sent	  	: 64 : littleendian;
-			Uint64.to_int64 addr.received	: 64 : littleendian;
-			Uint64.to_int64 addr.txs	  	: 64 : littleendian;
-			Uint64.to_int64 addr.utxs	  	: 64 : littleendian
+			addr.balance	: 64 : littleendian;
+			addr.sent	  	: 64 : littleendian;
+			addr.received	: 64 : littleendian;
+			addr.txs	  	: 64 : littleendian;
+			addr.utxs	  	: 64 : littleendian
 		|}] in Bitstring.string_of_bitstring bs
 	;;
 
@@ -105,11 +105,11 @@ module Address = struct
 
 	let load_or_create db addr =
 		let empty = {
-			balance		= Uint64.zero;
-			sent		= Uint64.zero;
-			received	= Uint64.zero;
-			txs			= Uint64.zero;
-			utxs		= Uint64.zero;
+			balance		= Int64.zero;
+			sent		= Int64.zero;
+			received	= Int64.zero;
+			txs			= Int64.zero;
+			utxs		= Int64.zero;
 		} in
 		let key = "adr_" ^ addr in
 		if LevelDB.mem db key then 
@@ -354,10 +354,10 @@ let insert_block storage config params height (block : Block.t) =
 					Address.add_tx storage.batch_state addr tx.Tx.hash block.header.time;
 						
 					let addrd = Address.load_or_create storage.db_state addr in
-					addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
-					addrd.utxs <- Uint64.add addrd.utxs @@ Uint64.one;
-					addrd.received <- Uint64.add addrd.received @@ Uint64.of_int64 out.value;
-					addrd.balance <- Uint64.add addrd.balance @@ Uint64.of_int64 out.value;
+					addrd.txs <- Int64.add addrd.txs Int64.one;
+					addrd.utxs <- Int64.add addrd.utxs Int64.one;
+					addrd.received <- Int64.add addrd.received out.value;
+					addrd.balance <- Int64.add addrd.balance out.value;
 					Address.save storage.batch_state addr addrd)
 			)
 		) tx.txout;
@@ -382,10 +382,10 @@ let insert_block storage config params height (block : Block.t) =
 								Address.add_tx storage.batch_state addr tx.Tx.hash block.header.time;
 
 								let addrd = Address.load_or_create storage.db_state addr in
-								addrd.txs <- Uint64.add addrd.txs @@ Uint64.one;
-								addrd.sent <- Uint64.add addrd.sent @@ Uint64.of_int64 utx.value;
-								addrd.balance <- Uint64.sub addrd.balance @@ Uint64.of_int64 utx.value;
-								addrd.utxs <- Uint64.sub addrd.utxs @@ Uint64.one;
+								addrd.txs <- Int64.add addrd.txs Int64.one;
+								addrd.sent <- Int64.add addrd.sent utx.value;
+								addrd.balance <- Int64.sub addrd.balance utx.value;
+								addrd.utxs <- Int64.sub addrd.utxs Int64.one;
 								Address.save storage.batch_state addr addrd
 							);
 
@@ -492,13 +492,13 @@ let get_address storage addr = Address.load_or_create storage.db_state addr;;
 
 let get_address_utxs storage addr = 
 	let a = get_address storage addr in
-	Address.get_utxos storage.db_state addr (Uint64.to_int a.utxs)
+	Address.get_utxos storage.db_state addr (Int64.to_int a.utxs)
 ;;
 
 
 let get_address_txs storage addr = 
 	let a = get_address storage addr in
-	Address.get_txs storage.db_state addr (Uint64.to_int a.txs)
+	Address.get_txs storage.db_state addr (Int64.to_int a.txs)
 ;;
 
 
@@ -538,10 +538,10 @@ let remove_last_block storage config params prevhash =
 						Address.remove_tx storage.batch_blocks addr tx.Tx.hash block.header.time;
 							
 						let addrd = Address.load_or_create storage.db_state addr in
-						addrd.txs <- Uint64.sub addrd.txs @@ Uint64.one;
-						addrd.utxs <- Uint64.sub addrd.utxs @@ Uint64.one;
-						addrd.received <- Uint64.sub addrd.received @@ Uint64.of_int64 out.value;
-						addrd.balance <- Uint64.sub addrd.balance @@ Uint64.of_int64 out.value;
+						addrd.txs <- Int64.sub addrd.txs Int64.one;
+						addrd.utxs <- Int64.sub addrd.utxs Int64.one;
+						addrd.received <- Int64.sub addrd.received out.value;
+						addrd.balance <- Int64.sub addrd.balance out.value;
 						Address.save storage.batch_state addr addrd)
 				)
 			) tx.txout;
@@ -564,10 +564,10 @@ let remove_last_block storage config params prevhash =
 							Address.remove_tx storage.batch_state addr tx.Tx.hash block.header.time;
 
 							let addrd = Address.load_or_create storage.db_state addr in
-							addrd.txs <- Uint64.sub addrd.txs @@ Uint64.one;
-							addrd.sent <- Uint64.sub addrd.sent @@ Uint64.of_int64 utx.value;
-							addrd.balance <- Uint64.add addrd.balance @@ Uint64.of_int64 utx.value;
-							addrd.utxs <- Uint64.add addrd.utxs @@ Uint64.one;
+							addrd.txs <- Int64.sub addrd.txs Int64.one;
+							addrd.sent <- Int64.sub addrd.sent utx.value;
+							addrd.balance <- Int64.add addrd.balance utx.value;
+							addrd.utxs <- Int64.add addrd.utxs Int64.one;
 							Address.save storage.batch_state addr addrd
 						);
 
