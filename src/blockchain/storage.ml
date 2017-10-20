@@ -329,6 +329,25 @@ let insert_block storage config params height (block : Block.t) =
 		| _ -> ()
 	in
 
+	(* Utilities for address caching *)
+	let address_tbl = Hashtbl.create 16 in
+	let address_load_temp address = 
+		match Hashtbl.mem address_tbl address with
+		| false -> 
+			let addr = Address.load_or_create storage.db_state address in
+			Hashtbl.add address_tbl address addr;
+			addr
+		| true -> Hashtbl.find address_tbl address
+	in
+	let address_save_temp address addr =
+		Hashtbl.replace address_tbl address addr
+	in
+	let address_sync_temp () =
+		Hashtbl.iter (fun address addr -> 
+			Address.save storage.batch_state address addr
+		) address_tbl
+	in
+
 	Batch.put storage.batch_blocks ("blk_" ^ Hash.to_bin_norev block.header.hash) @@ Block.serialize block;
 	storage.chainstate.block <- block.header.hash;
 
@@ -353,14 +372,13 @@ let insert_block storage config params height (block : Block.t) =
 					Address.add_utxo storage.batch_state addr tx.Tx.hash i out.value;
 					Address.add_tx storage.batch_state addr tx.Tx.hash block.header.time;
 						
-					let addrd = Address.load_or_create storage.db_state addr in
+					let addrd = address_load_temp addr in
 					addrd.txs <- Int64.add addrd.txs Int64.one;
 					addrd.utxs <- Int64.add addrd.utxs Int64.one;
 					addrd.received <- Int64.add addrd.received out.value;
 					addrd.balance <- Int64.add addrd.balance out.value;
-					Address.save storage.batch_state addr addrd);
-
-					Batch.write storage.db_state storage.batch_state
+					address_save_temp addr addrd
+				)
 			)
 		) tx.txout;
 
@@ -383,17 +401,16 @@ let insert_block storage config params height (block : Block.t) =
 								Address.remove_utxo storage.batch_state addr ins.In.out_hash (Uint32.to_int ins.In.out_n);
 								Address.add_tx storage.batch_state addr tx.Tx.hash block.header.time;
 
-								let addrd = Address.load_or_create storage.db_state addr in
+								let addrd = address_load_temp addr in
 								addrd.txs <- Int64.add addrd.txs Int64.one;
 								addrd.sent <- Int64.add addrd.sent utx.value;
 								addrd.balance <- Int64.sub addrd.balance utx.value;
 								addrd.utxs <- Int64.sub addrd.utxs Int64.one;
-								Address.save storage.batch_state addr addrd;
+								address_save_temp addr addrd
 							);
 
 							Batch.delete storage.batch_state key;
-							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one;
-							Batch.write storage.db_state storage.batch_state
+							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
 						);
 			)
 		) tx.txin;
@@ -407,6 +424,7 @@ let insert_block storage config params height (block : Block.t) =
 	| _ -> ()
 	);
 
+	address_sync_temp;
 	save_cs storage;
 	sync storage
 ;;
