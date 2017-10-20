@@ -424,7 +424,7 @@ let insert_block storage config params height (block : Block.t) =
 	| _ -> ()
 	);
 
-	address_sync_temp;
+	address_sync_temp ();
 	save_cs storage;
 	sync storage
 ;;
