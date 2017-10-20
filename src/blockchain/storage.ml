@@ -358,7 +358,9 @@ let insert_block storage config params height (block : Block.t) =
 					addrd.utxs <- Int64.add addrd.utxs Int64.one;
 					addrd.received <- Int64.add addrd.received out.value;
 					addrd.balance <- Int64.add addrd.balance out.value;
-					Address.save storage.batch_state addr addrd)
+					Address.save storage.batch_state addr addrd);
+
+					Batch.write storage.db_state storage.batch_state
 			)
 		) tx.txout;
 
@@ -386,11 +388,12 @@ let insert_block storage config params height (block : Block.t) =
 								addrd.sent <- Int64.add addrd.sent utx.value;
 								addrd.balance <- Int64.sub addrd.balance utx.value;
 								addrd.utxs <- Int64.sub addrd.utxs Int64.one;
-								Address.save storage.batch_state addr addrd
+								Address.save storage.batch_state addr addrd;
 							);
 
 							Batch.delete storage.batch_state key;
-							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
+							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one;
+							Batch.write storage.db_state storage.batch_state
 						);
 			)
 		) tx.txin;
