@@ -70,6 +70,50 @@ let handle_request bc net req =
 	let not_found () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 	
 	Log.debug "Api ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
+
+	let json_of_tx txid = 
+		let rec inputs_to_jsonlist inputs = match inputs with
+		| [] -> []
+		| i :: inp' ->
+			let utx = Storage.get_tx_output bc.storage i.out_hash (Uint32.to_int i.out_n) in
+			let inj = (match utx with 
+			| None -> `Assoc [ 
+				("out_tx", `String (i.out_hash));
+				("out_n", `Int (Uint32.to_int i.out_n))
+			]
+			| Some (utx) ->
+				let addr = match spendable_by utx bc.params.prefixes with None -> "" | Some (a) -> a in
+				`Assoc [
+					("out_tx", `String (i.out_hash));
+					("out_n", `Int (Uint32.to_int i.out_n));
+					("address", `String addr);
+					("value", `String (Int64.to_string utx.value))
+				] 
+			) in inj :: (inputs_to_jsonlist inp')
+		in
+		let rec outputs_to_jsonlist outputs = match outputs with
+		| [] -> []
+		| o :: out' ->
+			let addr = match spendable_by o bc.params.prefixes with None -> "" | Some (a) -> a in
+			let outj = `Assoc [
+				("address", `String addr);
+				("value", `String (Int64.to_string o.value))
+			] in outj :: (outputs_to_jsonlist out')
+		in
+		(match Storage.get_tx bc.storage txid with 
+		| None -> None
+		| Some (tx) -> (
+			let txheight = (match Storage.get_tx_height bc.storage txid with | None -> 0 | Some (n) -> n) in
+			let txtime = (match Storage.get_headeri bc.storage (Int64.of_int txheight) with | None -> 0.0 | Some (bh) -> bh.Header.time) in
+			Some (`Assoc [
+				("txid", `String txid);
+				("time", `Float txtime);
+				("confirmations", `Int ((Int64.to_int bc.block_height) - txheight));
+				("inputs", `List (inputs_to_jsonlist tx.txin));
+				("outputs", `List (outputs_to_jsonlist tx.txout))
+			])
+		))
+	in
 	match req.Request.rmethod, req.Request.uri with
 
 	(* Push a tx *)
@@ -103,6 +147,20 @@ let handle_request bc net req =
 			("txs", `List assoc)
 		])
 
+	(* Get address txs with full tx *)
+	| (Request.GET, "address" :: addr :: "txs" :: "?expand=true" :: []) -> 
+	let txl = Storage.get_address_txs bc.storage addr in
+	let rec txl_expand hashes acc = match hashes with
+	| [] -> acc
+	| hash :: hashes' -> match json_of_tx hash with
+		| None -> txl_expand hashes' acc
+		| Some (tx) -> txl_expand hashes' @@ acc @ [tx]
+	in
+	Request.reply req 200 (`Assoc [
+		("status", `String "ok");
+		("txs", `List (txl_expand txl []))
+	])
+
 	(* Get address utxo *)
 	| (Request.GET, "address" :: addr :: "utxo" :: []) -> 
 		let utxl = Storage.get_address_utxs bc.storage addr in
@@ -129,50 +187,14 @@ let handle_request bc net req =
 
 	(* Get tx info *)
 	| (Request.GET, "tx" :: txid :: []) -> 
-		let rec inputs_to_jsonlist inputs = match inputs with
-		| [] -> []
-		| i :: inp' ->
-			let utx = Storage.get_tx_output bc.storage i.out_hash (Uint32.to_int i.out_n) in
-			let inj = (match utx with 
-			| None -> `Assoc [ 
-				("out_tx", `String (i.out_hash));
-				("out_n", `Int (Uint32.to_int i.out_n))
-			]
-			| Some (utx) ->
-				let addr = match spendable_by utx bc.params.prefixes with None -> "" | Some (a) -> a in
-				`Assoc [
-					("out_tx", `String (i.out_hash));
-					("out_n", `Int (Uint32.to_int i.out_n));
-					("address", `String addr);
-					("value", `String (Int64.to_string utx.value))
-				] 
-			) in inj :: (inputs_to_jsonlist inp')
-		in
-		let rec outputs_to_jsonlist outputs = match outputs with
-		| [] -> []
-		| o :: out' ->
-			let addr = match spendable_by o bc.params.prefixes with None -> "" | Some (a) -> a in
-			let outj = `Assoc [
-				("address", `String addr);
-				("value", `String (Int64.to_string o.value))
-			] in outj :: (outputs_to_jsonlist out')
-		in
-		(match Storage.get_tx bc.storage txid with 
+		(match json_of_tx txid with
 		| None -> not_found ()
-		| Some (tx) -> (
-			let txheight = (match Storage.get_tx_height bc.storage txid with | None -> 0 | Some (n) -> n) in
-			let txtime = (match Storage.get_headeri bc.storage (Int64.of_int txheight) with | None -> 0.0 | Some (bh) -> bh.Header.time) in
+		| Some (tx) ->
 			Request.reply req 200 (`Assoc [
 				("status", `String "ok");
-				("tx", `Assoc [
-					("txid", `String txid);
-					("time", `Float txtime);
-					("confirmations", `Int ((Int64.to_int bc.block_height) - txheight));
-					("inputs", `List (inputs_to_jsonlist tx.txin));
-					("outputs", `List (outputs_to_jsonlist tx.txout))
-				])
+				("tx", tx)
 			])
-		))
+		)
 
 	(* Get block info by index *)
 	| (Request.GET, "block" :: "i" :: bli :: []) -> 
