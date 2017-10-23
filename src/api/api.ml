@@ -160,15 +160,14 @@ let handle_request bc net req =
 		(match Storage.get_tx bc.storage txid with 
 		| None -> not_found ()
 		| Some (tx) -> (
+			let txheight = (match Storage.get_tx_height bc.storage txid with | None -> 0 | Some (n) -> n) in
+			let txtime = (match Storage.get_headeri bc.storage (Int64.of_int txheight) with | None -> 0.0 | Some (bh) -> bh.Header.time) in
 			Request.reply req 200 (`Assoc [
 				("status", `String "ok");
 				("tx", `Assoc [
 					("txid", `String txid);
-					("confirmations", `Int (
-						match Storage.get_tx_height bc.storage txid with
-						| None -> 0
-						| Some (n) -> (Int64.to_int bc.block_height) - n
-					));
+					("time", `Float txtime);
+					("confirmations", `Int ((Int64.to_int bc.block_height) - txheight));
 					("inputs", `List (inputs_to_jsonlist tx.txin));
 					("outputs", `List (outputs_to_jsonlist tx.txout))
 				])
