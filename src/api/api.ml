@@ -174,6 +174,7 @@ let handle_request bc net req =
 			("utxo", `List assoc)
 		])
 
+	(* Get a raw tx *)
 	| (Request.GET, "tx" :: txid :: "raw" :: []) ->
 		(match Storage.get_tx bc.storage txid with 
 		| None -> not_found ()
