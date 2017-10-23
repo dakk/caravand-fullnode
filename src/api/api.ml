@@ -121,7 +121,10 @@ let handle_request bc net req =
 		| None -> not_found ()
 		| Some (tx) -> (
 			let txhex = Tx.serialize tx |> Hash.of_bin_norev in
-			Request.reply req 200 (`Assoc [ ("hex", `String txhex) ]))
+			Request.reply req 200 (`Assoc [
+					("status", `String "ok"); 
+					("hex", `String txhex)
+			]))
 		)
 
 	(* Get tx info *)
