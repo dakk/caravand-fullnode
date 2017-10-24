@@ -114,6 +114,7 @@ let handle_request bc net req =
 			])
 		))
 	in
+	
 	match req.Request.rmethod, req.Request.uri with
 
 	(* Push a tx *)
@@ -148,7 +149,7 @@ let handle_request bc net req =
 		])
 
 	(* Get address txs with full tx *)
-	| (Request.GET, "address" :: addr :: "txs" :: "?expand=true" :: []) -> 
+	| (Request.GET, "address" :: addr :: "txs" :: "expanded" :: []) -> 
 	let txl = Storage.get_address_txs bc.storage addr in
 	let rec txl_expand hashes acc = match hashes with
 	| [] -> acc
