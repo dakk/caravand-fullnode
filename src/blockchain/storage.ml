@@ -286,6 +286,7 @@ end
 
 
 
+
 let update_branches storage blist = 
 	storage.chainstate.branches <- blist;
 	save_cs storage
@@ -359,6 +360,7 @@ let insert_block storage config params height (block : Block.t) =
 
 	(* Utilities for address caching *)
 	let addrcache = Addresscache.create () in
+	let utxcache = Hashtbl.create 16 in
 
 	Batch.put storage.batch_blocks ("blk_" ^ Hash.to_bin_norev block.header.hash) @@ Block.serialize block;
 	storage.chainstate.block <- block.header.hash;
@@ -376,6 +378,8 @@ let insert_block storage config params height (block : Block.t) =
 		List.iteri (fun i out -> 
 			if Tx.Out.is_spendable out then (
 				Batch.put storage.batch_state ("utx_" ^ Hash.to_bin_norev tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
+				Hashtbl.add utxcache ("utx_" ^ Hash.to_bin_norev tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
+
 				storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
 
 				(match Tx.Out.spendable_by out params.Params.prefixes with
@@ -396,10 +400,14 @@ let insert_block storage config params height (block : Block.t) =
 
 
 		(* Remove utxo and user utxo, set balances *)
+		let get_utx key = 
+			if LevelDB.mem storage.db_state key then (LevelDB.get storage.db_state key) 
+			else if (Hashtbl.mem utxcache key) then (Some (Hashtbl.find utxcache key)) 
+			else (None)
+		in
 		List.iter (fun ins -> 
 			let key = "utx_" ^ Hash.to_bin_norev ins.In.out_hash ^ string_of_int (Uint32.to_int ins.In.out_n) in
-			if LevelDB.mem storage.db_state key then (
-				match LevelDB.get storage.db_state key with
+			(match get_utx key with
 				| None -> ()
 				| Some (utx) -> 
 					let rest, utx = Tx.Out.parse @@ Bitstring.bitstring_of_string utx in
@@ -421,6 +429,7 @@ let insert_block storage config params height (block : Block.t) =
 								Addresscache.save addrcache addr addrd
 							);
 
+							Hashtbl.remove utxcache key;
 							Batch.delete storage.batch_state key;
 							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
 						);
@@ -448,6 +457,7 @@ let get_utx	storage tx index =
 	| Some (data) -> 
 		match Tx.Out.parse (Bitstring.bitstring_of_string data) with
 		| (rest, txo) -> txo
+		| _ -> None
 ;;
 
 let get_tx storage txhash =
