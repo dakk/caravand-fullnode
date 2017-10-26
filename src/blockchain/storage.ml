@@ -358,8 +358,10 @@ let insert_block storage config params height (block : Block.t) =
 		| _ -> ()
 	in
 
-	(* Utilities for address caching *)
+	(* Address caching, to handle many modification of the same address in the same block*)
 	let addrcache = Addresscache.create () in
+
+	(* Utx cache, so an output can be spent in the same block *)
 	let utxcache = Hashtbl.create 16 in
 
 	Batch.put storage.batch_blocks ("blk_" ^ Hash.to_bin_norev block.header.hash) @@ Block.serialize block;
@@ -377,8 +379,10 @@ let insert_block storage config params height (block : Block.t) =
 		(* Insert utxo and user utxo, set balances *)
 		List.iteri (fun i out -> 
 			if Tx.Out.is_spendable out then (
-				Batch.put storage.batch_state ("utx_" ^ Hash.to_bin_norev tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
-				Hashtbl.add utxcache ("utx_" ^ Hash.to_bin_norev tx.Tx.hash ^ string_of_int i) @@ Tx.Out.serialize out;
+				let utx_key = "utx_" ^ Hash.to_bin_norev tx.Tx.hash ^ string_of_int i in 
+				let utx_ser = Tx.Out.serialize out in
+				Batch.put storage.batch_state utx_key utx_ser;
+				Hashtbl.add utxcache utx_key utx_ser;
 
 				storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
 
@@ -399,15 +403,16 @@ let insert_block storage config params height (block : Block.t) =
 		) tx.txout;
 
 
-		(* Remove utxo and user utxo, set balances *)
+		(* Get utx; if not present in the db, try to find it in the cache *)
 		let get_utx key = 
 			if LevelDB.mem storage.db_state key then (LevelDB.get storage.db_state key) 
 			else if (Hashtbl.mem utxcache key) then (Some (Hashtbl.find utxcache key)) 
 			else (None)
 		in
+		(* Remove utxo and user utxo, set balances *)
 		List.iter (fun ins -> 
-			let key = "utx_" ^ Hash.to_bin_norev ins.In.out_hash ^ string_of_int (Uint32.to_int ins.In.out_n) in
-			(match get_utx key with
+			let utx_key = "utx_" ^ Hash.to_bin_norev ins.In.out_hash ^ string_of_int (Uint32.to_int ins.In.out_n) in
+			(match get_utx utx_key with
 				| None -> ()
 				| Some (utx) -> 
 					let rest, utx = Tx.Out.parse @@ Bitstring.bitstring_of_string utx in
@@ -429,8 +434,8 @@ let insert_block storage config params height (block : Block.t) =
 								Addresscache.save addrcache addr addrd
 							);
 
-							Hashtbl.remove utxcache key;
-							Batch.delete storage.batch_state key;
+							Hashtbl.remove utxcache utx_key;
+							Batch.delete storage.batch_state utx_key;
 							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
 						);
 			)
