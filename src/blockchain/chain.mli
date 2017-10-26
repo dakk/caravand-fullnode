@@ -14,6 +14,7 @@ module Resource : sig
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
 	| REQ_HBLOCKS of Hash.t list * Hash.t * Unix.inet_addr
+	| REQ_TX of Hash.t * Unix.inet_addr
 end
 
 module Request : sig
@@ -23,6 +24,8 @@ module Request : sig
 	| REQ_HBLOCKS of Hash.t list * Unix.inet_addr option
 	| REQ_DATA of Hash.t list * Unix.inet_addr option
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
+	| RES_INV_TX of Hash.t
+	| RES_TX of Tx.t * Unix.inet_addr
 end	
 
 
@@ -70,3 +73,6 @@ val load			: string -> Config.t -> Params.t -> t
 
 (* Start the event loop for blockchain *)
 val loop			: t -> unit
+
+
+val broadcast_tx : t -> Tx.t -> unit

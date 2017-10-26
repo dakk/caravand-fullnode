@@ -67,6 +67,7 @@ let peer_of_addr n addr =
 	with | _ -> None
 ;;
 
+
 let connected_weighted_peers n = int_of_float (Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | WAITPING (x) -> c +. 0.5 | _ -> c +. 1.0)) n.peers 0.0);;
 let connected_peers n = Hashtbl.fold (fun k p c -> (match p.status with | DISCONNECTED -> c | _ -> c + 1)) n.peers 0;;
 let waitping_peers n = Hashtbl.fold (fun k p c -> (match p.status with | WAITPING (x) -> c + 1 | _ -> c)) n.peers 0;;
@@ -135,10 +136,17 @@ let loop n bc =
 		(*Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);*)
 		if available_peers n <> 0 then
 			Cqueue.iter bc.requests (fun req -> match req with
+			| Chain.Request.RES_INV_TX (txh) -> 
+				let msg = Message.INV [ (Message.INV_TX txh) ] in
+				Hashtbl.iter (fun k p -> Peer.send p msg) n.peers
 			| Chain.Request.RES_HBLOCKS (hl, addr) -> (
 				match peer_of_addr n addr with
 				| None -> ()
 				| Some (p) -> Peer.send p @@ Message.HEADERS (hl))
+			| Chain.Request.RES_TX (tx, addr) -> (
+				match peer_of_addr n addr with
+				| None -> ()
+				| Some (p) -> Peer.send p @@ Message.TX (tx))
 			| Chain.Request.REQ_HBLOCKS (h, addr)	->
 				let msg = { version= Int32.of_int 1; hashes= h; stop= Hash.zero; } in 
 				send n @@ Message.GETHEADERS (msg)

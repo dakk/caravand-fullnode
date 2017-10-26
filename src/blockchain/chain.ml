@@ -19,6 +19,7 @@ module Resource = struct
 	| RES_INV_TX of Hash.t * Unix.inet_addr
 	| RES_INV_BLOCK of Hash.t * Unix.inet_addr
 	| REQ_HBLOCKS of Hash.t list * Hash.t * Unix.inet_addr
+	| REQ_TX of Hash.t * Unix.inet_addr
 	;;
 end
 
@@ -29,6 +30,8 @@ module Request = struct
 	| REQ_HBLOCKS of Hash.t list * Unix.inet_addr option
 	| REQ_DATA of Hash.t list * Unix.inet_addr option
 	| RES_HBLOCKS of Block.Header.t list * Unix.inet_addr
+	| RES_INV_TX of Hash.t
+	| RES_TX of Tx.t * Unix.inet_addr
 	;;
 end	
 
@@ -270,6 +273,11 @@ let verify_block ?verifyheader:(verifyheader=false) bc lbh lb b =
 ;;
 
 
+let broadcast_tx bc tx = 
+	Mempool.add bc.mempool tx;
+	bc.requests << RES_INV_TX (tx.hash);
+;;
+
 let loop bc = 
 	let check_branch_updates h = match (Branch.find_parent bc.branches h, Branch.find_fork bc.branches h) with
 	| (Some (br), _) -> (* Insert into a branch (if present) *)
@@ -303,6 +311,7 @@ let loop bc =
 			bc.block_height <- Int64.zero;
 			bc.block_last <- b;
 			Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
+			Mempool.remove_txs bc.mempool b.txs;
 			()			
 		| None -> ()
 	)
@@ -370,6 +379,8 @@ let loop bc =
 		
 		(* Handle new resources *)
 		Cqueue.iter bc.resources (fun res -> match (res : Resource.t) with 
+		| REQ_TX (txhash, addr) ->
+			(if Mempool.has bc.mempool txhash then bc.requests << Request.RES_TX (Mempool.get bc.mempool txhash, addr))
 		| REQ_HBLOCKS (hl, stop, addr) ->
 			bc.requests << Request.RES_HBLOCKS ([], addr);
 		| RES_INV_BLOCK (bs, addr) -> 
@@ -377,7 +388,9 @@ let loop bc =
 		| RES_INV_TX (txs, addr) ->
 			(if bc.sync && not (Mempool.has bc.mempool txs) then bc.requests << Request.REQ_TX (txs, Some (addr)));
 		| RES_BLOCK (bs) -> consume_block bs
-		| RES_TX (tx) -> Mempool.add bc.mempool tx |> ignore
+		| RES_TX (tx) -> 
+			Mempool.add bc.mempool tx;
+			broadcast_tx bc tx
 		| RES_HBLOCKS (hbs, addr) when List.length hbs = 0 -> ()
 		| RES_HBLOCKS (hbs, addr) -> (
 			Log.debug "Blockchain ←" "Headers %d" (List.length hbs);
@@ -497,13 +510,8 @@ let loop bc =
 			Log.debug "Branch" "Last block of branch %s (%d blocks) header is %d (diff: %d)" (b.Branch.header_last.hash) (List.length b.Branch.header_list) (Int64.to_int b.header_height)
 				(Int64.to_int @@ Int64.sub bc.header_height b.Branch.header_height); (* b.header_last.hash; *)
 		) bc.branches;
-	
+		Mempool.print_stats bc.mempool;	
 		()
 	) done
 ;;
-
-
-
-
-
 

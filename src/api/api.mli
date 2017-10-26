@@ -8,7 +8,7 @@ module Request : sig
 
 	type t = {
 		uri		: string list;
-		data	: string;
+		data	: Yojson.Basic.json option;
 		rmethod	: m;
 		socket 	: Unix.file_descr;
 	}
