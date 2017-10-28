@@ -151,20 +151,20 @@ let rollback_block bc =
 		bc.block_height <- Int64.sub (bc.block_height) (Int64.one);
 		match Storage.get_block bc.storage @@ bc.block_last.header.prev_block with
 		| Some (h) -> bc.block_last <- h 
-		| None -> failwith "impossible situation"
+		| None -> failwith "impossible situation - prev block not found"
 	in
-	let rollback_header' () =
-		Storage.remove_last_header bc.storage bc.header_last.prev_block;
+	let rollback_header' dontremove =
+		(if not dontremove then Storage.remove_last_header bc.storage bc.header_last.prev_block);
 		bc.header_height <- Int64.sub (bc.header_height) (Int64.one);
 		match Storage.get_header bc.storage @@ bc.header_last.prev_block with
 		| Some (h) -> bc.header_last <- h 
-		| None -> failwith "impossible situation"
+		| None -> failwith "impossible situation - prev header not found"
 	in
 	Log.debug "Blockchain" "Removing last block: %s" bc.header_last.hash;
 	if bc.header_height > bc.block_height then 
-		rollback_header' () 
+		rollback_header' false
 	else 
-		(rollback_header' (); rollback_block' ())
+		(rollback_header' true; rollback_block' ())
 ;;
 	
 
@@ -293,7 +293,7 @@ let loop bc =
 		| None -> ()
 		| Some (banc) ->
 			let height = Storage.get_block_height bc.storage h.prev_block in
-			(*if height >= ((Int64.to_int bc.header_height) - 1) then ( *)
+			(*if height >= ((Int64.to_int bc.header_height) - 1) then ( *) (* This is unable to detect old valid branches *)
 			(match Storage.get_header bc.storage h.hash with
 				| Some (x) -> ()
 				| None -> (* Found a valid new branch *)
