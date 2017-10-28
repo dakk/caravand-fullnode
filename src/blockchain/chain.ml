@@ -293,8 +293,8 @@ let loop bc =
 		| None -> ()
 		| Some (banc) ->
 			let height = Storage.get_block_height bc.storage h.prev_block in
-			if height >= ((Int64.to_int bc.header_height) - 1) then (
-				match Storage.get_header bc.storage h.hash with
+			(*if height >= ((Int64.to_int bc.header_height) - 1) then ( *)
+			(match Storage.get_header bc.storage h.hash with
 				| Some (x) -> ()
 				| None -> (* Found a valid new branch *)
 					let branch = Branch.create banc.hash (Int64.of_int height) h in
@@ -302,7 +302,7 @@ let loop bc =
 					Storage.update_branches bc.storage bc.branches;
 					Log.info "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
 					()
-			) else ()
+			) (* else ()*)
 	in
 	let consume_block (blazy:Block_lazy.t) = match (blazy, bc.block_last, bc.header_last) with
 	| (blazy, block, hl) when block.header.time = 0.0 && blazy.header.hash = bc.params.genesis.hash -> ( (* Genesis block *)
@@ -415,11 +415,7 @@ let loop bc =
 		if bc.header_last.time < (Unix.time () -. 60. *. 10.) then (
 			Log.debug "Blockchain" "Headers not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- false;
-			bc.requests << Request.REQ_HBLOCKS ([bc.header_last.hash], None);
-			(* Ask also for older headers, in case of orphaning *)
-			(match Storage.get_headeri bc.storage (Int64.sub bc.header_height (Int64.of_int 1900)) with
-			| None -> () 
-			| Some (h) -> bc.requests << Request.REQ_HBLOCKS ([h.hash], None));
+			bc.requests << Request.REQ_HBLOCKS ([bc.header_last.hash], None)
 		) else (
 			Log.debug "Blockchain" "Headers in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- true
