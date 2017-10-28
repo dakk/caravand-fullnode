@@ -418,9 +418,8 @@ let loop bc =
 			bc.requests << Request.REQ_HBLOCKS ([bc.header_last.hash], None);
 			(* Ask also for older headers, in case of orphaning *)
 			(match Storage.get_headeri bc.storage (Int64.sub bc.header_height (Int64.of_int 1900)) with
-			| None -> ()
-			| Some (h) -> 
-				bc.requests << Request.REQ_HBLOCKS ([h.hash], None));
+			| None -> () 
+			| Some (h) -> bc.requests << Request.REQ_HBLOCKS ([h.hash], None));
 		) else (
 			Log.debug "Blockchain" "Headers in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.header_last.time;
 			bc.sync_headers <- true
