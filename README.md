@@ -29,6 +29,8 @@ We are planning to integrate other cool features:
 - Side-chain
 - Pluggable script systems
 
+## Api
+An updated list of the letchain api endpoints is available [here](docs/api.md).
 
 ## Build & run
 
