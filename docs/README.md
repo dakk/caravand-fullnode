@@ -1,3 +1,3 @@
 # Letchain documentation
 
-1. [Node HTTP API](docs/api.md).
+1. [Node HTTP API](api.md).
