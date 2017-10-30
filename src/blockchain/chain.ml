@@ -444,8 +444,10 @@ let loop bc =
 					| Some (bh) -> getblockhashes succ (n-1) (bh.hash::acc)
 				in 
 				if bc.block_last_received < (Unix.time () -. 6.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
-					let hashes = getblockhashes (bc.block_height) 500 [] in
-					bc.blocks_requested <- 500;
+					let diffh = Int64.to_int @@ Int64.sub bc.header_height bc.block_height in
+					let nreq = if diffh >= 500 then 500 else diffh in
+					let hashes = getblockhashes (bc.block_height) nreq [] in
+					bc.blocks_requested <- nreq;
 					bc.requests << Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.debug "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
