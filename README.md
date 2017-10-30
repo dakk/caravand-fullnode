@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/dakk/letchain.svg)](https://travis-ci.org/dakk/letchain)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dakk/letchain/blob/master/LICENSE)
-[![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://github.com/dakk/letchain/blob/master/docs/)
+[![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://github.com/dakk/letchain/wiki)
 
 Bitcoin fullnode OCaml implementation. 
 Letchain will be usable as a standalone bitcoin node with a REST api interface.
@@ -31,7 +31,7 @@ We are planning to integrate other cool features:
 - Pluggable script systems
 
 ## Documentation
-An updated documentation is available [here](docs).
+An updated documentation is available [here](https://github.com/dakk/letchain/wiki).
 
 ## Supported chains
 
