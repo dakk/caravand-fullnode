@@ -113,7 +113,7 @@ let handle_request bc net req =
 			Some (`Assoc [
 				("txid", `String txid);
 				("time", `Float txtime);
-				("confirmations", `Int ((Int64.to_int bc.block_height) + 1 - txheight));
+				("confirmations", `Int (if txheight = 0 then 0 else (Int64.to_int bc.block_height) + 1 - txheight));
 				("inputs", `List (inputs_to_jsonlist tx.txin));
 				("outputs", `List (outputs_to_jsonlist tx.txout))
 			])
