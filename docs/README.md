@@ -1,3 +1,4 @@
 # Letchain documentation
 
-1. [Node HTTP API](api.md).
+1. [Build & run](build.md)
+2. [HTTP API](api.md)
