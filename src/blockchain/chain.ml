@@ -446,7 +446,6 @@ let loop bc =
 				if bc.block_last_received < (Unix.time () -. 6.) && bc.blocks_requested > 0 || bc.blocks_requested = 0 then (
 					let hashes = getblockhashes (bc.block_height) 500 [] in
 					bc.blocks_requested <- 500;
-					Printf.printf "requesting blocks\n%!";
 					bc.requests << Request.REQ_BLOCKS (hashes, None))
 			) else (
 				Log.debug "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
