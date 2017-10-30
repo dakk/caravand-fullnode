@@ -137,6 +137,7 @@ Returns the list of transaction hash for a given address.
     "54776f85a85c0dc6116ccda66bb1510e3ea97b137d4f06f3fa5cb5b0b6b5a16d",
     "943ff982201eb9cdae628d6dfa1a26968410f296420c7cfacdb882aaff16799a",
     "4f32a7d5aa267109e094ee2a5908dd8e06feb8f5b32b4d33a8372cae74bb0b31"
+  ]
 }
 ```
 
