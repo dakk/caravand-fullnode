@@ -142,6 +142,53 @@ Returns the list of transaction hash for a given address.
 ```
 
 
+
+## GET /address/:address/txs/expanded
+Returns the list of transaction (in the same format of the /tx/:txid api ) for a given address.
+
+**Response**
+```json
+{
+  "status": "ok",
+  "txs": [
+    {
+      "txid":
+        "727eead7c1214bd2971602674c37a515976c485dac29b3148286d975e7c9024d",
+      "time": 1487083672.0,
+      "confirmations": 122507,
+      "inputs": [
+        {
+          "out_tx":
+            "595200a8b766526dd0c39bca1d699ca966e98ed36e6f8179afa452896d5ee718",
+          "out_n": 1,
+          "address": "2N1jmLmRVh456tH9T4QBfx4bkVDQsZ8EWaW",
+          "value": "196149"
+        },
+        {
+          "out_tx":
+            "aed17ff65293ba87ea2c70631f6b98e18da93e68a00576d6926643b1081b8353",
+          "out_n": 0,
+          "address": "2N1jmLmRVh456tH9T4QBfx4bkVDQsZ8EWaW",
+          "value": "5000000"
+        }
+      ],
+      "outputs": [
+        {
+          "address": "2Mw7bQ1FP6pbixFpp4Thg6d1tfHa2Y3F8sb",
+          "value": "3076190"
+        },
+        {
+          "address": "2N1jmLmRVh456tH9T4QBfx4bkVDQsZ8EWaW",
+          "value": "2035959"
+        },
+        { "address": "", "value": "0" }
+      ]
+    }
+  ]
+}
+```
+
+
 ## GET /tx/:txid
 Returns pretty-printed information about a single transaction.
 
