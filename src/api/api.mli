@@ -17,5 +17,8 @@ module Request : sig
     val reply   : t -> int -> Yojson.Basic.json -> unit
 end
 
+type t
 
-val loop : int -> Chain.t -> Net.t -> unit
+val init 		: int -> Chain.t -> Net.t -> t
+val loop 		: t -> unit
+val shutdown 	: t -> unit

@@ -12,6 +12,7 @@ type t = {
 	peers:		(string, Peer.t) Hashtbl.t;
 	params: 	Params.t;
 	config:		Config.t;
+	mutable run: bool;
 };;
 
 
@@ -36,7 +37,7 @@ let init p conf =
 	let peers = init_peers p (Hashtbl.create conf.peers) addrs conf.peers in
 	Log.info "Network" "Connected to %d peers." (Hashtbl.length peers);
 	Log.info "Network" "Initalization done.";
-	{ addrs= addrs; peers= peers; params= p; config= conf  }
+	{ addrs= addrs; peers= peers; params= p; config= conf; run= true }
 ;;
 
 let send n m =
@@ -75,12 +76,17 @@ let available_peers n = Hashtbl.fold (fun k p c -> (match p.status with | CONNEC
 let sent n = Hashtbl.fold (fun k p c -> p.sent + c) n.peers 0;;
 let received n = Hashtbl.fold (fun k p c -> p.received + c) n.peers 0;;
 
+let shutdown n = 
+	Log.fatal "Network" "Shutdown...";
+	n.run <- false
+;;
+
 let loop n bc = 
 	Log.info "Network" "Starting mainloop.";
 	
 	Hashtbl.iter (fun k peer -> Thread.create (Peer.start peer) bc |> ignore) n.peers;
 					
-	while true do
+	while n.run do
 		Unix.sleep 2;
 
 		(* Print network stats *)
@@ -161,5 +167,9 @@ let loop n bc =
 				in send n @@ Message.GETDATA (create_invs hs []);
 			| _ -> ()) |> ignore
 	done;
-	()
+
+	(* Shutdown *)
+	Hashtbl.iter (fun k peer -> 
+		Peer.disconnect peer
+	) n.peers;
 ;;

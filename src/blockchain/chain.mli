@@ -60,6 +60,8 @@ type t = {
 	
 	(* Queue for data request *)
 	requests		:	(Request.t) Cqueue.t;
+
+	mutable run : bool;
 }
 
 (* Data verification *)
@@ -73,6 +75,7 @@ val load			: string -> Config.t -> Params.t -> t
 
 (* Start the event loop for blockchain *)
 val loop			: t -> unit
+val shutdown 	: t -> unit
 
 
 val broadcast_tx : t -> Tx.t -> unit

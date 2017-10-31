@@ -66,6 +66,8 @@ type t = {
 	
 	(* Queue for data request *)
 	requests		:	(Request.t) Cqueue.t;
+
+	mutable run : bool;
 };;
 
 let genesis path config p = 
@@ -113,6 +115,7 @@ let genesis path config p =
 		
 		resources		= Cqueue.create ();
 		requests		= Cqueue.create ();
+		run = true;
 	} in 
 	bc
 ;;
@@ -148,14 +151,14 @@ let load path config p =
 let rollback_block bc =
 	let rollback_block' () = 
 		Storage.remove_last_block bc.storage bc.config bc.params bc.block_last.header.prev_block;
-		bc.block_height <- Int64.sub (bc.block_height) (Int64.one);
+		bc.block_height <- Int64.pred bc.block_height;
 		match Storage.get_block bc.storage @@ bc.block_last.header.prev_block with
 		| Some (h) -> bc.block_last <- h 
 		| None -> failwith "impossible situation - prev block not found"
 	in
 	let rollback_header' dontremove =
 		(if not dontremove then Storage.remove_last_header bc.storage bc.header_last.prev_block);
-		bc.header_height <- Int64.sub (bc.header_height) (Int64.one);
+		bc.header_height <- Int64.pred bc.header_height;
 		match Storage.get_header bc.storage @@ bc.header_last.prev_block with
 		| Some (h) -> bc.header_last <- h 
 		| None -> failwith "impossible situation - prev header not found"
@@ -373,7 +376,7 @@ let loop bc =
 		)
 	in
 	
-	while true do (
+	while bc.run do (
 		Unix.sleep 4;
 		Cqueue.clear bc.requests;
 		
@@ -512,6 +515,15 @@ let loop bc =
 		) bc.branches;
 		Mempool.print_stats bc.mempool;	
 		()
-	) done
+	) done;
+
+	Storage.sync bc.storage;
+	Storage.close bc.storage
 ;;
 
+
+
+let shutdown bc = 
+	Log.fatal "Blockchain" "Shutdown...";
+	bc.run <- false
+;;

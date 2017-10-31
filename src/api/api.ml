@@ -312,21 +312,35 @@ let handle_request bc net req =
 		not_found ()
 ;;
 
-let loop port bc net =
+type t = {
+	blockchain : Chain.t;
+	network 	 : Net.t;
+	port 			 : int;
+	mutable run: bool;
+};;
+
+let init port bc net = { blockchain= bc; port= port; network= net; run = true };;
+
+let loop a =
 	let rec do_listen socket =
 		let (client_sock, _) = accept socket in
 		match Request.recv client_sock with
 		| None -> 
 			(*close client_sock;*)
-			do_listen socket
+			if a.run then do_listen socket
 		| Some (req) ->
-			handle_request bc net req;
+			handle_request a.blockchain a.network req;
 			(*close client_sock;*)
-			do_listen socket
+			if a.run then do_listen socket
 	in
 	let socket = socket PF_INET SOCK_STREAM 0 in
-	Log.info "Api" "Binding to port: %d" port;
-	bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", port));
+	Log.info "Api" "Binding to port: %d" a.port;
+	bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", a.port));
 	listen socket 8;
 	do_listen socket
+;;
+
+let shutdown a = 
+	Log.fatal "Api" "Shutdown...";
+	a.run <- false;
 ;;
