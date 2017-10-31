@@ -378,7 +378,7 @@ let insert_block storage config params height (block : Block.t) =
 
 		(* Insert utxo and user utxo, set balances *)
 		List.iteri (fun i out -> 
-			if Tx.Out.is_spendable out then (
+			if Tx.Out.is_spendable out && Int64.compare out.value Int64.zero = 0 then (
 				let utx_key = "utx_" ^ Hash.to_bin_norev tx.Tx.hash ^ string_of_int i in 
 				let utx_ser = Tx.Out.serialize out in
 				Batch.put storage.batch_state utx_key utx_ser;
