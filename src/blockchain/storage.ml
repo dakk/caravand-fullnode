@@ -430,7 +430,7 @@ let insert_block storage config params height (block : Block.t) =
 								addrd.txs <- Int64.succ addrd.txs;
 								addrd.sent <- Int64.add addrd.sent utx.value;
 								addrd.balance <- Int64.sub addrd.balance utx.value;
-								addrd.utxs <- Int64.prev addrd.utxs;
+								addrd.utxs <- Int64.pred addrd.utxs;
 								Addresscache.save addrcache addr addrd
 							);
 
@@ -586,8 +586,8 @@ let remove_last_block storage config params prevhash =
 						Address.remove_tx storage.batch_blocks addr tx.Tx.hash block.header.time;
 							
 						let addrd = Address.load_or_create storage.db_state addr in
-						addrd.txs <- Int64.prev addrd.txs;
-						addrd.utxs <- Int64.prev addrd.utxs;
+						addrd.txs <- Int64.pred addrd.txs;
+						addrd.utxs <- Int64.pred addrd.utxs;
 						addrd.received <- Int64.sub addrd.received out.value;
 						addrd.balance <- Int64.sub addrd.balance out.value;
 						Address.save storage.batch_state addr addrd)
@@ -612,7 +612,7 @@ let remove_last_block storage config params prevhash =
 							Address.remove_tx storage.batch_state addr tx.Tx.hash block.header.time;
 
 							let addrd = Address.load_or_create storage.db_state addr in
-							addrd.txs <- Int64.prev addrd.txs;
+							addrd.txs <- Int64.pred addrd.txs;
 							addrd.sent <- Int64.sub addrd.sent utx.value;
 							addrd.balance <- Int64.add addrd.balance utx.value;
 							addrd.utxs <- Int64.succ addrd.utxs;

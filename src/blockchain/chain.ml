@@ -390,7 +390,7 @@ let loop bc =
 			(if bc.sync then bc.requests << Request.REQ_BLOCKS ([bs], Some (addr)));
 		| RES_INV_TX (txs, addr) ->
 			(if bc.sync && not (Mempool.has bc.mempool txs) then bc.requests << Request.REQ_TX (txs, Some (addr)));
-		| RES_BLOCK (bs) -> consume_block bs
+		| RES_BLOCK (bs) -> if bc.run then consume_block bs
 		| RES_TX (tx) -> 
 			Mempool.add bc.mempool tx;
 			broadcast_tx bc tx
