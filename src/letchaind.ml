@@ -39,16 +39,12 @@ let main () =
 		let sighandler signal =
 			Log.fatal "letchain" "Quit signal, shutdown. Please wait for the secure shutdown procedure.";
 			Net.shutdown n;
-			(*Thread.join net_thread;*)
 			Api.shutdown api;
-			(*Thread.join api_thread;*)
-			Chain.shutdown bc;
-			Thread.join chain_thread;
-			()
+			Chain.shutdown bc
 		in
 
+		(*Sys.set_signal Sys.sigint @@ Signal_handle (sighandler);*)
 		Sys.set_signal Sys.sigint @@ Signal_handle (sighandler);
-		Sys.set_signal Sys.sigquit @@ Signal_handle (sighandler);
 
 		Log.info "letchain" "Waiting for childs";
 		Thread.join net_thread;
