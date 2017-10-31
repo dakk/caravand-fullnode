@@ -241,8 +241,8 @@ let load path =
 			branches= [];
 		}
 	in
-	let db_state = LevelDB.open_db (path ^ "/state") in 
-	let db_blocks = LevelDB.open_db (path ^ "/blocks") in 
+	let db_state = LevelDB.open_db ~max_open_files:64 (path ^ "/state") in 
+	let db_blocks = LevelDB.open_db ~max_open_files:64 (path ^ "/blocks") in 
 	{
 		chainstate= load_cs db_state;
 		db_state= db_state;
