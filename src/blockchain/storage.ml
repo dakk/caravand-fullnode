@@ -347,12 +347,13 @@ let insert_block storage config params height (block : Block.t) =
 		| x' when x' > Uint32.to_int storage.chainstate.prune_height -> (
 			match get_blocki storage (Int64.of_uint32 storage.chainstate.prune_height) with
 			| None -> 
-				storage.chainstate.prune_height <- Uint32.add storage.chainstate.prune_height Uint32.one;
+				storage.chainstate.prune_height <- Uint32.succ storage.chainstate.prune_height;
 				prune_blocks storage xb
 			| Some (block) ->
 				Log.debug "Storage" "Pruned block %d (%d txs)" (Uint32.to_int storage.chainstate.prune_height) @@ List.length block.txs;
-				storage.chainstate.prune_height <- Uint32.add storage.chainstate.prune_height Uint32.one;
+				storage.chainstate.prune_height <- Uint32.succ storage.chainstate.prune_height;
 				List.iter (fun tx -> Batch.delete storage.batch_blocks @@ "tx" ^ tx.Tx.hash) block.txs;
+				(* Batch.delete storage.batch_blocks block.header.hash; useless, we overwrite this *)
 				Batch.put storage.batch_blocks block.header.hash (Block.Header.serialize block.header);
 				prune_blocks storage xb)
 		| _ -> ()
@@ -374,7 +375,7 @@ let insert_block storage config params height (block : Block.t) =
 			Int32.of_int i					: 32 : littleendian
 		|}]) in
 		Batch.put storage.batch_blocks ("tx" ^ Hash.to_bin_norev tx.Tx.hash) data;
-		storage.chainstate.txs <- Uint64.add storage.chainstate.txs Uint64.one;
+		storage.chainstate.txs <- Uint64.succ storage.chainstate.txs;
 
 		(* Insert utxo and user utxo, set balances *)
 		List.iteri (fun i out -> 
@@ -384,7 +385,7 @@ let insert_block storage config params height (block : Block.t) =
 				Batch.put storage.batch_state utx_key utx_ser;
 				Hashtbl.add utxcache utx_key utx_ser;
 
-				storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one;
+				storage.chainstate.utxos <- Uint64.succ storage.chainstate.utxos;
 
 				(match Tx.Out.spendable_by out params.Params.prefixes with
 				| None -> ()
@@ -436,7 +437,7 @@ let insert_block storage config params height (block : Block.t) =
 
 							Hashtbl.remove utxcache utx_key;
 							Batch.delete storage.batch_state utx_key;
-							storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one
+							storage.chainstate.utxos <- Uint64.pred storage.chainstate.utxos
 						);
 			)
 		) tx.txin;
@@ -552,7 +553,7 @@ let get_address_txs storage addr =
 
 
 let remove_last_header storage prevhash =
-	storage.chainstate.header_height <- Uint32.sub (storage.chainstate.header_height) (Uint32.one);
+	storage.chainstate.header_height <- Uint32.pred storage.chainstate.header_height;
 	Batch.delete storage.batch_blocks ("bi" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height));
 	Batch.delete storage.batch_blocks ("bk" ^ Hash.to_bin_norev storage.chainstate.header);
 	Batch.delete storage.batch_blocks ("bh" ^ Hash.to_bin_norev storage.chainstate.header);	
@@ -563,7 +564,7 @@ let remove_last_header storage prevhash =
 ;;
 
 let remove_last_block storage config params prevhash =
-	storage.chainstate.height <- Uint32.sub (storage.chainstate.height) (Uint32.one);
+	storage.chainstate.height <- Uint32.pred storage.chainstate.height;
 	storage.chainstate.block <- prevhash;
 
 	(match get_block storage prevhash with
@@ -571,13 +572,13 @@ let remove_last_block storage config params prevhash =
 	| Some (block) -> (
 		List.iteri (fun i tx -> 		
 			Batch.delete storage.batch_blocks ("tx" ^ Hash.to_bin_norev tx.Tx.hash);
-			storage.chainstate.txs <- Uint64.sub storage.chainstate.txs Uint64.one;
+			storage.chainstate.txs <- Uint64.pred storage.chainstate.txs;
 
 			(* Remove utxo and user utxo, reset balances *)
 			List.iteri (fun i out -> 
 				if Tx.Out.is_spendable out then (
 					Batch.delete storage.batch_state ("ut" ^ Hash.to_bin_norev tx.Tx.hash ^ string_of_int i);
-					storage.chainstate.utxos <- Uint64.sub storage.chainstate.utxos Uint64.one;
+					storage.chainstate.utxos <- Uint64.pred storage.chainstate.utxos;
 
 					(match Tx.Out.spendable_by out params.Params.prefixes with
 					| None -> ()
@@ -619,7 +620,7 @@ let remove_last_block storage config params prevhash =
 							Address.save storage.batch_state addr addrd
 						);
 
-						storage.chainstate.utxos <- Uint64.add storage.chainstate.utxos Uint64.one
+						storage.chainstate.utxos <- Uint64.succ storage.chainstate.utxos
 					)
 			) tx.txin
 		) block.txs;
