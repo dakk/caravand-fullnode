@@ -19,7 +19,7 @@ type t = {
 let create fhash fheight header = {
   fork_hash= fhash;
   fork_height= fheight;
-  header_height= Int64.add fheight Int64.one;
+  header_height= Int64.succ fheight;
   header_last= header;
   header_list= [header];
 };;
@@ -27,7 +27,7 @@ let create fhash fheight header = {
 let last b = b.header_last.hash;;
 
 let push b head =
-  b.header_height <- Int64.add Int64.one b.header_height;
+  b.header_height <- Int64.succ b.header_height;
   b.header_last <- head;
   b.header_list <- b.header_list @ [head];
   true
