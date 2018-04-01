@@ -163,7 +163,7 @@ let rec load_or_init base_path =
 				("peers", `Int 6);
 				("chain", `String "XTN");
 				("rest", `Assoc [
-					("enable", `Bool false);
+					("enable", `Bool true);
 					("port", `Int 8086)
 				]);
 				("rpc", `Assoc [

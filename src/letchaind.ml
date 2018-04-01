@@ -7,16 +7,6 @@ open Config;;
 open Bitcoinml;;
 
 let main () =
-	let chain_job bc = 
-		Chain.loop bc 
-	in
-	let net_job (bc, net, conf) = 
-		Net.loop net bc
-	in
-	let rest_job (rest) =
-		Api.Rest.loop rest
-	in
-	
 	Random.self_init ();
 	Log.info "letchain" "Starting 0.1";
 	let conf = Config.parse_base_path () |> Config.load_or_init |> Config.parse_command_line in
@@ -31,17 +21,19 @@ let main () =
 				
 		let bc = Chain.load conf.path conf p in
 		let n = Net.init bc.Chain.params conf in 
-		let chain_thread = Thread.create chain_job bc in
-		let net_thread = Thread.create net_job (bc, n, conf) in
+		let chain_thread = Thread.create (fun bc -> Chain.loop bc) bc in
+		let net_thread = Thread.create (fun (n, bc) -> Net.loop n bc) (n, bc) in
 
 		let rest = Api.Rest.init conf.rest bc n in
-		let rest_thread = Thread.create rest_job (rest) in
-
+		let rest_thread = Thread.create (fun rest -> Api.Rest.loop rest) rest in
+		let rpc = Api.Rpc.init conf.rpc bc n in
+		let rpc_thread = Thread.create (fun rpc -> Api.Rpc.loop rpc) rpc in
 		
 		let sighandler signal =
 			Log.fatal "letchain" "Quit signal, shutdown. Please wait for the secure shutdown procedure.";
 			Net.shutdown n;
 			Api.Rest.shutdown rest;
+			Api.Rpc.shutdown rpc;
 			Chain.shutdown bc
 		in
 
@@ -52,6 +44,7 @@ let main () =
 		Thread.join net_thread;
 		Thread.join chain_thread;
 		Thread.join rest_thread;
+		Thread.join rpc_thread;
 		Log.info "letchain" "Exit.";
 ;;
 
