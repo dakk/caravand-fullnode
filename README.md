@@ -26,6 +26,7 @@ Letchain is directly connected to other 3 projects:
 - Lazy evaluation for block parsing which reduces memory footprint
 
 We are planning to integrate other cool features:
+- JSON-RPC api compatible with Bitcoind
 - Bloom filtering and compactblock
 - Side-chain
 - Pluggable script systems
@@ -43,7 +44,7 @@ At the moment letchain supports these chains:
 ## License
 
 ```
-Copyright (c) 2016-2017 Davide Gessa
+Copyright (c) 2016-2018 Davide Gessa
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
