@@ -6,4 +6,4 @@ clean:
 
 .PHONY : pin
 pin: 
-	opam pin add letchain . -n && opam remove letchain && opam install letchain
+	opam pin add caravan . -n && opam remove caravan && opam install caravan

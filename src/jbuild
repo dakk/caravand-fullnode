@@ -1,12 +1,12 @@
 (jbuild_version 1)
 
 (executable
- ((name letchaind)
-  (public_name letchaind)
-  (modules letchaind)
+ ((name caravand)
+  (public_name caravand)
+  (modules caravand)
   (libraries (bitcoinml network utils api blockchain))))
 
 (library
- ((name        letchain)
-  (public_name letchain)
+ ((name        caravan)
+  (public_name caravan)
   (libraries (cryptokit threads yojson bitcoinml network utils api blockchain))))

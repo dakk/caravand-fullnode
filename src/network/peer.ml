@@ -163,7 +163,7 @@ let handshake peer height =
 		addr_recv	= { address="0000000000000000" ; services=(Uint64.of_int 1) ; port= Uint16.of_int 8333 };
 		addr_from	= { address="0000000000000000" ; services=(Uint64.of_int 1) ; port= Uint16.of_int 8333 };
 		nonce		= Random.int64 0xFFFFFFFFFFFFFFFL;
-		user_agent	= "/letchain:0.14.2/";
+		user_agent	= "/" ^ Constants.name ^ ":" ^ Constants.btc_version ^ "/";
 		start_height= Int32.of_int64 height;
 		relay		= true;
 	} in send peer (Message.VERSION (verm))

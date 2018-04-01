@@ -2,7 +2,7 @@
 
 (library
  ((name        blockchain)
-  (public_name letchain.blockchain)
+  (public_name caravan.blockchain)
   (preprocess (pps (ppx_bitstring)))
   (libraries (bitstring utils stdint leveldb bitcoinml))))
 

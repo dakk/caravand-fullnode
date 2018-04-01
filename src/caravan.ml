@@ -19,13 +19,13 @@ let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?lo
 	
 	Log.set_level loglevel;
 	Random.self_init ();
-	Log.info "letchain" "Starting 0.1";
+	Log.info Constants.name "Starting %s" Constants.version;
 	let conf = { (directory |> Config.load_or_init) with peers=peers; log_level=loglevel; mode=mode } in
  	let cn = Params.abbr_to_network conf.chain in
 	if cn = NOTFOUND then
-		Log.info "letchain" "Invalid chain"
+		Log.info Constants.name "Invalid chain"
 	else 	
-		Log.info "letchain" "Selected network: %s" (Params.name_of_network cn);
+		Log.info Constants.name "Selected network: %s" (Params.name_of_network cn);
 		let p = Params.of_network cn in	
 		
 		let bc = Chain.load conf.path conf p in
@@ -43,14 +43,14 @@ let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?lo
 
 
 let stop lc =
-	Log.info "letchain" "Stopping network thread...";
+	Log.info Constants.name "Stopping network thread...";
 	Thread.kill lc.net_thread;
 	Thread.join lc.net_thread;
-	Log.info "letchain" "Network thread stopped.";
-	Log.info "letchain" "Stopping chain thread...";	
+	Log.info Constants.name "Network thread stopped.";
+	Log.info Constants.name "Stopping chain thread...";	
 	Thread.kill lc.chain_thread;
 	Thread.join lc.chain_thread;
-	Log.info "letchain" "Chain thread stopped.";
+	Log.info Constants.name "Chain thread stopped.";
 	true
 ;;
 

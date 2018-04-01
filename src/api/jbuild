@@ -2,6 +2,6 @@
 
 (library
  ((name        api)
-  (public_name letchain.api)
+  (public_name caravan.api)
   (libraries (blockchain network yojson))))
 

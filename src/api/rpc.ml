@@ -29,7 +29,7 @@ let loop a =
 
 let shutdown a = 
 	if a.conf.enable then (
-    Log.fatal "API → RPC" "Shutdown...";
+    Log.fatal "Api.Rpc" "Shutdown...";
     a.run <- false;
   ) else ()
 ;;

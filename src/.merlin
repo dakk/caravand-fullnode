@@ -3,7 +3,7 @@ B ../_build/default/src/api
 B ../_build/default/src/blockchain
 B ../_build/default/src/network
 B ../_build/default/src/utils
-FLG -open Letchain__ -w -40 -w -40
+FLG -open Caravan__ -w -40 -w -40
 PKG base
 PKG base.caml
 PKG base.shadow_stdlib

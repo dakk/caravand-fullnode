@@ -74,7 +74,7 @@ let send_string sock str =
 let handle_request bc net req = 
 	let not_found () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 	
-	Log.debug "API → Rest ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
+	Log.debug "Api.Rest ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
 
 	let json_of_tx txid = 
 		let rec inputs_to_jsonlist inputs = match inputs with
@@ -335,7 +335,7 @@ let loop a =
 	in
 	if a.conf.enable then (
 		let socket = socket PF_INET SOCK_STREAM 0 in
-		Log.info "API → Rest" "Binding to port: %d" a.conf.port;
+		Log.info "Api.Rest" "Binding to port: %d" a.conf.port;
 		bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", a.conf.port));
 		listen socket 8;
 		do_listen socket
@@ -344,7 +344,7 @@ let loop a =
 
 let shutdown a = 
 	if a.conf.enable then (
-		Log.fatal "API → Rest" "Shutdown...";
+		Log.fatal "Api.Rest" "Shutdown...";
 		a.run <- false;
 	) else ()
 ;;
