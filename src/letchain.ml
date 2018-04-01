@@ -16,9 +16,6 @@ type t = {
 
 let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?loglevel:(loglevel=0) mode = 
 	let directory = if directory = "" then (Unix.getenv "HOME") ^ "/.letchain/" else directory in
-
-	let chain_job bc = Chain.loop bc in
-	let net_job (bc, net, conf) = Net.loop net bc in
 	
 	Log.set_level loglevel;
 	Random.self_init ();
@@ -33,8 +30,8 @@ let init ?directory:(directory="") ?network:(network="XBT") ?peers:(peers=6) ?lo
 		
 		let bc = Chain.load conf.path conf p in
 		let n = Net.init bc.Chain.params conf in 
-		let chain_thread = Thread.create chain_job bc in
-		let net_thread = Thread.create net_job (bc, n, conf) in {
+		let chain_thread = Thread.create (fun bc -> Chain.loop bc) bc in
+		let net_thread = Thread.create (fun (n, bc) -> Net.loop n bc) (n, bc) in {
       chain= bc;
       net= n;
       chain_thread= chain_thread;
