@@ -17,8 +17,12 @@ let diff a b =
 ;;
 
 
-let diffstring a b =
+let diffstring ?munit:(munit="full") a b =
 	let df = diff a b in
-	Printf.sprintf "%d y, %d m, %d d, %d h, %d m" df.years df.months df.days df.hours df.minutes
+	match munit with
+	| "days" -> Printf.sprintf "%d days" (df.years * 365 + df.months * 31 + df.days)
+	| "weeks" -> Printf.sprintf "%d weeks" ((df.years * 365 + df.months * 31 + df.days) / 7)
+	| "full"
+	| _ -> Printf.sprintf "%d y, %d m, %d d, %d h, %d m" df.years df.months df.days df.hours df.minutes
 ;;
 				

@@ -7,4 +7,4 @@ type t = {
 }
 
 val diff 		: float -> float -> t
-val diffstring 	: float -> float -> string
+val diffstring 	: ?munit:string -> float -> float -> string
