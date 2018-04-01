@@ -5,9 +5,9 @@
 [![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://github.com/dakk/caravand/wiki)
 
 Bitcoin fullnode OCaml implementation. 
-Letchain will be usable as a standalone bitcoin node with a REST api interface.
+Caravand will be usable as a standalone bitcoin node with a REST api interface.
 
-Letchain is directly connected to other 3 projects:
+Caravand is directly connected to other 3 projects:
 - Bitcoinml: https://github.com/dakk/bitcoinml/
 - Secp256k1-ml: https://github.com/dakk/secp256k1-ml 
 - Letlight: https://github.com/dakk/letlight
@@ -22,7 +22,7 @@ Letchain is directly connected to other 3 projects:
 - JSON REST api interface
 - Prune-mode for low disk footprint
 - Segregated witness
-- Letchain-as-a-library for applications who need blockchain data
+- Caravand-as-a-library for applications who need blockchain data
 - Lazy evaluation for block parsing which reduces memory footprint
 
 We are planning to integrate other cool features:
@@ -32,11 +32,11 @@ We are planning to integrate other cool features:
 - Pluggable script systems
 
 ## Documentation
-An updated documentation is available [here](https://github.com/dakk/letchain/wiki).
+An updated documentation is available [here](https://github.com/dakk/caravand/wiki).
 
 ## Supported chains
 
-At the moment letchain supports these chains:
+At the moment caravand supports these chains:
 - XTN - Bitcoin testnet
 - BTC - Bitcoin mainnet
 - BCH - BitcoinCash mainnet
