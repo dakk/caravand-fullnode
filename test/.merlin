@@ -1,4 +1,3 @@
-B ../_build/default/src
 B ../_build/default/src/api
 B ../_build/default/src/blockchain
 B ../_build/default/src/network
@@ -16,6 +15,7 @@ PKG biniou
 PKG bitcoinml
 PKG bitstring
 PKG bytes
+PKG caravand
 PKG compiler-libs
 PKG compiler-libs.common
 PKG core_kernel
@@ -98,7 +98,6 @@ PKG unix
 PKG variantslib
 PKG yojson
 PKG zarith
-S ../src
 S ../src/api
 S ../src/blockchain
 S ../src/network

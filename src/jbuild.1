@@ -5,3 +5,8 @@
   (public_name caravand)
   (modules caravand)
   (libraries (bitcoinml network utils api blockchain))))
+
+(library
+ ((name        caravan)
+  (public_name caravand-lib)
+  (libraries (cryptokit threads yojson bitcoinml network utils api blockchain))))
