@@ -47,6 +47,7 @@ let parse_command_line conf =
 		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
 		Printf.printf " -ap 8087\t\t\tSelect api port\n%!";  
 		Printf.printf " -ll 5, --log-level 5\tSet the log level\n%!";  
+		Printf.printf " -ho, --header-only\tDownload and sync only headers\n%!";
 		Thread.exit (); 
 		conf
 	in
@@ -55,13 +56,21 @@ let parse_command_line conf =
 	| x :: [] -> (
 		match x with
 		| "--help" 
-		| "-h" -> help conf
+		| "-h" -> help conf	
+		| "--headers-only"
+		| "-ho" -> 
+			Log.debug "Config" "Setting mode to headers-only";
+			{ conf with mode=HeadersOnly }
 		| _ -> conf
 	)
 	| x :: x' :: xl' -> 
 		match x with
 		| "--help"
 		| "-h" -> help conf
+		| "--headers-only"
+		| "-ho" -> 
+			Log.debug "Config" "Setting mode to headers-only";
+			parse ({ conf with mode=HeadersOnly }) xl'
 		| "-ap" -> 
 			Log.debug "Config" "Setting api port from command line: %s" x';
 			parse ({ conf with api_port= int_of_string x' }) xl'	

@@ -35,8 +35,6 @@ PKG oUnit.advanced
 PKG ocaml-compiler-libs.common
 PKG ocaml-compiler-libs.shadow
 PKG ocaml-migrate-parsetree
-PKG ocplib-endian
-PKG ocplib-endian.bigstring
 PKG octavius
 PKG ppx_assert
 PKG ppx_assert.runtime-lib

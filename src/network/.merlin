@@ -2,7 +2,7 @@ B ../../_build/default/src/blockchain
 B ../../_build/default/src/network
 B ../../_build/default/src/utils
 FLG -open Network -w -40
-FLG -ppx "../../_build/default/.ppx/ppx_bitstring/ppx.exe --as-ppx --cookie 'library-name="network"'"
+FLG -ppx '/home/dakk/Repositories/MyRepos/letchain/_build/default/.ppx/ppx_bitstring/ppx.exe --as-ppx --cookie '\''library-name="network"'\'''
 PKG base
 PKG base.caml
 PKG base.shadow_stdlib

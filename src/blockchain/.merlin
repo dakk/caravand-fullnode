@@ -1,7 +1,7 @@
 B ../../_build/default/src/blockchain
 B ../../_build/default/src/utils
 FLG -open Blockchain -w -40
-FLG -ppx "../../_build/default/.ppx/ppx_bitstring/ppx.exe --as-ppx --cookie 'library-name="blockchain"'"
+FLG -ppx '/home/dakk/Repositories/MyRepos/letchain/_build/default/.ppx/ppx_bitstring/ppx.exe --as-ppx --cookie '\''library-name="blockchain"'\'''
 PKG base
 PKG base.caml
 PKG base.shadow_stdlib

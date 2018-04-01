@@ -432,7 +432,7 @@ let loop bc =
 		)
 		| _ -> (
 			(*if bc.block_last.header.time < (Unix.time () -. 60. *. 10.) then ( *)
-			if bc.block_last.header.hash <> bc.header_last.hash then (
+			if bc.block_last.header.hash <> bc.header_last.hash && bc.config.mode <> HeadersOnly then (
 				Log.debug "Blockchain" "Blocks not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- false;
 
