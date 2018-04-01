@@ -6,10 +6,10 @@ authors: [
   "Davide Gessa <gessadavide@gmail.com>"
 ]
 
-homepage: "https://github.com/dakk/letchain"
-bug-reports: "https://github.com/dakk/letchain/issues"
+homepage: "https://github.com/dakk/caravand"
+bug-reports: "https://github.com/dakk/caravand/issues"
 license: "MIT"
-dev-repo: "https://github.com/dakk/letchain.git"
+dev-repo: "https://github.com/dakk/caravand.git"
 build: [
   ["jbuilder" "build" "-p" name "-j" jobs "@install"]
 ]

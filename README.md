@@ -1,8 +1,8 @@
-# letchain
+# caravand
 
-[![Build Status](https://travis-ci.org/dakk/letchain.svg)](https://travis-ci.org/dakk/letchain)
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dakk/letchain/blob/master/LICENSE)
-[![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://github.com/dakk/letchain/wiki)
+[![Build Status](https://travis-ci.org/dakk/caravand.svg)](https://travis-ci.org/dakk/caravand)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dakk/caravand/blob/master/LICENSE)
+[![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://github.com/dakk/caravand/wiki)
 
 Bitcoin fullnode OCaml implementation. 
 Letchain will be usable as a standalone bitcoin node with a REST api interface.
