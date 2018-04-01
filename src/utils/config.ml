@@ -6,12 +6,26 @@ type node_type =
 	| HeadersOnly         (* Node with only headers *)
 ;;
 
+type rest = {
+	enable: bool;
+	port	: int;
+};;
+
+type rpc = {
+	port	: int;
+	user	: string;
+	password: string;
+	enable: bool;
+};;
+
 type t = {
 	peers	 		: int;
 	chain			: string;
 	base_path	: string;
 	path			: string;
-	api_port	: int;
+
+	rest: rest;
+	rpc: rpc;
 
 	address_index	: bool;
 	tx_index			: bool;
@@ -45,7 +59,7 @@ let parse_command_line conf =
 		Printf.printf " -p 12, --peer 12\tSet the number of peers\n"; 
 		Printf.printf " -r 1024, --prune 1024\tPrune to a custom number of blocks\n"; 
 		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
-		Printf.printf " -ap 8087\t\t\tSelect api port\n%!";  
+		Printf.printf " -rp 8087\t\t\tSelect the rest api port\n%!";  
 		Printf.printf " -ll 5, --log-level 5\tSet the log level\n%!";  
 		Printf.printf " -ho, --header-only\tDownload and sync only headers\n%!";
 		Thread.exit (); 
@@ -71,9 +85,9 @@ let parse_command_line conf =
 		| "-ho" -> 
 			Log.debug "Config" "Setting mode to headers-only";
 			parse ({ conf with mode=HeadersOnly }) xl'
-		| "-ap" -> 
-			Log.debug "Config" "Setting api port from command line: %s" x';
-			parse ({ conf with api_port= int_of_string x' }) xl'	
+		| "-rp" -> 
+			Log.debug "Config" "Setting rest api port from command line: %s" x';
+			parse ({ conf with rest={conf.rest with port= int_of_string x' }}) xl'	
 		| "--log-level"
 		| "-ll" -> 
 			Log.debug "Config" "Setting the log level from command line: %s" x';
@@ -124,7 +138,19 @@ let rec load_or_init base_path =
 				base_path= base_path;
 				peers= json |> member "peers" |> to_int;
 				chain= json |> member "chain" |> to_string;
-				api_port= json |> member "api_port" |> to_int;
+				
+				rest= {
+					port= json |> member "rest" |> member "port" |> to_int;
+					enable= json |> member "rest" |> member "enable" |> to_bool;
+				};
+
+				rpc= {
+					enable= json |> member "rpc" |> member "enable" |> to_bool;
+					port= json |> member "rpc" |> member "port" |> to_int;
+					user= base_path ^ (json |> member "rpc" |> member "user" |> to_string);
+					password= base_path ^ (json |> member "rpc" |> member "password" |> to_string);
+				};
+				
 				path= base_path ^ (json |> member "chain" |> to_string);
 				address_index= true;
 				tx_index= true;
@@ -133,8 +159,21 @@ let rec load_or_init base_path =
 			}
 		with
 		| _ ->
-			let json = Yojson.Basic.from_string "{ \"peers\": 6, \"chain\": \"XTN\", \"api_port\": 8086 }" in 
-			let _ = Yojson.Basic.to_file (base_path ^ "/config.json") json in
+			let (jconf: Yojson.Basic.json) = `Assoc [
+				("peers", `Int 6);
+				("chain", `String "XTN");
+				("rest", `Assoc [
+					("enable", `Bool false);
+					("port", `Int 8086)
+				]);
+				("rpc", `Assoc [
+					("enable", `Bool false);
+					("port", `Int 8333);
+					("user", `String "test");
+					("password", `String "test")
+				])
+			] in
+			let _ = Yojson.Basic.to_file (base_path ^ "/config.json") jconf in
 			Log.debug "Config" "Created %s" (base_path ^ "/config.json");
 			load_or_init base_path
 

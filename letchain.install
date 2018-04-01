@@ -4,8 +4,17 @@ lib: [
   "_build/install/default/lib/letchain/api/api.cmi" {"api/api.cmi"}
   "_build/install/default/lib/letchain/api/api.cmx" {"api/api.cmx"}
   "_build/install/default/lib/letchain/api/api.cmt" {"api/api.cmt"}
-  "_build/install/default/lib/letchain/api/api.cmti" {"api/api.cmti"}
-  "_build/install/default/lib/letchain/api/api.mli" {"api/api.mli"}
+  "_build/install/default/lib/letchain/api/api.ml-gen" {"api/api.ml-gen"}
+  "_build/install/default/lib/letchain/api/api__Rest.cmi" {"api/api__Rest.cmi"}
+  "_build/install/default/lib/letchain/api/api__Rest.cmx" {"api/api__Rest.cmx"}
+  "_build/install/default/lib/letchain/api/api__Rest.cmt" {"api/api__Rest.cmt"}
+  "_build/install/default/lib/letchain/api/api__Rest.cmti" {"api/api__Rest.cmti"}
+  "_build/install/default/lib/letchain/api/rest.mli" {"api/rest.mli"}
+  "_build/install/default/lib/letchain/api/api__Rpc.cmi" {"api/api__Rpc.cmi"}
+  "_build/install/default/lib/letchain/api/api__Rpc.cmx" {"api/api__Rpc.cmx"}
+  "_build/install/default/lib/letchain/api/api__Rpc.cmt" {"api/api__Rpc.cmt"}
+  "_build/install/default/lib/letchain/api/api__Rpc.cmti" {"api/api__Rpc.cmti"}
+  "_build/install/default/lib/letchain/api/rpc.mli" {"api/rpc.mli"}
   "_build/install/default/lib/letchain/api/api.cma" {"api/api.cma"}
   "_build/install/default/lib/letchain/api/api.cmxa" {"api/api.cmxa"}
   "_build/install/default/lib/letchain/api/api.a" {"api/api.a"}

@@ -74,7 +74,7 @@ let send_string sock str =
 let handle_request bc net req = 
 	let not_found () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 	
-	Log.debug "Api ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
+	Log.debug "API → Rest ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
 
 	let json_of_tx txid = 
 		let rec inputs_to_jsonlist inputs = match inputs with
@@ -315,11 +315,11 @@ let handle_request bc net req =
 type t = {
 	blockchain : Chain.t;
 	network 	 : Net.t;
-	port 			 : int;
+	conf 			 : Config.rest;
 	mutable run: bool;
 };;
 
-let init port bc net = { blockchain= bc; port= port; network= net; run = true };;
+let init (rconf: Config.rest) bc net = { blockchain= bc; conf= rconf; network= net; run = rconf.enable };;
 
 let loop a =
 	let rec do_listen socket =
@@ -333,14 +333,18 @@ let loop a =
 			(*close client_sock;*)
 			if a.run then do_listen socket
 	in
-	let socket = socket PF_INET SOCK_STREAM 0 in
-	Log.info "Api" "Binding to port: %d" a.port;
-	bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", a.port));
-	listen socket 8;
-	do_listen socket
+	if a.conf.enable then (
+		let socket = socket PF_INET SOCK_STREAM 0 in
+		Log.info "API → Rest" "Binding to port: %d" a.conf.port;
+		bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", a.conf.port));
+		listen socket 8;
+		do_listen socket
+	) else ()
 ;;
 
 let shutdown a = 
-	Log.fatal "Api" "Shutdown...";
-	a.run <- false;
+	if a.conf.enable then (
+		Log.fatal "API → Rest" "Shutdown...";
+		a.run <- false;
+	) else ()
 ;;

@@ -13,8 +13,8 @@ let main () =
 	let net_job (bc, net, conf) = 
 		Net.loop net bc
 	in
-	let api_job (api) =
-		Api.loop api
+	let rest_job (rest) =
+		Api.Rest.loop rest
 	in
 	
 	Random.self_init ();
@@ -28,18 +28,20 @@ let main () =
 	else 	
 		Log.info "letchain" "Selected network: %s" (Params.name_of_network cn);
 		let p = Params.of_network cn in	
-		
+				
 		let bc = Chain.load conf.path conf p in
 		let n = Net.init bc.Chain.params conf in 
 		let chain_thread = Thread.create chain_job bc in
-		let api = Api.init conf.api_port bc n in
-		let api_thread = Thread.create api_job (api) in
 		let net_thread = Thread.create net_job (bc, n, conf) in
+
+		let rest = Api.Rest.init conf.rest bc n in
+		let rest_thread = Thread.create rest_job (rest) in
+
 		
 		let sighandler signal =
 			Log.fatal "letchain" "Quit signal, shutdown. Please wait for the secure shutdown procedure.";
 			Net.shutdown n;
-			Api.shutdown api;
+			Api.Rest.shutdown rest;
 			Chain.shutdown bc
 		in
 
@@ -49,7 +51,7 @@ let main () =
 		Log.info "letchain" "Waiting for childs";
 		Thread.join net_thread;
 		Thread.join chain_thread;
-		Thread.join api_thread;
+		Thread.join rest_thread;
 		Log.info "letchain" "Exit.";
 ;;
 

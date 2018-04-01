@@ -1,6 +1,7 @@
 (* REST api interface *)
 open Blockchain
 open Network
+open Utils
 
 
 module Request : sig
@@ -19,6 +20,6 @@ end
 
 type t
 
-val init 		: int -> Chain.t -> Net.t -> t
+val init 		: Config.rest -> Chain.t -> Net.t -> t
 val loop 		: t -> unit
 val shutdown 	: t -> unit

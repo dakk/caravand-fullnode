@@ -3,12 +3,26 @@ type node_type =
 	| PrunedNode of int   (* Node with full block data of last n blocks (Address disabled) *)
 	| HeadersOnly         (* Node with only headers *)
 
+type rest = {
+	enable: bool;
+	port	: int;
+}
+	
+type rpc = {
+	port	: int;
+	user	: string;
+	password: string;
+	enable: bool;
+}
+	
 type t = {
 	peers	 		: int;
 	chain			: string;
 	base_path	: string;
 	path			: string;
-	api_port	: int;
+	
+	rest: rest;
+	rpc: rpc;
 
 	address_index	: bool;
 	tx_index			: bool;
