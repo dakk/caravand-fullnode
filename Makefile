@@ -6,4 +6,4 @@ clean:
 
 .PHONY : pin
 pin: 
-	opam pin add caravan . -n && opam remove caravan && opam install caravan
+	opam pin add caravand . -n && opam remove caravand && opam install caravand

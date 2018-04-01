@@ -7,6 +7,6 @@
   (libraries (bitcoinml network utils api blockchain))))
 
 (library
- ((name        caravan)
-  (public_name caravan)
+ ((name        caravand)
+  (public_name caravand)
   (libraries (cryptokit threads yojson bitcoinml network utils api blockchain))))

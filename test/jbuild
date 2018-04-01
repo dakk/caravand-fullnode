@@ -1,6 +1,6 @@
 (executable
  ((name test)
-  (libraries (caravan network utils api blockchain bitcoinml oUnit hex))))
+  (libraries (caravand network utils api blockchain bitcoinml oUnit hex))))
 
 (alias
  ((name    runtest)
