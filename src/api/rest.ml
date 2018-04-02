@@ -65,12 +65,6 @@ module Request = struct
 	;;
 end
 
-
-let send_string sock str =
-	let len = String.length str in
-	send sock str 0 len [] |> ignore
-;;
-
 let handle_request bc net req = 
 	let not_found () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 	
@@ -338,7 +332,7 @@ let loop a =
 		Log.info "Api.Rest" "Binding to port: %d" a.conf.port;
 		bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", a.conf.port));
 		listen socket 8;
-		do_listen socket
+    try do_listen socket with _ -> ()
 	) else ()
 ;;
 
