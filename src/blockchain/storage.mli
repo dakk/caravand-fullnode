@@ -47,11 +47,13 @@ module Chainstate : sig
 end
 
 type t = {
-	chainstate		:	Chainstate.t;
+	chainstate		  :	Chainstate.t;
 	db_blocks 			: LevelDB.db;
 	db_state  			: LevelDB.db;
+	db_address 			: LevelDB.db;
 	mutable batch_blocks 	: LevelDB.writebatch;
 	mutable batch_state 	: LevelDB.writebatch;
+	mutable batch_address	: LevelDB.writebatch;
 }
 
 
