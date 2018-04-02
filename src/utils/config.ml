@@ -62,6 +62,7 @@ let parse_command_line conf =
 		Printf.printf " -rp 8087\t\t\tSelect the rest api port\n%!";  
 		Printf.printf " -ll 5, --log-level 5\tSet the log level\n%!";  
 		Printf.printf " -ho, --header-only\tDownload and sync only headers\n%!";
+		Printf.printf " -ai, --address-index\tEnable address index (only on first run)\n%!";
 		Thread.exit (); 
 		conf
 	in
@@ -71,6 +72,10 @@ let parse_command_line conf =
 		match x with
 		| "--help" 
 		| "-h" -> help conf	
+		| "--address-index"
+		| "-ai" -> 
+			Log.debug "Config" "Enabling address index";
+			{ conf with address_index=true }
 		| "--headers-only"
 		| "-ho" -> 
 			Log.debug "Config" "Setting mode to headers-only";
@@ -81,6 +86,10 @@ let parse_command_line conf =
 		match x with
 		| "--help"
 		| "-h" -> help conf
+		| "--address-index"
+		| "-ai" -> 
+			Log.debug "Config" "Enabling address index";
+			{ conf with address_index=true }
 		| "--headers-only"
 		| "-ho" -> 
 			Log.debug "Config" "Setting mode to headers-only";
@@ -153,7 +162,7 @@ let rec load_or_init base_path =
 				};
 				
 				path= base_path ^ (json |> member "chain" |> to_string);
-				address_index= true;
+				address_index= json |> member "address_index" |> to_bool;
 				tx_index= true;
 				mode= FullNode;
 				log_level= 4;
@@ -163,6 +172,7 @@ let rec load_or_init base_path =
 			let (jconf: Yojson.Basic.json) = `Assoc [
 				("peers", `Int 6);
 				("chain", `String "XTN");
+				("address_index", `Bool false);
 				("rest", `Assoc [
 					("enable", `Bool true);
 					("port", `Int 8086)
@@ -177,5 +187,4 @@ let rec load_or_init base_path =
 			let _ = Yojson.Basic.to_file (base_path ^ "/config.json") jconf in
 			Log.debug "Config" "Created %s" (base_path ^ "/config.json");
 			load_or_init base_path
-
 ;;

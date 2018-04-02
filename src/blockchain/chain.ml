@@ -85,7 +85,7 @@ let genesis path config p =
 		config			= config;
 		basedir			= "";
 		
-		storage				= Storage.load path;
+		storage				= Storage.load path config;
 		sync_headers	= false;
 		sync					= false;
 

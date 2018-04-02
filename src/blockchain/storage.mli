@@ -40,6 +40,7 @@ module Chainstate : sig
 		mutable reward 			: uint64;
 
 		mutable branches		: Branch.t list;
+		mutable address_index: bool;
 	}
 
 	val serialize	: 	t -> bytes
@@ -57,7 +58,7 @@ type t = {
 }
 
 
-val load					:	string -> t
+val load					:	string -> Config.t -> t
 val close 				:	t -> unit
 val sync					:	t -> unit 
 
