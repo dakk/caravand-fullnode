@@ -43,6 +43,11 @@ lib: [
   "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmt" {"blockchain/blockchain__Storage.cmt"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmti" {"blockchain/blockchain__Storage.cmti"}
   "_build/install/default/lib/caravand/blockchain/storage.mli" {"blockchain/storage.mli"}
+  "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmi" {"blockchain/blockchain__Verifier.cmi"}
+  "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmx" {"blockchain/blockchain__Verifier.cmx"}
+  "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmt" {"blockchain/blockchain__Verifier.cmt"}
+  "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmti" {"blockchain/blockchain__Verifier.cmti"}
+  "_build/install/default/lib/caravand/blockchain/verifier.mli" {"blockchain/verifier.mli"}
   "_build/install/default/lib/caravand/blockchain/blockchain.cma" {"blockchain/blockchain.cma"}
   "_build/install/default/lib/caravand/blockchain/blockchain.cmxa" {"blockchain/blockchain.cmxa"}
   "_build/install/default/lib/caravand/blockchain/blockchain.a" {"blockchain/blockchain.a"}

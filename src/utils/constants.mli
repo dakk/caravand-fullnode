@@ -1,3 +1,4 @@
 val version: string
-val btc_version: string
+val version_btc: string
 val name: string
+val name_lower: string

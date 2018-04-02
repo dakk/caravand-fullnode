@@ -35,8 +35,8 @@ type t = {
 
 let parse_base_path () = 
 	let rec parse' argvs = match argvs with
-	| [] -> (Unix.getenv "HOME") ^ "/.letchain/"
-	| x :: [] -> (Unix.getenv "HOME") ^ "/.letchain/"
+	| [] -> (Unix.getenv "HOME") ^ "/." ^ Constants.name_lower
+	| x :: [] -> (Unix.getenv "HOME") ^ "/." ^ Constants.name_lower
 	| x :: x' :: xl' -> (
 		match x with
 		| "--data-dir"
@@ -118,7 +118,8 @@ let create_dirs conf =
 		Unix.mkdir (conf.base_path ^ "/" ^ conf.chain) 0o777;
 		Unix.mkdir (conf.base_path ^ "/" ^ conf.chain ^ "/blocks") 0o777;
 		Unix.mkdir (conf.base_path ^ "/" ^ conf.chain ^ "/state") 0o777;
-		Log.debug "Config" "Created %s [/blocks, /state]" (conf.base_path ^ "/" ^ conf.chain);
+		Unix.mkdir (conf.base_path ^ "/" ^ conf.chain ^ "/address") 0o777;
+		Log.debug "Config" "Created %s [/blocks, /state, /address]" (conf.base_path ^ "/" ^ conf.chain);
 		true
 	with
 	| _ -> false
