@@ -34,22 +34,24 @@ module Request = struct
 		| "PUT" -> PUT
 		| _ -> GET
 		in
-		let data_raw = Bytes.create 1024 in
-		let reqlen = Unix.recv socket data_raw 0 1024 [] in
-		let data_raw = String.sub data_raw 0 reqlen in
-		let data = String.split_on_char ' ' data_raw in
-		match data with
-		| m :: u :: dl -> 
-			let data_split = String.split_on_char '\n' data_raw in
-			let body = List.nth data_split (List.length data_split - 1) in
-			let body_json = try Some (Yojson.Basic.from_string body) with _ -> None in
-			Some ({ 
-				uri= List.tl @@ String.split_on_char '/' u; 
-				data= body_json;
-				rmethod= method_of_string m;
-				socket= socket
-			})
-		| _ -> None 
+		try (
+			let data_raw = Bytes.create 1024 in
+			let reqlen = Unix.recv socket data_raw 0 1024 [] in
+			let data_raw = String.sub data_raw 0 reqlen in
+			let data = String.split_on_char ' ' data_raw in
+			match data with
+			| m :: u :: dl -> 
+				let data_split = String.split_on_char '\n' data_raw in
+				let body = List.nth data_split (List.length data_split - 1) in
+				let body_json = try Some (Yojson.Basic.from_string body) with _ -> None in
+				Some ({ 
+					uri= List.tl @@ String.split_on_char '/' u; 
+					data= body_json;
+					rmethod= method_of_string m;
+					socket= socket
+				})
+			| _ -> None 
+		) with _ -> None
 	;;
 
 	let reply req status jdata =
@@ -311,9 +313,16 @@ type t = {
 	network 	 : Net.t;
 	conf 			 : Config.rest;
 	mutable run: bool;
+	socket		 : Unix.file_descr;
 };;
 
-let init (rconf: Config.rest) bc net = { blockchain= bc; conf= rconf; network= net; run = rconf.enable };;
+let init (rconf: Config.rest) bc net = { 
+	blockchain= bc; 
+	conf= rconf; 
+	network= net; 
+	run= rconf.enable;
+	socket= socket PF_INET SOCK_STREAM 0
+};;
 
 let loop a =
 	let rec do_listen socket =
@@ -328,17 +337,17 @@ let loop a =
 			if a.run then do_listen socket
 	in
 	if a.conf.enable then (
-		let socket = socket PF_INET SOCK_STREAM 0 in
 		Log.info "Api.Rest" "Binding to port: %d" a.conf.port;
-		bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", a.conf.port));
-		listen socket 8;
-    try do_listen socket with _ -> ()
+		bind a.socket (ADDR_INET (inet_addr_of_string "0.0.0.0", a.conf.port));
+		listen a.socket 8;
+    try do_listen a.socket with _ -> ()
 	) else ()
 ;;
 
 let shutdown a = 
 	if a.conf.enable then (
 		Log.fatal "Api.Rest" "Shutdown...";
-		a.run <- false;
+		try ( Unix.shutdown a.socket Unix.SHUTDOWN_ALL ) with | _ -> ();
+		a.run <- false
 	) else ()
 ;;

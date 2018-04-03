@@ -41,6 +41,7 @@ let main () =
 		Sys.set_signal Sys.sigint @@ Signal_handle (sighandler);
 
 		Log.info Constants.name "Waiting for childs";
+
 		Thread.join net_thread;
 		Thread.join chain_thread;
 		Thread.join rest_thread;

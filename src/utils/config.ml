@@ -59,7 +59,8 @@ let parse_command_line conf =
 		Printf.printf " -p 12, --peer 12\tSet the number of peers\n"; 
 		Printf.printf " -r 1024, --prune 1024\tPrune to a custom number of blocks\n"; 
 		Printf.printf " -d /path/, --data-dir /path/\tSelect the destination directory for data\n"; 
-		Printf.printf " -rp 8087\t\t\tSelect the rest api port\n%!";  
+		Printf.printf " -rp 8087, --rest-port 8086\t\t\tSelect the rest api port\n%!";  
+		Printf.printf " -rpp 8087, --rpc-port 8087\t\t\tSelect the rpc api port\n%!";  
 		Printf.printf " -ll 5, --log-level 5\tSet the log level\n%!";  
 		Printf.printf " -ho, --header-only\tDownload and sync only headers\n%!";
 		Printf.printf " -ai, --address-index\tEnable address index (only on first run)\n%!";
@@ -94,9 +95,14 @@ let parse_command_line conf =
 		| "-ho" -> 
 			Log.debug "Config" "Setting mode to headers-only";
 			parse ({ conf with mode=HeadersOnly }) xl'
+		| "--rest-port"
 		| "-rp" -> 
 			Log.debug "Config" "Setting rest api port from command line: %s" x';
 			parse ({ conf with rest={conf.rest with port= int_of_string x' }}) xl'	
+		| "--rpc-port"
+		| "-rpp" -> 
+			Log.debug "Config" "Setting rpc api port from command line: %s" x';
+			parse ({ conf with rpc={conf.rpc with port= int_of_string x' }}) xl'	
 		| "--log-level"
 		| "-ll" -> 
 			Log.debug "Config" "Setting the log level from command line: %s" x';
@@ -179,7 +185,7 @@ let rec load_or_init base_path =
 				]);
 				("rpc", `Assoc [
 					("enable", `Bool false);
-					("port", `Int 8333);
+					("port", `Int 8332);
 					("user", `String "test");
 					("password", `String "test")
 				])
