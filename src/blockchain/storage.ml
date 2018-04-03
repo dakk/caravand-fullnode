@@ -376,7 +376,7 @@ let insert_block storage config params height (block : Block.t) =
 				storage.chainstate.prune_height <- Uint32.succ storage.chainstate.prune_height;
 				List.iter (fun tx -> Batch.delete storage.batch_blocks @@ "tx" ^ Hash.to_bin_norev tx.Tx.hash) block.txs;
 				(* Batch.delete storage.batch_blocks block.header.hash; useless, we overwrite this *)
-				Batch.put storage.batch_blocks block.header.hash (Block.Header.serialize block.header);
+				Batch.put storage.batch_blocks ("bk" ^ Hash.to_bin_norev block.header.hash) (Block.Header.serialize block.header);
 				prune_blocks storage xb)
 		| _ -> ()
 	in
