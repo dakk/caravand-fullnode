@@ -33,7 +33,7 @@ module Request = struct
 			Some ({
 				socket= socket;
 				id= j |> member "id" |> to_string;
-				params= j |> member "params" |> to_list;
+				params= []; (*j |> member "params" |> to_list;*)
 				methodn= j |> member "method" |> to_string;
 			})
 		) with _ -> None
@@ -65,6 +65,24 @@ let handle_request bc net (req: Request.t) =
 	| "getblockcount" -> 
 		let bl = Int64.to_int bc.block_height in
 		Request.reply req (`Int bl)
+	| "getblockhash" -> (
+		match req.params with
+		| [`String b] -> (
+			match Storage.get_blocki bc.storage @@ Int64.of_string b with
+			| None -> ()
+			| Some (b) -> Request.reply req (`String b.header.hash)
+		)
+		| _ -> ()
+	)
+	| "getrawblock" -> (
+		match req.params with
+		| [`String b] -> (
+			match Storage.get_block bc.storage b with
+			| None -> ()
+			| Some (b) -> Request.reply req (`String (Block.serialize b))
+		)
+		| _ -> ()
+	)
 	| _ -> ()
 ;;
 
