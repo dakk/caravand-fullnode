@@ -227,7 +227,10 @@ let loop bc =
 				Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions, %d KB)" (Int64.to_int bc.block_height) 
 					(int_of_float ((Unix.time ()) -. a)) (List.length b.txs) (b.size / 1024);
 				bc.block_last_received <- Unix.time ();
-				Log.info "Blockchain ←" "Block %s - %d, time: %s ago" b.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time ~munit:"weeks";
+
+				let percentage = 100. *. (Int64.to_float bc.block_height) /. (Int64.to_float bc.header_height) in
+				Log.info "Blockchain ←" "Block %s - %d - %f%%" b.header.hash (Int64.to_int bc.block_height) percentage; 
+				(*(Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time ~munit:"weeks";*)
 				()
 			) else (
 				Log.warn "Blockchain" "Block validation failed: %s - %d" b.header.hash (Int64.to_int bc.block_height) 
@@ -247,10 +250,10 @@ let loop bc =
 					bc.block_last <- b;
 					Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
 					bc.block_last_received <- Unix.time ();
-					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time ~munit:"weeks"
 				) else (
 					Storage.insert_header bc.storage bc.header_height bc.header_last;
-					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time
+					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time ~munit:"weeks"
 				)
 			| None -> ()
 		) else (
