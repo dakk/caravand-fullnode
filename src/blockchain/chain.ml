@@ -330,7 +330,7 @@ let loop bc =
 		| _ -> (
 			(*if bc.block_last.header.time < (Unix.time () -. 60. *. 10.) then ( *)
 			if bc.block_last.header.hash <> bc.header_last.hash && bc.config.mode <> HeadersOnly then (
-				Log.debug "Blockchain" "Blocks not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
+				Log.info "Blockchain" "Blocks not in sync: %s behind" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- false;
 
 				(* Ask the storage for next n blocks hashes *)
@@ -348,7 +348,7 @@ let loop bc =
 					bc.blocks_requested <- 500;
 					bc.requests << Request.REQ_BLOCKS (hashes, None))
 			) else (
-				Log.debug "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
+				Log.info "Blockchain" "Blocks in sync: last block is %s" @@ Timediff.diffstring (Unix.time ()) bc.block_last.header.time;
 				bc.sync <- true
 			)
 		));
