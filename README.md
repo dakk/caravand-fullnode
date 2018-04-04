@@ -1,10 +1,9 @@
+![Logo of caravand](https://github.com/dakk/caravand/raw/master/docs/logo/logo.png)
 # caravand
 
 [![Build Status](https://travis-ci.org/dakk/caravand.svg)](https://travis-ci.org/dakk/caravand)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dakk/caravand/blob/master/LICENSE)
 [![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://github.com/dakk/caravand/wiki)
-
-![Logo of caravand](https://github.com/dakk/caravand/raw/master/docs/logo/logo.png)
 
 Bitcoin fullnode OCaml implementation. 
 Caravand will be usable as a standalone bitcoin node with a REST api interface.
