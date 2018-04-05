@@ -127,7 +127,7 @@ let load path config p =
 		bcg
 	in
 	let bcg = genesis path config p in
-	bcg.branches <- bcg.storage.chainstate.Chainstate.branches;
+	bcg.branches <- [];
 		
 	let header_last = Storage.get_header bcg.storage bcg.storage.chainstate.Chainstate.header in
 	let block_last = Storage.get_block bcg.storage bcg.storage.chainstate.Chainstate.block in
@@ -150,7 +150,7 @@ let load path config p =
 (* Remove the last header / block (if detected a fork) *)
 let rollback_block bc =
 	let rollback_block' () = 
-		Storage.remove_last_block bc.storage bc.config bc.params bc.block_last.header.prev_block;
+		Storage.remove_last_block bc.storage bc.params bc.block_last.header.prev_block;
 		bc.block_height <- Int64.pred bc.block_height;
 		match Storage.get_block bc.storage @@ bc.block_last.header.prev_block with
 		| Some (h) -> bc.block_last <- h 
@@ -183,8 +183,7 @@ let loop bc =
 	| (Some (br), _) -> (* Insert into a branch (if present) *)
 		Log.info "Blockchain ←" "Branch %s updated with new block: %s" br.fork_hash h.hash;
 		if Verifier.verify_block_header bc.params br.header_height br.header_last h then (
-			Branch.push br h |> ignore;
-			Storage.update_branches bc.storage bc.branches
+			Branch.push br h |> ignore
 		)
 	| (None, Some (br)) -> (* Branch parent not found, but there is already a branch with the same fork_block *)
 		()
@@ -199,7 +198,6 @@ let loop bc =
 					| None -> (* Found a valid new branch *)
 						let branch = Branch.create banc.hash (Int64.of_int height) h in
 						bc.branches <- bc.branches @ [ branch ];
-						Storage.update_branches bc.storage bc.branches;
 						Log.info "Blockchain ←" "New branch created from %s to %s" banc.hash h.hash;
 						()
 				) (* else ()*)
@@ -210,7 +208,7 @@ let loop bc =
 		| Some (b) -> 
 			bc.block_height <- Int64.zero;
 			bc.block_last <- b;
-			Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
+			Storage.insert_block bc.storage bc.params bc.block_height b;
 			Mempool.remove_txs bc.mempool b.txs;
 			()			
 		| None -> ()
@@ -223,7 +221,7 @@ let loop bc =
 				bc.block_height <- Int64.succ bc.block_height;
 				bc.block_last <- b;
 				let a = Unix.time () in
-				Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
+				Storage.insert_block bc.storage bc.params bc.block_height b;
 				Log.debug "Blockchain ←" "Block %d processed in %d seconds (%d transactions, %d KB)" (Int64.to_int bc.block_height) 
 					(int_of_float ((Unix.time ()) -. a)) (List.length b.txs) (b.size / 1024);
 				bc.block_last_received <- Unix.time ();
@@ -248,7 +246,7 @@ let loop bc =
 				if Verifier.verify_block bc.params bc.block_height bc.block_last b then (
 					bc.block_height <- Int64.succ bc.block_height;
 					bc.block_last <- b;
-					Storage.insert_block bc.storage bc.config bc.params bc.block_height b;
+					Storage.insert_block bc.storage bc.params bc.block_height b;
 					bc.block_last_received <- Unix.time ();
 					Log.debug "Blockchain ←" "Block %s - %d, time: %s ago" block.header.hash (Int64.to_int bc.block_height) @@ Timediff.diffstring (Unix.time ()) block.header.time ~munit:"weeks"
 				) else (
@@ -398,9 +396,6 @@ let loop bc =
 				List.iter (fun h -> Branch.push branch h |> ignore) @@ List.tl rolled_back;
 				bc.branches <- bc.branches @ [ branch ];
 			);
-
-			Storage.update_branches bc.storage bc.branches;
-
 			()
 		| _ -> ()
 		);

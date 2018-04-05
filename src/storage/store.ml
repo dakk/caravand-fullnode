@@ -6,13 +6,11 @@ module Store_raw = struct
   type t = {
     db 			        : LevelDB.db;
     mutable batch 	: LevelDB.writebatch;
-    (*config          : Config.t;*)
   };;
 
-  let load path subpath (*config*) = {
+  let load path subpath = {
     db= LevelDB.open_db ~max_open_files:64 (path ^ "/" ^ subpath);
     batch= LevelDB.Batch.make ();
-    (*config= config;*)
   };;
 
   let close store = LevelDB.close store.db;;
@@ -38,6 +36,8 @@ end
 module Make_index (Stored_object_module: Stored_object) (Prefix_module: Prefix) = struct
   type t_obj = Stored_object_module;;
   include Store_raw;;
+
+  let mem (store: Store_raw.t) key = LevelDB.mem store.db (Prefix_module.prefix ^ key);;
 
   let set (store: Store_raw.t) key obj = Batch.put store.batch (Prefix_module.prefix ^ key) @@ Stored_object_module.serialize obj;;
 

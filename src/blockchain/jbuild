@@ -4,5 +4,5 @@
  ((name        blockchain)
   (public_name caravand.blockchain)
   (preprocess (pps (ppx_bitstring)))
-  (libraries (bitstring utils stdint leveldb bitcoinml))))
+  (libraries (bitstring storage utils stdint leveldb bitcoinml))))
 

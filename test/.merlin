@@ -1,6 +1,7 @@
 B ../_build/default/src/api
 B ../_build/default/src/blockchain
 B ../_build/default/src/network
+B ../_build/default/src/storage
 B ../_build/default/src/utils
 B ../_build/default/test
 FLG -w -40
@@ -101,4 +102,5 @@ PKG zarith
 S ../src/api
 S ../src/blockchain
 S ../src/network
+S ../src/storage
 S ../src/utils

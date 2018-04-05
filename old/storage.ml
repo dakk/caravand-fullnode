@@ -324,6 +324,7 @@ let update_reward storage reward =
 	save_cs storage
 ;;
 
+(* Done *)
 let insert_header storage height (header : Block.Header.t) = 
 	storage.chainstate.header_height <- Uint32.of_int64 height;
 
@@ -336,7 +337,7 @@ let insert_header storage height (header : Block.Header.t) =
 ;;
 
 
-
+(* Done *)
 let get_block_height storage hash =
 	match LevelDB.get storage.db_blocks ("bh" ^ Hash.to_bin_norev hash) with
 	| Some (hdata) -> int_of_string hdata
@@ -344,6 +345,7 @@ let get_block_height storage hash =
 ;;
 
 
+(* Done *)
 let get_block storage hash = 
 	if (get_block_height storage hash) > (Uint32.to_int storage.chainstate.height) then 
 		None
@@ -353,6 +355,7 @@ let get_block storage hash =
 		| None -> None
 ;;
 
+(* Done *)
 let get_blocki storage height = 
 	if (Int64.to_int height) > (Uint32.to_int storage.chainstate.height) then 
 		None
@@ -361,8 +364,8 @@ let get_blocki storage height =
 		| Some (h) -> get_block storage h 
 		| None -> None
 ;;
-	
 
+(* Done *)
 let insert_block storage config params height (block : Block.t) = 
 	let rec prune_blocks storage xb = 
 		match (Uint32.to_int storage.chainstate.height) - xb with
@@ -485,7 +488,7 @@ let insert_block storage config params height (block : Block.t) =
 	sync storage
 ;;
 
-
+(* Done *)
 let get_utx	storage tx index =
 	match LevelDB.get storage.db_state ("ut" ^ Hash.to_bin_norev tx ^ string_of_int index) with
 	| None -> None
@@ -495,6 +498,7 @@ let get_utx	storage tx index =
 		| _ -> None
 ;;
 
+(* Done *)
 let get_tx storage txhash =
 	match LevelDB.get storage.db_blocks ("tx" ^ Hash.to_bin_norev txhash) with
 	| None -> None
@@ -512,6 +516,7 @@ let get_tx storage txhash =
 ;;
 
 
+(* Done *)
 let get_tx_output storage tx index =
 	match get_tx storage tx with
 	| None -> None
@@ -522,6 +527,7 @@ let get_tx_output storage tx index =
 			None
 ;;
 
+(* Done *)
 let get_tx_height storage txhash =
 	match LevelDB.get storage.db_blocks ("tx" ^ Hash.to_bin_norev txhash) with
 	| None -> None
@@ -535,18 +541,21 @@ let get_tx_height storage txhash =
 ;;
 
 
+(* Done *)
 let get_header storage hash = 
 	match LevelDB.get storage.db_blocks ("bk" ^ Hash.to_bin_norev hash) with
 	| None -> None
 	| Some (data) -> Block.Header.parse @@ Bytes.sub data 0 80
 ;;
 
+(* Done *)
 let get_headeri storage height = 
 	match LevelDB.get storage.db_blocks ("bi" ^ Printf.sprintf "%d" (Int64.to_int height)) with
 	| Some (h) -> get_header storage h 
 	| None -> None
 ;;
 
+(* Done *)
 let get_blocks storage hashes = 
 	let rec get_blocks' hs acc = match hashes with
 	| [] -> acc
@@ -556,6 +565,7 @@ let get_blocks storage hashes =
 	in get_blocks' hashes []
 ;;
 
+(* Done *)
 let get_headers storage hashes = 
 	let rec get_headers' hs acc = match hashes with
 	| [] -> acc
@@ -580,7 +590,7 @@ let get_address_txs storage addr =
 ;;
 
 
-
+(* Done *)
 let remove_last_header storage prevhash =
 	storage.chainstate.header_height <- Uint32.pred storage.chainstate.header_height;
 	Batch.delete storage.batch_blocks ("bi" ^ Printf.sprintf "%d" (Uint32.to_int storage.chainstate.header_height));
@@ -592,6 +602,7 @@ let remove_last_header storage prevhash =
 	sync storage
 ;;
 
+(* Done *)
 let remove_last_block storage config params prevhash =
 	storage.chainstate.height <- Uint32.pred storage.chainstate.height;
 	storage.chainstate.block <- prevhash;

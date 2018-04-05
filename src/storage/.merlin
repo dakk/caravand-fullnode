@@ -1,6 +1,6 @@
 B ../../_build/default/src/storage
 B ../../_build/default/src/utils
-FLG -open Storage -w -40
+FLG -open Storage__ -w -40
 FLG -ppx '/home/dakk/Repositories/MyRepos/caravand/_build/default/.ppx/ppx_bitstring/ppx.exe --as-ppx --cookie '\''library-name="storage"'\'''
 PKG base
 PKG base.caml
