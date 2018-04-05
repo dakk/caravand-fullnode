@@ -116,8 +116,10 @@ let load path config =
 		state_store= state_store
 };;
 
+let save st = Chainstate_index.set st.state_store "" st.chainstate;;
+
 let sync st = 
-  Chainstate_index.set st.state_store "" st.chainstate;
+  save st;
 	Store_raw.sync st.block_store;
 	Store_raw.sync st.address_store;
 	Store_raw.sync st.state_store
@@ -130,6 +132,7 @@ let close st =
 	Store_raw.close st.state_store
 ;;
 
+	
 
 let insert_header st height (header : Block.Header.t) = 
 	let h = Uint32.of_int64 height in
@@ -137,14 +140,14 @@ let insert_header st height (header : Block.Header.t) =
 	
   st.chainstate.header <- header.hash;
 	st.chainstate.header_height <- h;
-  Chainstate_index.set st.state_store "" st.chainstate;
+  save st
 ;;
 
 let remove_last_header st prevhash =
 	st.chainstate.header_height <- Uint32.pred st.chainstate.header_height;
 	st.chainstate.header <- prevhash;
 	Blocks.remove_header st.block_store st.chainstate.header_height st.chainstate.header;
-  Chainstate_index.set st.state_store "" st.chainstate;
+  save st;
 	sync st
 ;;
 

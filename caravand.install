@@ -38,11 +38,6 @@ lib: [
   "_build/install/default/lib/caravand/blockchain/blockchain__Mempool.cmt" {"blockchain/blockchain__Mempool.cmt"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Mempool.cmti" {"blockchain/blockchain__Mempool.cmti"}
   "_build/install/default/lib/caravand/blockchain/mempool.mli" {"blockchain/mempool.mli"}
-  "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmi" {"blockchain/blockchain__Storage.cmi"}
-  "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmx" {"blockchain/blockchain__Storage.cmx"}
-  "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmt" {"blockchain/blockchain__Storage.cmt"}
-  "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmti" {"blockchain/blockchain__Storage.cmti"}
-  "_build/install/default/lib/caravand/blockchain/storage.mli" {"blockchain/storage.mli"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmi" {"blockchain/blockchain__Verifier.cmi"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmx" {"blockchain/blockchain__Verifier.cmx"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmt" {"blockchain/blockchain__Verifier.cmt"}

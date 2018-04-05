@@ -23,6 +23,6 @@ let insert_utx state_store txh index out =
   Utx_index.set state_store (Hash.to_bin_norev txh ^ string_of_int index) out
 ;;
 
-let remove_utx	state_store tx index = 
+let remove_utx state_store tx index = 
   Utx_index.remove state_store @@ Hash.to_bin_norev tx ^ string_of_int index
 ;;
