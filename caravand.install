@@ -75,6 +75,10 @@ lib: [
   "_build/install/default/lib/caravand/network/network.cmxa" {"network/network.cmxa"}
   "_build/install/default/lib/caravand/network/network.a" {"network/network.a"}
   "_build/install/default/lib/caravand/network/network.cmxs" {"network/network.cmxs"}
+  "_build/install/default/lib/caravand/storage/storage__Addresses.cmi" {"storage/storage__Addresses.cmi"}
+  "_build/install/default/lib/caravand/storage/storage__Addresses.cmx" {"storage/storage__Addresses.cmx"}
+  "_build/install/default/lib/caravand/storage/storage__Addresses.cmt" {"storage/storage__Addresses.cmt"}
+  "_build/install/default/lib/caravand/storage/addresses.ml" {"storage/addresses.ml"}
   "_build/install/default/lib/caravand/storage/storage__Blocks.cmi" {"storage/storage__Blocks.cmi"}
   "_build/install/default/lib/caravand/storage/storage__Blocks.cmx" {"storage/storage__Blocks.cmx"}
   "_build/install/default/lib/caravand/storage/storage__Blocks.cmt" {"storage/storage__Blocks.cmt"}

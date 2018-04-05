@@ -67,6 +67,10 @@ let insert_header block_store height (header : Block.Header.t) =
 	Block_height_index.set block_store (Printf.sprintf "%d" (Uint32.to_int height)) header.hash;
 ;;
 
+let remove_block_data block_store (block : Block.t) = 
+  Block_header_index.set block_store block.header.hash block.header
+;;
+
 
 let insert_block block_store (block : Block.t) = 
   Block_index.set block_store (Hash.to_bin_norev block.header.hash) block

@@ -37,6 +37,13 @@ module Make_index (Stored_object_module: Stored_object) (Prefix_module: Prefix) 
   type t_obj = Stored_object_module;;
   include Store_raw;;
 
+  let iterator (store: Store_raw.t) key = 
+    let it = LevelDB.Iterator.make store.db in
+    let _ = LevelDB.Iterator.seek it (Prefix_module.prefix ^ key) 0 
+      (String.length @@ Prefix_module.prefix ^ key) in
+    it
+  ;;
+
   let mem (store: Store_raw.t) key = LevelDB.mem store.db (Prefix_module.prefix ^ key);;
 
   let set (store: Store_raw.t) key obj = Batch.put store.batch (Prefix_module.prefix ^ key) @@ Stored_object_module.serialize obj;;
