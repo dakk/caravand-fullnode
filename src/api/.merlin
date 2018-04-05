@@ -1,6 +1,7 @@
 B ../../_build/default/src/api
 B ../../_build/default/src/blockchain
 B ../../_build/default/src/network
+B ../../_build/default/src/storage
 B ../../_build/default/src/utils
 FLG -open Api -w -40
 PKG base
@@ -94,4 +95,5 @@ PKG yojson
 PKG zarith
 S ../blockchain
 S ../network
+S ../storage
 S ../utils

@@ -1,4 +1,5 @@
 B ../../_build/default/src/blockchain
+B ../../_build/default/src/storage
 B ../../_build/default/src/utils
 FLG -open Blockchain -w -40
 FLG -ppx '/home/dakk/Repositories/MyRepos/caravand/_build/default/.ppx/ppx_bitstring/ppx.exe --as-ppx --cookie '\''library-name="blockchain"'\'''
@@ -91,4 +92,5 @@ PKG unix
 PKG variantslib
 PKG yojson
 PKG zarith
+S ../storage
 S ../utils

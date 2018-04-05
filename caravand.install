@@ -38,11 +38,6 @@ lib: [
   "_build/install/default/lib/caravand/blockchain/blockchain__Mempool.cmt" {"blockchain/blockchain__Mempool.cmt"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Mempool.cmti" {"blockchain/blockchain__Mempool.cmti"}
   "_build/install/default/lib/caravand/blockchain/mempool.mli" {"blockchain/mempool.mli"}
-  "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmi" {"blockchain/blockchain__Storage.cmi"}
-  "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmx" {"blockchain/blockchain__Storage.cmx"}
-  "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmt" {"blockchain/blockchain__Storage.cmt"}
-  "_build/install/default/lib/caravand/blockchain/blockchain__Storage.cmti" {"blockchain/blockchain__Storage.cmti"}
-  "_build/install/default/lib/caravand/blockchain/storage.mli" {"blockchain/storage.mli"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmi" {"blockchain/blockchain__Verifier.cmi"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmx" {"blockchain/blockchain__Verifier.cmx"}
   "_build/install/default/lib/caravand/blockchain/blockchain__Verifier.cmt" {"blockchain/blockchain__Verifier.cmt"}
@@ -80,6 +75,31 @@ lib: [
   "_build/install/default/lib/caravand/network/network.cmxa" {"network/network.cmxa"}
   "_build/install/default/lib/caravand/network/network.a" {"network/network.a"}
   "_build/install/default/lib/caravand/network/network.cmxs" {"network/network.cmxs"}
+  "_build/install/default/lib/caravand/storage/storage__Blocks.cmi" {"storage/storage__Blocks.cmi"}
+  "_build/install/default/lib/caravand/storage/storage__Blocks.cmx" {"storage/storage__Blocks.cmx"}
+  "_build/install/default/lib/caravand/storage/storage__Blocks.cmt" {"storage/storage__Blocks.cmt"}
+  "_build/install/default/lib/caravand/storage/blocks.ml" {"storage/blocks.ml"}
+  "_build/install/default/lib/caravand/storage/storage__State.cmi" {"storage/storage__State.cmi"}
+  "_build/install/default/lib/caravand/storage/storage__State.cmx" {"storage/storage__State.cmx"}
+  "_build/install/default/lib/caravand/storage/storage__State.cmt" {"storage/storage__State.cmt"}
+  "_build/install/default/lib/caravand/storage/state.ml" {"storage/state.ml"}
+  "_build/install/default/lib/caravand/storage/storage.cmi" {"storage/storage.cmi"}
+  "_build/install/default/lib/caravand/storage/storage.cmx" {"storage/storage.cmx"}
+  "_build/install/default/lib/caravand/storage/storage.cmt" {"storage/storage.cmt"}
+  "_build/install/default/lib/caravand/storage/storage.cmti" {"storage/storage.cmti"}
+  "_build/install/default/lib/caravand/storage/storage.mli" {"storage/storage.mli"}
+  "_build/install/default/lib/caravand/storage/storage__.cmi" {"storage/storage__.cmi"}
+  "_build/install/default/lib/caravand/storage/storage__.cmx" {"storage/storage__.cmx"}
+  "_build/install/default/lib/caravand/storage/storage__.cmt" {"storage/storage__.cmt"}
+  "_build/install/default/lib/caravand/storage/storage__.ml-gen" {"storage/storage__.ml-gen"}
+  "_build/install/default/lib/caravand/storage/storage__Store.cmi" {"storage/storage__Store.cmi"}
+  "_build/install/default/lib/caravand/storage/storage__Store.cmx" {"storage/storage__Store.cmx"}
+  "_build/install/default/lib/caravand/storage/storage__Store.cmt" {"storage/storage__Store.cmt"}
+  "_build/install/default/lib/caravand/storage/store.ml" {"storage/store.ml"}
+  "_build/install/default/lib/caravand/storage/storage.cma" {"storage/storage.cma"}
+  "_build/install/default/lib/caravand/storage/storage.cmxa" {"storage/storage.cmxa"}
+  "_build/install/default/lib/caravand/storage/storage.a" {"storage/storage.a"}
+  "_build/install/default/lib/caravand/storage/storage.cmxs" {"storage/storage.cmxs"}
   "_build/install/default/lib/caravand/utils/utils__Config.cmi" {"utils/utils__Config.cmi"}
   "_build/install/default/lib/caravand/utils/utils__Config.cmx" {"utils/utils__Config.cmx"}
   "_build/install/default/lib/caravand/utils/utils__Config.cmt" {"utils/utils__Config.cmt"}
