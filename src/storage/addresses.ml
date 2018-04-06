@@ -117,7 +117,9 @@ let get_txs adr_store addr txs =
 	| n' -> 
 		let h = Address_tx_index.get adr_store @@ LevelDB.Iterator.get_value it in
 		let _ = LevelDB.Iterator.next it in
-		get_tx it (n' - 1) @@ h :: acc
+		match h with 
+		| Some(h) -> get_tx it (n' - 1) @@ h :: acc
+		| None -> get_tx it (n' - 1) acc
 	in
 	let it = Address_tx_index.iterator adr_store addr in
 	get_tx it txs []
@@ -129,7 +131,9 @@ let get_utxos adr_store addr utxs =
 	| n' -> 
 		let ut = Address_utx_index.get adr_store @@ LevelDB.Iterator.get_value it in
 		let _ = LevelDB.Iterator.next it in
-		get_utx it (n' - 1) @@ ut :: acc
+		match ut with 
+		| Some(ut) -> get_utx it (n' - 1) @@ ut :: acc
+		| None -> get_utx it (n' - 1) acc
 	in
 	let it = Address_utx_index.iterator adr_store addr in
 	get_utx it utxs []

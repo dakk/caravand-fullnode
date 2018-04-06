@@ -132,7 +132,31 @@ let close st =
 	Store_raw.close st.state_store
 ;;
 
-	
+
+let get_blocks st hashes = Blocks.get_blocks st.block_store hashes;;
+let get_headers st hashes = Blocks.get_headers st.block_store hashes;;
+let get_block_height st hash = Blocks.get_block_height st.block_store hash;;
+let get_blocki st height = Blocks.get_blocki st.block_store height;;
+let get_block st hash = Blocks.get_block st.block_store hash;;
+let get_header st hash = Blocks.get_header st.block_store hash;;
+let get_headeri st height = Blocks.get_headeri st.block_store height;;
+let get_tx st txhash = Blocks.get_tx st.block_store txhash;;
+let get_utx	st tx index = State.get_utx st.state_store tx index;;
+let get_tx_output st tx index = Blocks.get_tx_output st.state_store tx index;;
+let get_tx_height st txhash = Blocks.get_tx_height st.state_store txhash;;
+let get_address st addr = Addresses.load st.address_store addr;;
+
+let get_address_utxs st addr = 
+	let a = get_address st addr in 
+	Addresses.get_utxos st.address_store addr (Int64.to_int a.utxs)
+;;
+
+let get_address_txs st addr = 
+	let a = get_address st addr in
+	Addresses.get_txs st.address_store addr (Int64.to_int a.txs)
+;;
+
+
 
 let insert_header st height (header : Block.Header.t) = 
 	let h = Uint32.of_int64 height in
@@ -150,25 +174,6 @@ let remove_last_header st prevhash =
   save st;
 	sync st
 ;;
-
-
-
-let get_blocks st hashes = Blocks.get_blocks st.block_store hashes;;
-let get_headers st hashes = Blocks.get_headers st.block_store hashes;;
-let get_block_height st hash = Blocks.get_block_height st.block_store hash;;
-let get_blocki st height = Blocks.get_blocki st.block_store height;;
-let get_block st hash = Blocks.get_block st.block_store hash;;
-let get_header st hash = Blocks.get_header st.block_store hash;;
-let get_headeri st height = Blocks.get_headeri st.block_store height;;
-let get_tx st txhash = Blocks.get_tx st.block_store txhash;;
-let get_utx	st tx index = State.get_utx st.state_store tx index;;
-let get_tx_output st tx index = Blocks.get_tx_output st.state_store tx index;;
-let get_tx_height st txhash = Blocks.get_tx_height st.state_store txhash;;
-
-
-
-
-
 
 let insert_block storage params height (block : Block.t) = 
 	let rec prune_blocks storage xb = 
@@ -280,7 +285,6 @@ let insert_block storage params height (block : Block.t) =
   Chainstate_index.set storage.state_store "" storage.chainstate;
 	sync storage
 ;;
-
 
 
 let remove_last_block storage params prevhash =

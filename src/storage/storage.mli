@@ -44,7 +44,6 @@ val remove_last_header: t -> Hash.t -> unit
 val insert_block      : t -> Params.t -> int64 -> Block.t -> unit
 val remove_last_block : t -> Params.t -> Hash.t -> unit
 
-
 val get_blocki        : t -> Int64.t -> Block.t option
 val get_block         : t -> Hash.t -> Block.t option
 val get_block_height	:	t -> Hash.t -> int
@@ -55,3 +54,7 @@ val get_headers				:	t -> Hash.t list -> Block.Header.t list
 val get_tx_output			:	t -> Hash.t -> int -> Tx.Out.t option
 val get_tx						:	t -> Hash.t -> Tx.t option
 val get_tx_height			:	t -> Hash.t -> int option
+
+val get_address				:	t -> string -> Addresses.Address.t
+val get_address_utxs	:	t -> string -> Addresses.Address.utx list
+val get_address_txs		:	t -> string -> string list

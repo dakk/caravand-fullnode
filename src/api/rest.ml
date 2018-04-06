@@ -138,7 +138,6 @@ let handle_request bc net req =
 		)
 
 	(* Get address info *)
-	(*
 	| (Request.GET, "address" :: addr :: [], _) -> 
 		let ad = Storage.get_address bc.storage addr in
 		Request.reply req 200 (`Assoc [
@@ -152,10 +151,8 @@ let handle_request bc net req =
 				("txs", `String (Int64.to_string ad.txs))				
 			])
 		])
-		*)
 
 	(* Get address txs *)
-	(*
 	| (Request.GET, "address" :: addr :: "txs" :: [], _) -> 
 		let txl = Storage.get_address_txs bc.storage addr in
 		let assoc = List.map (fun hash -> `String hash) txl in
@@ -163,10 +160,8 @@ let handle_request bc net req =
 			("status", `String "ok");
 			("txs", `List assoc)
 		])
-		*)
 
 	(* Get address txs with full tx *)
-	(*
 	| (Request.GET, "address" :: addr :: "txs" :: "expanded" :: [], _) -> 
 	let txl = Storage.get_address_txs bc.storage addr in
 	let rec txl_expand hashes acc = match hashes with
@@ -179,10 +174,8 @@ let handle_request bc net req =
 		("status", `String "ok");
 		("txs", `List (txl_expand txl []))
 	])
-		*)
 
 	(* Get address utxo *)
-	(*
 	| (Request.GET, "address" :: addr :: "utxo" :: [], _) -> 
 		let utxl = Storage.get_address_utxs bc.storage addr in
 		let assoc = List.map (fun ut -> 
@@ -194,7 +187,6 @@ let handle_request bc net req =
 			("status", `String "ok");
 			("utxo", `List assoc)
 		])
-		*)
 
 	(* Get a raw tx *)
 	| (Request.GET, "tx" :: txid :: "raw" :: [], _) ->
