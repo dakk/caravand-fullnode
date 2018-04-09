@@ -1,5 +1,6 @@
 open Unix;;
 open Yojson;;
+open Yojson.Basic.Util;;
 
 
 let send socket str = 
@@ -23,14 +24,14 @@ module HTTP = struct
 		socket 	: Unix.file_descr;
   };;
   
-  let reply socket status data =
-    send socket @@ Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status;
-    send socket @@ data;
-    close socket
+  let reply req status data =
+    send req.socket @@ Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status;
+    send req.socket @@ data;
+    close req.socket
   ;;
 
-  let reply_json socket status jdata = 
-    reply socket status @@ Yojson.Basic.pretty_to_string jdata
+  let reply_json req status jdata = 
+    reply req status @@ Yojson.Basic.pretty_to_string jdata
   ;;
 
   let parse_request socket =
@@ -56,4 +57,35 @@ module HTTP = struct
       })
     | _ -> None
   ;;
+end
+
+module JSONRPC = struct
+  type req = {
+    methodn : string;
+    params  : Yojson.Basic.json list;
+    id      : string;
+		socket 	: Unix.file_descr;
+  };;
+
+  let reply req result = 
+		`Assoc [
+			("id", `String req.id);
+			("result", result);
+		] |> to_string |> send req.socket
+  ;;
+
+  let parse_request socket = 
+		try (
+			let data_raw = recv socket in
+			let data_split = String.split_on_char '{' data_raw in
+			let body = "{" ^ List.nth data_split 1 in
+			let j = Yojson.Basic.from_string body in
+			Some ({
+				socket= socket;
+				id= j |> member "id" |> to_string;
+				params= []; (*j |> member "params" |> to_list;*)
+				methodn= j |> member "method" |> to_string;
+			})
+		) with _ -> None
+	;;
 end

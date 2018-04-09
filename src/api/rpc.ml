@@ -14,54 +14,21 @@ open Params;;
 open Stdint;;
 open Yojson.Basic.Util;;
 
-module Request = struct
-	type t = {
-    methodn : string;
-    params  : Yojson.Basic.json list;
-    id      : string;
-		socket 	: Unix.file_descr;
-	};;
 
-	let recv socket = 
-		try (
-			let data_raw = Helper.recv socket in
-			let data_split = String.split_on_char '{' data_raw in
-			let body = "{" ^ List.nth data_split 1 in
-			let j = Yojson.Basic.from_string body in
-			Some ({
-				socket= socket;
-				id= j |> member "id" |> to_string;
-				params= []; (*j |> member "params" |> to_list;*)
-				methodn= j |> member "method" |> to_string;
-			})
-		) with _ -> None
-	;;
+let handle_request bc net req = 
+	let reply = Helper.JSONRPC.reply req in
 
-	let reply req jdata =
-		`Assoc [
-			("id", `String req.id);
-			("result", jdata);
-		] |> to_string |> Helper.send req.socket
-	;;
-
-	let replyerr req jdata =
-		()
-	;;
-end
-
-
-let handle_request bc net (req: Request.t) = 
 	Printf.printf "%s\n%!" req.methodn;
 	match req.methodn with
 	| "getblockcount" -> 
 		let bl = Int64.to_int bc.block_height in
-		Request.reply req (`Int bl)
+		reply (`Int bl)
 	| "getblockhash" -> (
 		match req.params with
 		| [`String b] -> (
 			match Storage.get_blocki bc.storage @@ Int64.of_string b with
 			| None -> ()
-			| Some (b) -> Request.reply req (`String b.header.hash)
+			| Some (b) -> reply (`String b.header.hash)
 		)
 		| _ -> ()
 	)
@@ -70,7 +37,7 @@ let handle_request bc net (req: Request.t) =
 		| [`String b] -> (
 			match Storage.get_block bc.storage b with
 			| None -> ()
-			| Some (b) -> Request.reply req (`String (Block.serialize b))
+			| Some (b) -> reply (`String (Block.serialize b))
 		)
 		| _ -> ()
 	)
@@ -96,7 +63,7 @@ let init (rconf: Config.rpc) bc net = {
 let loop a =
 	let rec do_listen socket =
 		let (client_sock, _) = accept socket in
-		match Request.recv client_sock with
+		match Helper.JSONRPC.parse_request client_sock with
 		| None -> 
 			(*close client_sock;*)
 			if a.run then do_listen socket

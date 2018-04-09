@@ -14,7 +14,19 @@ module HTTP : sig
 		socket 	: Unix.file_descr;
   }
 
-  val reply_json : Unix.file_descr -> int -> Yojson.Basic.json -> unit
-  val reply : Unix.file_descr -> int -> string -> unit
+  val reply_json : req -> int -> Yojson.Basic.json -> unit
+  val reply : req -> int -> string -> unit
   val parse_request : Unix.file_descr -> req option
+end
+
+module JSONRPC : sig
+  type req = {
+    methodn : string;
+    params  : Yojson.Basic.json list;
+    id      : string;
+		socket 	: Unix.file_descr;
+  }
+
+  val parse_request : Unix.file_descr -> req option
+  val reply : req -> Yojson.Basic.json -> unit
 end

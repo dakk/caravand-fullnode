@@ -16,9 +16,8 @@ open Yojson.Basic.Util;;
 open Yojson.Basic;;
 
 
-
 let handle_request bc net req = 
-	let reply = Helper.HTTP.reply_json req.Helper.HTTP.socket in
+	let reply = Helper.HTTP.reply_json req in
 	let not_found () = reply 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 	
 	Log.debug "Api.Rest ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Helper.HTTP.uri;	
