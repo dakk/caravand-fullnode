@@ -35,9 +35,7 @@ module Request = struct
 		| _ -> GET
 		in
 		try (
-			let data_raw = Bytes.create 1024 in
-			let reqlen = Unix.recv socket data_raw 0 1024 [] in
-			let data_raw = String.sub data_raw 0 reqlen in
+			let data_raw = Helper.recv socket in
 			let data = String.split_on_char ' ' data_raw in
 			match data with
 			| m :: u :: dl -> 
@@ -53,22 +51,11 @@ module Request = struct
 			| _ -> None 
 		) with _ -> None
 	;;
-
-	let reply req status jdata =
-		let send_string str = 
-			let len = String.length str in
-			send req.socket str 0 len [] |> ignore
-		in
-		try (
-			send_string @@ Printf.sprintf "HTTP/1.1 %d/OK\nContent-type: application/json\n\n" status;
-			send_string @@ Yojson.Basic.pretty_to_string jdata;
-			close req.socket
-		) with _ -> ()
-	;;
 end
 
 let handle_request bc net req = 
-	let not_found () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
+	let reply = Helper.HTTP.send_json req.Request.socket in
+	let not_found () = reply 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 	
 	Log.debug "Api.Rest ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
 
@@ -120,7 +107,7 @@ let handle_request bc net req =
 
 	(* Push a tx *)
 	| (Request.POST, "tx" :: [], Some (body)) ->
-		let invalid_hex () = Request.reply req 404 (`Assoc [("status", `String "error"); ("error", `String "invalidhex")]) in 
+		let invalid_hex () = reply 404 (`Assoc [("status", `String "error"); ("error", `String "invalidhex")]) in 
 		(match body |> member "hex" |> to_string with
 		| "null" -> invalid_hex ()
 		| hex -> 
@@ -130,7 +117,7 @@ let handle_request bc net req =
 				| None -> invalid_hex ()
 				| Some (tx) ->
 					Chain.broadcast_tx bc tx;
-					Request.reply req 200 (`Assoc [
+					reply 200 (`Assoc [
 						("status", `String "ok");
 						("txid", `String (tx.hash))
 					])
@@ -140,7 +127,7 @@ let handle_request bc net req =
 	(* Get address info *)
 	| (Request.GET, "address" :: addr :: [], _) -> 
 		let ad = Storage.get_address bc.storage addr in
-		Request.reply req 200 (`Assoc [
+		reply 200 (`Assoc [
 			("status", `String "ok");
 			("address", `Assoc [
 				("address", `String addr);
@@ -156,7 +143,7 @@ let handle_request bc net req =
 	| (Request.GET, "address" :: addr :: "txs" :: [], _) -> 
 		let txl = Storage.get_address_txs bc.storage addr in
 		let assoc = List.map (fun hash -> `String hash) txl in
-		Request.reply req 200 (`Assoc [
+		reply 200 (`Assoc [
 			("status", `String "ok");
 			("txs", `List assoc)
 		])
@@ -170,7 +157,7 @@ let handle_request bc net req =
 		| None -> txl_expand hashes' acc
 		| Some (tx) -> txl_expand hashes' @@ acc @ [tx]
 	in
-	Request.reply req 200 (`Assoc [
+	reply 200 (`Assoc [
 		("status", `String "ok");
 		("txs", `List (txl_expand txl []))
 	])
@@ -183,7 +170,7 @@ let handle_request bc net req =
 			| (txhash, i, value) ->
 				`Assoc [ ("tx", `String txhash); ("n", `Int i); ("value", `String (Int64.to_string value)) ]
 		) utxl in
-		Request.reply req 200 (`Assoc [
+		reply 200 (`Assoc [
 			("status", `String "ok");
 			("utxo", `List assoc)
 		])
@@ -194,7 +181,7 @@ let handle_request bc net req =
 		| None -> not_found ()
 		| Some (tx) -> (
 			let txhex = Tx.serialize tx |> Hash.of_bin_norev in
-			Request.reply req 200 (`Assoc [
+			reply 200 (`Assoc [
 					("status", `String "ok"); 
 					("hex", `String txhex)
 			]))
@@ -205,7 +192,7 @@ let handle_request bc net req =
 		(match json_of_tx txid with
 		| None -> not_found ()
 		| Some (tx) ->
-			Request.reply req 200 (`Assoc [
+			reply 200 (`Assoc [
 				("status", `String "ok");
 				("tx", tx)
 			])
@@ -216,7 +203,7 @@ let handle_request bc net req =
 		(match Storage.get_blocki bc.storage @@ Int64.of_string bli with
 		| None -> not_found ()
 		| Some (b) ->
-			Request.reply req 200 (`Assoc [
+			reply 200 (`Assoc [
 				("status", `String "ok");
 				("block", `Assoc [
 					("hash", `String (b.header.hash));
@@ -235,7 +222,7 @@ let handle_request bc net req =
 		(match Storage.get_block bc.storage bid with
 		| None -> not_found ()
 		| Some (b) ->
-			Request.reply req 200 (`Assoc [
+			reply 200 (`Assoc [
 				("status", `String "ok");
 				("block", `Assoc [
 					("hash", `String (b.header.hash));
@@ -265,7 +252,7 @@ let handle_request bc net req =
 				])::get_last_blocks (Int64.sub height Int64.one) (n-1)
 			| None -> []
 		in
-		Request.reply req 200 (`Assoc [
+		reply 200 (`Assoc [
 			("status", `String "ok");
 			("state", `Assoc [
 				("blocks", `List (get_last_blocks bc.block_height 10));
@@ -274,7 +261,7 @@ let handle_request bc net req =
 
 	(* Get chain state *)
 	| (Request.GET, "" :: [], _) ->
-		Request.reply req 200 (`Assoc [
+		reply 200 (`Assoc [
 			("status", `String "ok");
 			("state", `Assoc [
 				("chain", `String (Params.name_of_network bc.params.network));

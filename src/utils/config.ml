@@ -12,10 +12,10 @@ type rest = {
 };;
 
 type rpc = {
+	enable: bool;
 	port	: int;
 	user	: string;
 	password: string;
-	enable: bool;
 };;
 
 type t = {
@@ -24,8 +24,8 @@ type t = {
 	base_path	: string;
 	path			: string;
 
-	rest: rest;
-	rpc: rpc;
+	rest			: rest;
+	rpc				: rpc;
 
 	address_index	: bool;
 	tx_index			: bool;

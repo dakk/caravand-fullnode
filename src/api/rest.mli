@@ -15,7 +15,6 @@ module Request : sig
 	}
 
 	val recv    : Unix.file_descr -> t option
-    val reply   : t -> int -> Yojson.Basic.json -> unit
 end
 
 type t

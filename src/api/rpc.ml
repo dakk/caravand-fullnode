@@ -24,9 +24,7 @@ module Request = struct
 
 	let recv socket = 
 		try (
-			let data_raw = Bytes.create 4096 in
-			let reqlen = Unix.recv socket data_raw 0 4096 [] in
-			let data_raw = String.sub data_raw 0 reqlen in
+			let data_raw = Helper.recv socket in
 			let data_split = String.split_on_char '{' data_raw in
 			let body = "{" ^ List.nth data_split 1 in
 			let j = Yojson.Basic.from_string body in
@@ -40,21 +38,14 @@ module Request = struct
 	;;
 
 	let reply req jdata =
-		let send_string str = 
-			let len = String.length str in
-			send req.socket str 0 len [] |> ignore
-		in 
 		`Assoc [
 			("id", `String req.id);
 			("result", jdata);
-		] |> to_string |> send_string
+		] |> to_string |> Helper.send req.socket
 	;;
 
 	let replyerr req jdata =
-		let send_string str = 
-			let len = String.length str in
-			send req.socket str 0 len [] |> ignore
-		in ()
+		()
 	;;
 end
 

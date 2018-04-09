@@ -1,10 +1,17 @@
-B ../../_build/default/src/utils
+B ../../_build/default/src/utils/.utils.objs
+B /home/dakk/.opam/4.05.0/lib/biniou
+B /home/dakk/.opam/4.05.0/lib/cryptokit
+B /home/dakk/.opam/4.05.0/lib/easy-format
+B /home/dakk/.opam/4.05.0/lib/ocaml
+B /home/dakk/.opam/4.05.0/lib/ocaml/threads
+B /home/dakk/.opam/4.05.0/lib/yojson
+B /home/dakk/.opam/4.05.0/lib/zarith
 FLG -open Utils -w -40
-PKG biniou
-PKG cryptokit
-PKG easy-format
-PKG threads
-PKG threads.posix
-PKG unix
-PKG yojson
-PKG zarith
+S .
+S /home/dakk/.opam/4.05.0/lib/biniou
+S /home/dakk/.opam/4.05.0/lib/cryptokit
+S /home/dakk/.opam/4.05.0/lib/easy-format
+S /home/dakk/.opam/4.05.0/lib/ocaml
+S /home/dakk/.opam/4.05.0/lib/ocaml/threads
+S /home/dakk/.opam/4.05.0/lib/yojson
+S /home/dakk/.opam/4.05.0/lib/zarith
