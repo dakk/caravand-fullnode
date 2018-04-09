@@ -16,48 +16,12 @@ open Yojson.Basic.Util;;
 open Yojson.Basic;;
 
 
-module Request = struct
-	type m = GET | POST | PUT | DELETE;;
-
-	type t = {
-		uri		: string list;
-		data	: Yojson.Basic.json option;
-		rmethod	: m;
-		socket 	: Unix.file_descr;
-	};;
-
-	let recv socket = 
-		let method_of_string s = match s with
-		| "GET" -> GET
-		| "POST" -> POST
-		| "DELETE" -> DELETE
-		| "PUT" -> PUT
-		| _ -> GET
-		in
-		try (
-			let data_raw = Helper.recv socket in
-			let data = String.split_on_char ' ' data_raw in
-			match data with
-			| m :: u :: dl -> 
-				let data_split = String.split_on_char '\n' data_raw in
-				let body = List.nth data_split (List.length data_split - 1) in
-				let body_json = try Some (Yojson.Basic.from_string body) with _ -> None in
-				Some ({ 
-					uri= List.tl @@ String.split_on_char '/' u; 
-					data= body_json;
-					rmethod= method_of_string m;
-					socket= socket
-				})
-			| _ -> None 
-		) with _ -> None
-	;;
-end
 
 let handle_request bc net req = 
-	let reply = Helper.HTTP.send_json req.Request.socket in
+	let reply = Helper.HTTP.reply_json req.Helper.HTTP.socket in
 	let not_found () = reply 404 (`Assoc [("status", `String "error"); ("error", `String "notfound")]) in
 	
-	Log.debug "Api.Rest ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Request.uri;	
+	Log.debug "Api.Rest ↔" "%s" @@ List.fold_left (fun x acc -> x ^ "/" ^ acc) "" req.Helper.HTTP.uri;	
 
 	let json_of_tx txid = 
 		let rec inputs_to_jsonlist inputs = match inputs with
@@ -103,10 +67,10 @@ let handle_request bc net req =
 		))
 	in
 	
-	match req.Request.rmethod, req.Request.uri, req.Request.data with
+	match req.Helper.HTTP.rmethod, req.Helper.HTTP.uri, req.Helper.HTTP.body_json with
 
 	(* Push a tx *)
-	| (Request.POST, "tx" :: [], Some (body)) ->
+	| (Helper.HTTP.POST, "tx" :: [], Some (body)) ->
 		let invalid_hex () = reply 404 (`Assoc [("status", `String "error"); ("error", `String "invalidhex")]) in 
 		(match body |> member "hex" |> to_string with
 		| "null" -> invalid_hex ()
@@ -125,7 +89,7 @@ let handle_request bc net req =
 		)
 
 	(* Get address info *)
-	| (Request.GET, "address" :: addr :: [], _) -> 
+	| (Helper.HTTP.GET, "address" :: addr :: [], _) -> 
 		let ad = Storage.get_address bc.storage addr in
 		reply 200 (`Assoc [
 			("status", `String "ok");
@@ -140,7 +104,7 @@ let handle_request bc net req =
 		])
 
 	(* Get address txs *)
-	| (Request.GET, "address" :: addr :: "txs" :: [], _) -> 
+	| (Helper.HTTP.GET, "address" :: addr :: "txs" :: [], _) -> 
 		let txl = Storage.get_address_txs bc.storage addr in
 		let assoc = List.map (fun hash -> `String hash) txl in
 		reply 200 (`Assoc [
@@ -149,7 +113,7 @@ let handle_request bc net req =
 		])
 
 	(* Get address txs with full tx *)
-	| (Request.GET, "address" :: addr :: "txs" :: "expanded" :: [], _) -> 
+	| (Helper.HTTP.GET, "address" :: addr :: "txs" :: "expanded" :: [], _) -> 
 	let txl = Storage.get_address_txs bc.storage addr in
 	let rec txl_expand hashes acc = match hashes with
 	| [] -> acc
@@ -163,7 +127,7 @@ let handle_request bc net req =
 	])
 
 	(* Get address utxo *)
-	| (Request.GET, "address" :: addr :: "utxo" :: [], _) -> 
+	| (Helper.HTTP.GET, "address" :: addr :: "utxo" :: [], _) -> 
 		let utxl = Storage.get_address_utxs bc.storage addr in
 		let assoc = List.map (fun ut -> 
 			match ut with
@@ -176,7 +140,7 @@ let handle_request bc net req =
 		])
 
 	(* Get a raw tx *)
-	| (Request.GET, "tx" :: txid :: "raw" :: [], _) ->
+	| (Helper.HTTP.GET, "tx" :: txid :: "raw" :: [], _) ->
 		(match Storage.get_tx bc.storage txid with 
 		| None -> not_found ()
 		| Some (tx) -> (
@@ -188,7 +152,7 @@ let handle_request bc net req =
 		)
 
 	(* Get tx info *)
-	| (Request.GET, "tx" :: txid :: [], _) -> 
+	| (Helper.HTTP.GET, "tx" :: txid :: [], _) -> 
 		(match json_of_tx txid with
 		| None -> not_found ()
 		| Some (tx) ->
@@ -199,7 +163,7 @@ let handle_request bc net req =
 		)
 
 	(* Get block info by index *)
-	| (Request.GET, "block" :: "i" :: bli :: [], _) -> 
+	| (Helper.HTTP.GET, "block" :: "i" :: bli :: [], _) -> 
 		(match Storage.get_blocki bc.storage @@ Int64.of_string bli with
 		| None -> not_found ()
 		| Some (b) ->
@@ -218,7 +182,7 @@ let handle_request bc net req =
 		)
 
 	(* Get block info by hash *)
-	| (Request.GET, "block" :: bid :: [], _) -> 
+	| (Helper.HTTP.GET, "block" :: bid :: [], _) -> 
 		(match Storage.get_block bc.storage bid with
 		| None -> not_found ()
 		| Some (b) ->
@@ -237,7 +201,7 @@ let handle_request bc net req =
 		)
 
 	(* Get last blocks *)
-	| (Request.GET, "lastblocks" :: [], _) ->
+	| (Helper.HTTP.GET, "lastblocks" :: [], _) ->
 		let rec get_last_blocks height n = match n with
 		| 0 -> []
 		| n' -> match Storage.get_blocki bc.storage height with
@@ -260,7 +224,7 @@ let handle_request bc net req =
 		])
 
 	(* Get chain state *)
-	| (Request.GET, "" :: [], _) ->
+	| (Helper.HTTP.GET, "" :: [], _) ->
 		reply 200 (`Assoc [
 			("status", `String "ok");
 			("state", `Assoc [
@@ -313,12 +277,11 @@ let init (rconf: Config.rest) bc net = {
 
 let loop a =
 	let rec do_listen socket =
-		let (client_sock, _) = accept socket in
-		match Request.recv client_sock with
+		let (client_sock, _) = accept socket in		
+		match Helper.HTTP.parse_request socket with
 		| None -> 
-			(*close client_sock;*)
 			if a.run then do_listen socket
-		| Some (req) ->
+		| Some (req) -> 
 			handle_request a.blockchain a.network req;
 			(*close client_sock;*)
 			if a.run then do_listen socket
