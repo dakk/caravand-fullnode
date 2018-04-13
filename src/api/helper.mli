@@ -3,6 +3,8 @@ open Unix
 
 val send : Unix.file_descr -> string -> unit
 val recv : Unix.file_descr -> string
+val shutdown : Unix.file_descr -> unit
+val listen : Unix.file_descr -> int -> int -> unit
 
 module HTTP : sig
   type met = GET | POST | DELETE | PUT

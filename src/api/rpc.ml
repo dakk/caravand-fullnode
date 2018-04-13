@@ -74,8 +74,7 @@ let loop a =
 	in
 	if a.conf.enable then (
 		Log.info "Api.Rpc" "Binding to port: %d" a.conf.port;
-		bind a.socket (ADDR_INET (inet_addr_of_string "0.0.0.0", a.conf.port));
-		listen a.socket 8;
+		Helper.listen a.socket a.conf.port 8;
     try do_listen a.socket with _ -> ()
 	) else ()
 ;;
@@ -83,7 +82,7 @@ let loop a =
 let shutdown a = 
 	if a.conf.enable then (
     Log.fatal "Api.Rpc" "Shutdown...";
-		try ( Unix.shutdown a.socket Unix.SHUTDOWN_ALL ) with | _ -> ();
+		Helper.shutdown a.socket;
 		a.run <- false
   ) else ()
 ;;

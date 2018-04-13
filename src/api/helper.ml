@@ -13,6 +13,16 @@ let recv socket =
 	let reqlen = Unix.recv socket data_raw 0 4096 [] in
   String.sub data_raw 0 reqlen
 ;;
+
+
+let shutdown socket =
+  try ( Unix.shutdown socket Unix.SHUTDOWN_ALL ) with | _ -> ();
+;;
+
+let listen socket port ns =
+  bind socket (ADDR_INET (inet_addr_of_string "0.0.0.0", port));
+  listen socket ns
+;;
       
 module HTTP = struct
   type met = GET | POST | DELETE | PUT;;
