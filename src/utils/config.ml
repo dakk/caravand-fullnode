@@ -167,7 +167,7 @@ let rec load_or_init base_path =
 					password= base_path ^ (json |> member "rpc" |> member "password" |> to_string);
 				};
 				
-				path= base_path ^ (json |> member "chain" |> to_string);
+				path= base_path ^ "/" ^ (json |> member "chain" |> to_string);
 				address_index= json |> member "address_index" |> to_bool;
 				tx_index= true;
 				mode= FullNode;
