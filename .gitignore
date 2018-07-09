@@ -16,3 +16,4 @@ setup.ml
 *.log
 configure
 META
+.merlin
