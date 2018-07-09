@@ -65,6 +65,17 @@ let handle_request bc net req =
 			])
 		))
 	in
+	let get_address addr = 
+		let ad = Storage.get_address bc.storage addr in
+		(`Assoc [
+				("address", `String addr);
+				("balance", `String (Int64.to_string ad.balance));
+				("unconfirmed_balance", `String (Int64.to_string @@ Int64.zero));
+				("sent", `String (Int64.to_string ad.sent));
+				("received", `String (Int64.to_string ad.received));
+				("txs", `String (Int64.to_string ad.txs))				
+		])
+	in
 	
 	match req.Helper.HTTP.rmethod, req.Helper.HTTP.uri, req.Helper.HTTP.body_json with
 
@@ -88,19 +99,20 @@ let handle_request bc net req =
 		)
 
 	(* Get address info *)
-	| (Helper.HTTP.GET, "address" :: addr :: [], _) -> 
-		let ad = Storage.get_address bc.storage addr in
+	| (Helper.HTTP.GET, "address" :: addr :: [], _) ->
 		reply 200 (`Assoc [
 			("status", `String "ok");
-			("address", `Assoc [
-				("address", `String addr);
-				("balance", `String (Int64.to_string ad.balance));
-				("unconfirmed_balance", `String (Int64.to_string @@ Int64.zero));
-				("sent", `String (Int64.to_string ad.sent));
-				("received", `String (Int64.to_string ad.received));
-				("txs", `String (Int64.to_string ad.txs))				
-			])
+			("address", get_address addr)
 		])
+
+	(* Get addresses info *)
+	| (Helper.HTTP.GET, "addresses" :: addrs :: [], _) -> 
+		let addrsl = Str.split (Str.regexp_string "|") addrs in
+		reply 200 (`Assoc [
+			("status", `String "ok");
+			("addresses", `List (List.map get_address addrsl))
+		])
+
 
 	(* Get address txs *)
 	| (Helper.HTTP.GET, "address" :: addr :: "txs" :: [], _) -> 

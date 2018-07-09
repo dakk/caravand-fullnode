@@ -3,5 +3,5 @@
 (library
  ((name        api)
   (public_name caravand.api)
-  (libraries (blockchain network yojson))))
+  (libraries (blockchain network yojson str))))
 
