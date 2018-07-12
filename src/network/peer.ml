@@ -87,7 +87,9 @@ let send peer message =
 	let data = Message.serialize peer.params message in
 	let _, wd, _ = Unix.select [] [peer.socket] [] 5.0 in
 	match List.length wd with
-	| 0 -> Log.debug "Peer" "%s: write descriptor not available" (Unix.string_of_inet_addr peer.address)
+	| 0 -> (
+		Log.error "Peer" "%s: write descriptor not available" (Unix.string_of_inet_addr peer.address);
+		disconnect peer)
 	| n -> (
 		try (
 			let wl = Unix.send peer.socket data 0 (Bytes.length data) [] in
@@ -95,7 +97,7 @@ let send peer message =
 				(string_of_command message) (byten_to_string peer.sent) (byten_to_string peer.received);
 			peer.sent <- peer.sent + wl
 		) with
-		| _ -> Log.error "Peer →" "Broken pipe"; disconnect peer; ()
+		| _ -> Log.error "Peer →" "Broken pipe"; disconnect peer
 	)
 ;;
 
