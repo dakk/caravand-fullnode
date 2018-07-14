@@ -21,13 +21,18 @@ let main () =
 				
 		let bc = Chain.load conf.path conf p in
 		let n = Net.init bc.Chain.params conf in 
-		let chain_thread = Thread.create (fun bc -> Chain.loop bc) bc in
-		let net_thread = Thread.create (fun (n, bc) -> Net.loop n bc) (n, bc) in
+		(*let chain_thread = Thread.create (fun bc -> Chain.loop bc) bc in
+		let net_thread = Thread.create (fun (n, bc) -> Net.loop n bc) (n, bc) in*)
 
 		let rest = Api.Rest.init conf.rest bc n in
 		let rest_thread = Thread.create (fun rest -> Api.Rest.loop rest) rest in
 		let rpc = Api.Rpc.init conf.rpc bc n in
 		let rpc_thread = Thread.create (fun rpc -> Api.Rpc.loop rpc) rpc in
+
+		while true do (
+			Chain.step bc;
+			Net.step n bc
+		) done;
 		
 		let sighandler signal =
 			Log.fatal Constants.name "Quit signal, shutdown. Please wait for the secure shutdown procedure.";
@@ -42,8 +47,8 @@ let main () =
 
 		Log.info Constants.name "Waiting for childs";
 
-		Thread.join net_thread;
-		Thread.join chain_thread;
+		(*Thread.join net_thread;
+		Thread.join chain_thread;*)
 		Thread.join rest_thread;
 		Thread.join rpc_thread;
 		Log.info Constants.name "Exit.";

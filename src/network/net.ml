@@ -81,92 +81,96 @@ let shutdown n =
 	n.run <- false
 ;;
 
+let step n bc = 
+	Thread.delay 1.;
+
+	(* Print network stats *)
+	let sent = sent n in
+	let received = received n in
+	(*Log.debug "Network" "Stats: %s sent, %s received, %d connected peers (%d waitping)" (byten_to_string sent) 
+		(byten_to_string received) (connected_peers n) (waitping_peers n);*)
+
+	(* Check for connection timeout and minimum number of peer*)		
+	Hashtbl.iter (fun k peer -> 
+		match (peer.status, peer.last_seen) with
+		| (WAITPING (rnd), x) when x < (Unix.time () -. 60. *. 2.0) ->
+			Peer.disconnect peer;
+			Log.info "Network" "Peer %s disconnected for inactivity" k
+		| (CONNECTED, x) when x < (Unix.time () -. 60. *. 1.5) ->
+			let rnd = Random.int64 0xFFFFFFFFFFFFFFFL in
+			peer.status <- WAITPING (rnd);
+			Peer.send peer (PING (rnd))
+		| (DISCONNECTED, x) ->
+			Hashtbl.remove n.peers k
+		| _ -> () 
+	) n.peers;
+
+	(* Reconnect if the minimum is reached *)		
+	match connected_weighted_peers n with
+	| cp when cp < n.config.peers ->
+		let rec iterate_connect addrs nc = match List.length addrs with
+		| 0 -> 0
+		| _ ->
+			let rindex = Random.int (List.length addrs) in
+			let a = List.nth addrs rindex in	
+			try 
+				Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
+				iterate_connect addrs nc
+			with
+			| Not_found ->
+				let peer = Peer.create n.params n.config a n.params.port in
+				Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
+				Thread.create (Peer.start peer) bc |> ignore; 
+				(match nc with
+				| 1 -> 1
+				| nc' -> 1 + (iterate_connect n.addrs @@ nc' - 1))
+			| _ -> 0
+		in
+		Log.warn "Network" "Peers below the number of peers";
+		let nc = iterate_connect n.addrs @@ n.config.peers - cp in
+		Log.info "Network" "Connected to %d new peers" nc;
+		()
+	| _ -> ()
+	;
+	
+	(* Check for request *)
+	(*Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);*)
+	if available_peers n <> 0 then
+		Cqueue.iter bc.requests (fun req -> match req with
+		| Chain.Request.RES_INV_TX (txh) -> 
+			let msg = Message.INV [ (Message.INV_TX txh) ] in
+			Hashtbl.iter (fun k p -> Peer.send p msg) n.peers
+		| Chain.Request.RES_HBLOCKS (hl, addr) -> (
+			match peer_of_addr n addr with
+			| None -> ()
+			| Some (p) -> Peer.send p @@ Message.HEADERS (hl))
+		| Chain.Request.RES_TX (tx, addr) -> (
+			match peer_of_addr n addr with
+			| None -> ()
+			| Some (p) -> Peer.send p @@ Message.TX (tx))
+		| Chain.Request.REQ_HBLOCKS (h, addr)	->
+			let msg = { version= Int32.of_int 1; hashes= h; stop= Hash.zero; } in 
+			send n @@ Message.GETHEADERS (msg)
+		| Chain.Request.REQ_TX (txh, Some (addr)) -> (
+			match peer_of_addr n addr with
+			| None -> ()
+			| Some (p) -> Peer.send p @@ Message.GETDATA ([INV_TX (txh)]))
+		| Chain.Request.REQ_BLOCKS (hs, addr)	->
+			let rec create_invs hs acc = match hs with
+			| [] -> acc
+			| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)
+			in send n @@ Message.GETDATA (create_invs hs []);
+		| _ -> ()) |> ignore
+;;
+
 let loop n bc = 
 	Log.info "Network" "Starting mainloop.";
 	
 	Hashtbl.iter (fun k peer -> Thread.create (Peer.start peer) bc |> ignore) n.peers;
 					
-	while n.run do
-		Unix.sleep 2;
-
-		(* Print network stats *)
-		let sent = sent n in
-		let received = received n in
-		Log.debug "Network" "Stats: %s sent, %s received, %d connected peers (%d waitping)" (byten_to_string sent) 
-			(byten_to_string received) (connected_peers n) (waitping_peers n);
-
-		(* Check for connection timeout and minimum number of peer*)		
-		Hashtbl.iter (fun k peer -> 
-			match (peer.status, peer.last_seen) with
-			| (WAITPING (rnd), x) when x < (Unix.time () -. 60. *. 2.0) ->
-				Peer.disconnect peer;
-				Log.info "Network" "Peer %s disconnected for inactivity" k
-			| (CONNECTED, x) when x < (Unix.time () -. 60. *. 1.5) ->
-				let rnd = Random.int64 0xFFFFFFFFFFFFFFFL in
-				peer.status <- WAITPING (rnd);
-				Peer.send peer (PING (rnd))
-			| (DISCONNECTED, x) ->
-				Hashtbl.remove n.peers k
-			| _ -> () 
-		) n.peers;
-
-		(* Reconnect if the minimum is reached *)		
-		match connected_weighted_peers n with
-		| cp when cp < n.config.peers ->
-			let rec iterate_connect addrs nc = match List.length addrs with
-			| 0 -> 0
-			| _ ->
-				let rindex = Random.int (List.length addrs) in
-				let a = List.nth addrs rindex in	
-				try 
-					Hashtbl.find n.peers (Unix.string_of_inet_addr a) |> ignore;
-					iterate_connect addrs nc
-				with
-				| Not_found ->
-					let peer = Peer.create n.params n.config a n.params.port in
-					Hashtbl.add n.peers (Unix.string_of_inet_addr a) peer;
-					Thread.create (Peer.start peer) bc |> ignore; 
-					(match nc with
-					| 1 -> 1
-					| nc' -> 1 + (iterate_connect n.addrs @@ nc' - 1))
-				| _ -> 0
-			in
-			Log.warn "Network" "Peers below the number of peers";
-			let nc = iterate_connect n.addrs @@ n.config.peers - cp in
-			Log.info "Network" "Connected to %d new peers" nc;
-			()
-		| _ -> ()
-		;
-		
-		(* Check for request *)
-		(*Log.info "Network" "Pending request from blockchain: %d" (Cqueue.length bc.requests);*)
-		if available_peers n <> 0 then
-			Cqueue.iter bc.requests (fun req -> match req with
-			| Chain.Request.RES_INV_TX (txh) -> 
-				let msg = Message.INV [ (Message.INV_TX txh) ] in
-				Hashtbl.iter (fun k p -> Peer.send p msg) n.peers
-			| Chain.Request.RES_HBLOCKS (hl, addr) -> (
-				match peer_of_addr n addr with
-				| None -> ()
-				| Some (p) -> Peer.send p @@ Message.HEADERS (hl))
-			| Chain.Request.RES_TX (tx, addr) -> (
-				match peer_of_addr n addr with
-				| None -> ()
-				| Some (p) -> Peer.send p @@ Message.TX (tx))
-			| Chain.Request.REQ_HBLOCKS (h, addr)	->
-				let msg = { version= Int32.of_int 1; hashes= h; stop= Hash.zero; } in 
-				send n @@ Message.GETHEADERS (msg)
-			| Chain.Request.REQ_TX (txh, Some (addr)) -> (
-				match peer_of_addr n addr with
-				| None -> ()
-				| Some (p) -> Peer.send p @@ Message.GETDATA ([INV_TX (txh)]))
-			| Chain.Request.REQ_BLOCKS (hs, addr)	->
-				let rec create_invs hs acc = match hs with
-				| [] -> acc
-				| h::hs' -> create_invs hs' ((INV_BLOCK (h)) :: acc)
-				in send n @@ Message.GETDATA (create_invs hs []);
-			| _ -> ()) |> ignore
-	done;
+	while n.run do (
+		step n bc
+	)	done;
 
 	(* Shutdown *)
 	Hashtbl.iter (fun k peer -> 

@@ -69,6 +69,7 @@ val load			: string -> Config.t -> Params.t -> t
 
 (* Start the event loop for blockchain *)
 val loop			: t -> unit
+val step			: t -> unit
 val shutdown 	: t -> unit
 
 
